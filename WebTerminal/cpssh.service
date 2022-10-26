@@ -1,0 +1,12 @@
+[Unit]
+Description = CyberPanel SSH Websocket Daemon
+
+[Service]
+Type=forking
+ExecStart = /usr/local/CyberCP/bin/python /usr/local/CyberCP/WebTerminal/servCTRL.py start
+ExecStop = /usr/local/CyberCP/bin/python /usr/local/CyberCP/WebTerminal/servCTRL.py stop
+Restart = /usr/local/CyberCP/bin/python /usr/local/CyberCP/WebTerminal/servCTRL.py restart
+Restart=on-abnormal
+
+[Install]
+WantedBy=default.target

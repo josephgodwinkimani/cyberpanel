@@ -1,0 +1,7 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+*.pyc
+.idea
+venv
+/.venv/

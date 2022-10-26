@@ -1,0 +1,152 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Mail Queue - CyberPanel" %}{% endblock %}
+{% block content %}
+
+    {% load static %}
+    {% get_current_language as LANGUAGE_CODE %}
+    <!-- Current language: {{ LANGUAGE_CODE }} -->
+
+
+    <div class="container">
+
+        <div id="page-title">
+            <h2 id="domainNamePage">{% trans "Mail Queue" %} - <a target="_blank"
+                                              href="https://go.cyberpanel.net/mailQueue"
+                                              style="height: 23px;line-height: 21px;"
+                                              class="btn btn-border btn-alt border-red btn-link font-red"
+                                              title=""><span>{% trans "Queue Docs" %}</span></a>
+            </h2>
+            <p>{% trans "On this page you manage your server Email Queue." %}</p>
+        </div>
+
+        <div ng-controller="mailQueue" class="panel">
+            <div class="panel-body">
+
+                <h3 class="content-box-header">
+                    {% trans "Mail Queue" %} <img
+                        ng-hide="cyberpanelLoading" src="{% static 'images/loading.gif' %}">
+                </h3>
+
+                <div class="example-box-wrapper">
+
+                    <!-- <div class="row">
+                        <div class="col-sm-10">
+                        </div>
+                        <div class="col-sm-2">
+                            <div class="form-group">
+                                <select ng-model="recordsToShow"
+                                        ng-change="fetchGitLogs()"
+                                        class="form-control" id="example-select">
+                                    <option>10</option>
+                                    <option>50</option>
+                                    <option>100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div> -->
+
+                    <button ng-click="fetchMailQueue()" class="btn btn-info">{% trans 'Refresh' %}</button>
+                    <button ng-click="flushQueue()" class="btn btn-info">{% trans 'Flush Queue' %}</button>
+                    <button ng-click="delete('all')" class="btn btn-info">{% trans 'Delete All' %}</button>
+                    <button ng-click="delete('deferred')" class="btn btn-info">{% trans 'Delete Deferred' %}</button>
+
+                    <table style="margin: 0px; padding: 0px" cellpadding="0" cellspacing="0" border="0"
+                           class="table table-striped table-bordered"
+                           id="datatable-example">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Queue Name</th>
+                            <th>Size</th>
+                            <th>Sender</th>
+                            <th>Recipients</th>
+                            <!--<th>Time</th>-->
+                            <th>Deliver</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+
+                        <tr ng-repeat="queue in queues track by $index">
+                            <td><code ng-bind="queue.queue_id"></code></td>
+                            <td ng-bind="queue.queue_name"></td>
+                            <td ng-bind="queue.message_size"></td>
+                            <td ng-bind="queue.sender"></td>
+                            <td ng-bind="queue.recipients"></td>
+                            <!--<td ng-bind="queue.arrival_time"></td>-->
+                            <td>
+                                <a data-toggle="modal" data-target="#viewMessage"
+                                   ng-click="fetchMessage(queue.queue_id)"
+                                   class="btn btn-border btn-alt border-green btn-link font-green" href="#"
+                                   title=""><span>View Message</span></a>
+                                <div id="viewMessage" class="modal fade" role="dialog">
+                                    <div class="modal-dialog">
+                                        <!-- Modal content-->
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <button type="button" class="close" data-dismiss="modal">&times;
+                                                </button>
+                                                <h4 class="modal-title">{% trans "Message" %}</h4>
+                                            </div>
+                                            <div class="modal-body">
+
+                                                <form name="containerSettingsForm" action="/" class="form-horizontal">
+
+                                                    <div class="form-group">
+
+                                                        <div class="col-sm-12">
+                                                            <textarea rows="10"
+                                                                      class="form-control">{$ emailMessageContent $}</textarea>
+                                                        </div>
+                                                    </div>
+
+                                                </form>
+
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button"
+                                                        class="btn btn-primary"
+                                                        ng-click="commitChanges()">Commit <img
+                                                        ng-hide="cyberpanelLoading"
+                                                        src="{% static 'images/loading.gif' %}">
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-default" data-dismiss="modal">
+                                                    Close
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                        </tbody>
+                    </table>
+
+                    <!-- <div style="margin-top: 2%" class="row">
+                       <div class="col-md-12">
+                           <div class="row">
+                               <div class="col-md-9">
+                               </div>
+                               <div class="col-md-3">
+                                   <div class="form-group">
+                                       <select ng-model="currentPage" class="form-control"
+                                               ng-change="fetchGitLogs()">
+                                           <option ng-repeat="page in pagination">{$ $index + 1
+                                               $}
+                                           </option>
+                                       </select>
+                                   </div>
+                               </div>
+                           </div>
+                       </div> -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+{% endblock %}

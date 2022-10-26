@@ -1,0 +1,212 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "List Databases  - CyberPanel" %}{% endblock %}
+{% block content %}
+
+    {% load static %}
+    {% get_current_language as LANGUAGE_CODE %}
+    <!-- Current language: {{ LANGUAGE_CODE }} -->
+
+
+    <div class="container">
+        <div id="page-title">
+            <h2>{% trans "List Databases" %}
+                <a class="pull-right btn btn-primary" href="{% url "createDatabase" %}">{% trans "Create Database" %}</a>
+            </h2>
+            <p>{% trans "List Databases or change their passwords." %}</p>
+        </div>
+        <div ng-controller="listDBs" class="panel">
+            <div class="panel-body">
+                <h3 class="content-box-header">
+                    {% trans "List Databases" %} <img ng-hide="dbLoading" src="{% static 'images/loading.gif' %}">
+                </h3>
+                <div class="example-box-wrapper">
+
+                    <form action="/" class="form-horizontal bordered-row panel-body">
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label">{% trans "Select Domain" %}</label>
+                            <div class="col-sm-6">
+                                <select ng-change="fetchDBs()" ng-model="selectedDomain" class="form-control">
+                                    {% for items in AllWebsites %}
+                                        <option>{{ items }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+
+                        <div ng-hide="notificationsBox" class="form-group">
+
+
+                            <label class="col-sm-3 control-label"></label>
+                            <div class="col-sm-6">
+
+                                <div ng-hide="recordsFetched" class="alert alert-success">
+                                    <p>{% trans "Records successfully fetched for" %} <strong>{$ domainFeteched
+                                        $}</strong></p>
+                                </div>
+
+                                <div ng-hide="passwordChanged" class="alert alert-success">
+                                    {% trans "Password changed for: " %} <strong>{$ dbUsername $}</strong>
+                                </div>
+
+                                <div ng-hide="canNotChangePassword" class="alert alert-danger">
+                                    <p>{% trans "Cannot change password for " %}<strong>{$ dbUsername
+                                        $}</strong>, {% trans "Error message:" %} {$ errorMessage $}</p>
+                                </div>
+
+
+                                <div ng-hide="couldNotConnect" class="alert alert-danger">
+                                    <p>{% trans "Could Not Connect to server. Please refresh this page" %}</p>
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <div ng-hide="changePasswordBox" class="form-group">
+                            <label class="col-sm-3 control-label">{$ dbUsername $}</label>
+                            <div class="col-sm-6">
+                                <input name="dom" type="password" class="form-control" ng-model="dbPassword" required>
+                            </div>
+
+                            <div class="col-sm-3">
+                                <button type="button" ng-click="generatePassword()"
+                                        class="btn btn-primary">{% trans "Generate" %}</button>
+                            </div>
+
+                            <label ng-hide="generatedPasswordView" style="margin-top: 1%"
+                                   class="col-sm-3 control-label">{% trans "Generated Password" %}</label>
+                            <div ng-hide="generatedPasswordView" style="margin-top: 1%" class="col-sm-6">
+                                <input name="dom" type="text" class="form-control" ng-model="dbPassword" required>
+                            </div>
+
+                            <div ng-hide="generatedPasswordView" style="margin-top: 1%" class="col-sm-3">
+                                <button type="button" ng-click="usePassword()"
+                                        class="btn btn-primary">{% trans "Use" %}</button>
+                            </div>
+
+
+                            <div style="margin-top: 1%" class="col-sm-6 col-md-offset-3">
+                                <button type="button" ng-click="changePasswordBtn()"
+                                        class="btn btn-primary btn-lg">{% trans "Change Password" %}</button>
+                            </div>
+                        </div>
+
+
+                        <!------ List of records --------------->
+
+                        <div ng-hide="dbAccounts" class="form-group">
+
+                            <div class="col-sm-12">
+
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th>{% trans "ID" %}</th>
+                                        <th>{% trans "Database Name" %}</th>
+                                        <th>{% trans "Database User" %}</th>
+                                        <th>{% trans "Password" %}</th>
+                                        <th>{% trans "Remote Access" %}</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr ng-repeat="record in records track by $index">
+                                        <td ng-bind="record.id"></td>
+                                        <td ng-bind="record.dbName"></td>
+                                        <td ng-bind="record.dbUser"></td>
+                                        <td>
+                                            <button type="button" ng-click="changePassword(record.dbUser)"
+                                                    class="btn ra-100 btn-purple">{% trans "Change" %}</button>
+                                        </td>
+                                        <td>
+                                            <button ng-click="remoteAccess(record.dbUser)" data-toggle="modal"
+                                                    data-target="#remoteAccess" type="button"
+                                                    class="btn ra-100 btn-purple">{% trans "Manage" %}</button>
+                                            <div id="remoteAccess" class="modal fade" role="dialog">
+                                                <div class="modal-dialog modal-lg">
+                                                    <!-- Modal content-->
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <button type="button" class="close" data-dismiss="modal">
+                                                                &times;
+                                                            </button>
+                                                            <h4 class="modal-title">{% trans "Remote Access" %} <img
+                                                                    ng-hide="dbLoading"
+                                                                    src="{% static 'images/loading.gif' %}">
+                                                            </h4>
+                                                        </div>
+                                                        <div class="modal-body">
+
+                                                            <form name="containerSettingsForm" action="/"
+                                                                  class="form-horizontal">
+                                                                <div ng-hide="installationDetailsForm"
+                                                                     class="form-group">
+                                                                    <label class="col-sm-5 control-label">{% trans "Allow Remote Access on following IP" %}</label>
+                                                                    <div class="col-sm-6">
+                                                                        <input placeholder="IP Address"
+                                                                               name="remoteIP" type="text"
+                                                                               class="form-control"
+                                                                               ng-model="$parent.remoteIP"
+                                                                               required>
+                                                                    </div>
+                                                                </div>
+
+                                                                <hr>
+
+                                                                <div class="form-group">
+
+                                                                    <label class="col-sm-5 control-label"></label>
+                                                                    <div class="col-sm-4">
+                                                                        <button type="button" ng-click="allowRemoteIP()"
+                                                                                class="btn btn-primary btn-lg">{% trans "Save Changes" %}</button>
+
+                                                                    </div>
+                                                                </div>
+
+                                                            </form>
+
+                                                            <hr>
+
+                                                            <table style="margin-top: 2%" class="table">
+                                                                <thead>
+                                                                <tr>
+                                                                    <th>Username</th>
+                                                                    <th>Host</th>
+                                                                </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                <tr>
+                                                                    <td>{$ dbUsername $}</td>
+                                                                    <td>{$ dbHost $}</td>
+                                                                </tr>
+                                                                </tbody>
+                                                            </table>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!------ List of records --------------->
+
+
+                    </form>
+
+
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+
+{% endblock %}

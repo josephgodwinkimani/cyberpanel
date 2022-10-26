@@ -1,0 +1,19 @@
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+PIDFile=/run/gunicorn/pid
+User=cyberpanel
+Group=cyberpanel
+RuntimeDirectory=gunicorn
+WorkingDirectory=/usr/local/CyberCP
+ExecStart=/usr/local/CyberCP/bin/gunicorn --pid /run/gunicorn/gucpid --timeout 2000 --workers 2   \
+          --bind 127.0.0.1:5003 CyberCP.wsgi
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
