@@ -1,3 +1,11 @@
+import string
+import random
+from CyberCP import settings
+import MySQLdb as mysql
+import time
+import shutil
+import subprocess
+import shlex
 import os
 import os.path
 import sys
@@ -7,14 +15,6 @@ import grp
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
-import shlex
-import subprocess
-import shutil
-import time
-import MySQLdb as mysql
-from CyberCP import settings
-import random
-import string
 
 VERSION = '2.3'
 BUILD = 2
@@ -49,22 +49,22 @@ class Upgrade:
                '"hostnameSSL": 1, "mailServerSSL": 1 }'
 
     ResellerACL = '{"adminStatus":0, "versionManagement": 1, "createNewUser": 1, "listUsers": 1, "deleteUser": 1 , "resellerCenter": 1, ' \
-               '"changeUserACL": 0, "createWebsite": 1, "modifyWebsite": 1, "suspendWebsite": 1, "deleteWebsite": 1, ' \
-               '"createPackage": 1, "listPackages": 1, "deletePackage": 1, "modifyPackage": 1, "createDatabase": 1, "deleteDatabase": 1, ' \
-               '"listDatabases": 1, "createNameServer": 1, "createDNSZone": 1, "deleteZone": 1, "addDeleteRecords": 1, ' \
-               '"createEmail": 1, "listEmails": 1, "deleteEmail": 1, "emailForwarding": 1, "changeEmailPassword": 1, ' \
-               '"dkimManager": 1, "createFTPAccount": 1, "deleteFTPAccount": 1, "listFTPAccounts": 1, "createBackup": 1,' \
-               ' "restoreBackup": 1, "addDeleteDestinations": 0, "scheduleBackups": 0, "remoteBackups": 0, "googleDriveBackups": 1, "manageSSL": 1, ' \
-               '"hostnameSSL": 0, "mailServerSSL": 0 }'
+        '"changeUserACL": 0, "createWebsite": 1, "modifyWebsite": 1, "suspendWebsite": 1, "deleteWebsite": 1, ' \
+        '"createPackage": 1, "listPackages": 1, "deletePackage": 1, "modifyPackage": 1, "createDatabase": 1, "deleteDatabase": 1, ' \
+        '"listDatabases": 1, "createNameServer": 1, "createDNSZone": 1, "deleteZone": 1, "addDeleteRecords": 1, ' \
+        '"createEmail": 1, "listEmails": 1, "deleteEmail": 1, "emailForwarding": 1, "changeEmailPassword": 1, ' \
+        '"dkimManager": 1, "createFTPAccount": 1, "deleteFTPAccount": 1, "listFTPAccounts": 1, "createBackup": 1,' \
+        ' "restoreBackup": 1, "addDeleteDestinations": 0, "scheduleBackups": 0, "remoteBackups": 0, "googleDriveBackups": 1, "manageSSL": 1, ' \
+        '"hostnameSSL": 0, "mailServerSSL": 0 }'
 
     UserACL = '{"adminStatus":0, "versionManagement": 1, "createNewUser": 0, "listUsers": 0, "deleteUser": 0 , "resellerCenter": 0, ' \
-                  '"changeUserACL": 0, "createWebsite": 0, "modifyWebsite": 0, "suspendWebsite": 0, "deleteWebsite": 0, ' \
-                  '"createPackage": 0, "listPackages": 0, "deletePackage": 0, "modifyPackage": 0, "createDatabase": 1, "deleteDatabase": 1, ' \
-                  '"listDatabases": 1, "createNameServer": 0, "createDNSZone": 1, "deleteZone": 1, "addDeleteRecords": 1, ' \
-                  '"createEmail": 1, "listEmails": 1, "deleteEmail": 1, "emailForwarding": 1, "changeEmailPassword": 1, ' \
-                  '"dkimManager": 1, "createFTPAccount": 1, "deleteFTPAccount": 1, "listFTPAccounts": 1, "createBackup": 1,' \
-                  ' "restoreBackup": 0, "addDeleteDestinations": 0, "scheduleBackups": 0, "remoteBackups": 0, "googleDriveBackups": 1, "manageSSL": 1, ' \
-                  '"hostnameSSL": 0, "mailServerSSL": 0 }'
+        '"changeUserACL": 0, "createWebsite": 0, "modifyWebsite": 0, "suspendWebsite": 0, "deleteWebsite": 0, ' \
+        '"createPackage": 0, "listPackages": 0, "deletePackage": 0, "modifyPackage": 0, "createDatabase": 1, "deleteDatabase": 1, ' \
+        '"listDatabases": 1, "createNameServer": 0, "createDNSZone": 1, "deleteZone": 1, "addDeleteRecords": 1, ' \
+        '"createEmail": 1, "listEmails": 1, "deleteEmail": 1, "emailForwarding": 1, "changeEmailPassword": 1, ' \
+        '"dkimManager": 1, "createFTPAccount": 1, "deleteFTPAccount": 1, "listFTPAccounts": 1, "createBackup": 1,' \
+        ' "restoreBackup": 0, "addDeleteDestinations": 0, "scheduleBackups": 0, "remoteBackups": 0, "googleDriveBackups": 1, "manageSSL": 1, ' \
+        '"hostnameSSL": 0, "mailServerSSL": 0 }'
 
     @staticmethod
     def decideCentosVersion():
@@ -120,10 +120,12 @@ class Upgrade:
             FNULL = open(os.devnull, 'w')
             count = 0
             while True:
-                res = subprocess.call(shlex.split(command), stderr=subprocess.STDOUT)
+                res = subprocess.call(shlex.split(
+                    command), stderr=subprocess.STDOUT)
                 if res != 0:
                     count = count + 1
-                    Upgrade.stdOut(component + ' failed, trying again, try number: ' + str(count), 0)
+                    Upgrade.stdOut(
+                        component + ' failed, trying again, try number: ' + str(count), 0)
                     if count == 3:
                         Upgrade.stdOut(component + ' failed.', do_exit)
                         return False
@@ -208,7 +210,7 @@ class Upgrade:
 
     @staticmethod
     def dockerUsers():
-        ### Docker User/group
+        # Docker User/group
         try:
             pwd.getpwnam('docker')
         except KeyError:
@@ -296,13 +298,16 @@ class Upgrade:
             command = 'rm -f /usr/local/CyberCP/public/phpmyadmin.zip'
             Upgrade.executioner(command, 0)
 
-            ## Write secret phrase
+            # Write secret phrase
 
-            rString = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+            rString = ''.join(
+                [random.choice(string.ascii_letters + string.digits) for n in range(32)])
 
-            data = open('/usr/local/CyberCP/public/phpmyadmin/config.sample.inc.php', 'r').readlines()
+            data = open(
+                '/usr/local/CyberCP/public/phpmyadmin/config.sample.inc.php', 'r').readlines()
 
-            writeToFile = open('/usr/local/CyberCP/public/phpmyadmin/config.inc.php', 'w')
+            writeToFile = open(
+                '/usr/local/CyberCP/public/phpmyadmin/config.inc.php', 'w')
 
             writeE = 1
 
@@ -328,7 +333,8 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
                     if writeE:
                         writeToFile.writelines(items)
 
-            writeToFile.writelines("$cfg['TempDir'] = '/usr/local/CyberCP/public/phpmyadmin/tmp';\n")
+            writeToFile.writelines(
+                "$cfg['TempDir'] = '/usr/local/CyberCP/public/phpmyadmin/tmp';\n")
 
             writeToFile.close()
 
@@ -418,7 +424,8 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             count = 1
 
             while (1):
-                command = 'wget https://github.com/the-djmaze/snappymail/releases/download/v%s/snappymail-%s.zip' % (Upgrade.SnappyVersion, Upgrade.SnappyVersion)
+                command = 'wget https://github.com/the-djmaze/snappymail/releases/download/v%s/snappymail-%s.zip' % (
+                    Upgrade.SnappyVersion, Upgrade.SnappyVersion)
                 cmd = shlex.split(command)
                 res = subprocess.call(cmd)
                 if res != 0:
@@ -436,7 +443,8 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
                 shutil.rmtree('/usr/local/CyberCP/public/snappymail')
 
             while (1):
-                command = 'unzip snappymail-%s.zip -d /usr/local/CyberCP/public/snappymail' % (Upgrade.SnappyVersion)
+                command = 'unzip snappymail-%s.zip -d /usr/local/CyberCP/public/snappymail' % (
+                    Upgrade.SnappyVersion)
 
                 cmd = shlex.split(command)
                 res = subprocess.call(cmd)
@@ -484,9 +492,11 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
                     break
             ######
 
-            iPath = os.listdir('/usr/local/CyberCP/public/snappymail/snappymail/v/')
+            iPath = os.listdir(
+                '/usr/local/CyberCP/public/snappymail/snappymail/v/')
 
-            path = "/usr/local/CyberCP/public/snappymail/snappymail/v/%s/include.php" % (iPath[0])
+            path = "/usr/local/CyberCP/public/snappymail/snappymail/v/%s/include.php" % (
+                iPath[0])
 
             data = open(path, 'r').readlines()
             writeToFile = open(path, 'w')
@@ -519,13 +529,15 @@ autocreate_system_folders = On
 
             if os.path.exists(includeFileOldPath):
                 writeToFile = open(includeFileOldPath, 'a')
-                writeToFile.write("\ndefine('APP_DATA_FOLDER_PATH', '/usr/local/lscp/cyberpanel/rainloop/data/');\n")
+                writeToFile.write(
+                    "\ndefine('APP_DATA_FOLDER_PATH', '/usr/local/lscp/cyberpanel/rainloop/data/');\n")
                 writeToFile.close()
 
             command = 'mv %s %s' % (includeFileOldPath, includeFileNewPath)
             Upgrade.executioner(command, 'mkdir snappymail configs', 0)
 
-            command = "sed -i 's|autocreate_system_folders = Off|autocreate_system_folders = On|g' %s" % (labsPath)
+            command = "sed -i 's|autocreate_system_folders = Off|autocreate_system_folders = On|g' %s" % (
+                labsPath)
             Upgrade.executioner(command, 'mkdir snappymail configs', 0)
 
             os.chdir(cwd)
@@ -623,7 +635,8 @@ autocreate_system_folders = On
                     conn = mysql.connect(db=db, user='root', passwd=password)
                 except:
                     try:
-                        conn = mysql.connect(host='127.0.0.1', port=3307, db=db, user='root', passwd=password)
+                        conn = mysql.connect(
+                            host='127.0.0.1', port=3307, db=db, user='root', passwd=password)
                     except:
                         dbUser = settings.DATABASES['default']['USER']
                         password = settings.DATABASES['default']['PASSWORD']
@@ -631,9 +644,11 @@ autocreate_system_folders = On
                         port = settings.DATABASES['default']['PORT']
 
                         if port == '':
-                            conn = mysql.connect(host=host, port=3306, db=db, user=dbUser, passwd=password)
+                            conn = mysql.connect(
+                                host=host, port=3306, db=db, user=dbUser, passwd=password)
                         else:
-                            conn = mysql.connect(host=host, port=int(port), db=db, user=dbUser, passwd=password)
+                            conn = mysql.connect(host=host, port=int(
+                                port), db=db, user=dbUser, passwd=password)
 
             cursor = conn.cursor()
             return conn, cursor
@@ -649,7 +664,8 @@ autocreate_system_folders = On
             connection, cursor = Upgrade.setupConnection('cyberpanel')
 
             try:
-                cursor.execute('CREATE TABLE `baseTemplate_cyberpanelcosmetic` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `MainDashboardCSS` longtext NOT NULL)')
+                cursor.execute(
+                    'CREATE TABLE `baseTemplate_cyberpanelcosmetic` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `MainDashboardCSS` longtext NOT NULL)')
             except:
                 pass
 
@@ -660,42 +676,50 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD token varchar(500)')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD token varchar(500)')
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE loginSystem_administrator ADD secretKey varchar(50) DEFAULT 'None'")
+                cursor.execute(
+                    "ALTER TABLE loginSystem_administrator ADD secretKey varchar(50) DEFAULT 'None'")
             except:
                 pass
 
             try:
-                cursor.execute('alter table databases_databases drop index dbUser;')
+                cursor.execute(
+                    'alter table databases_databases drop index dbUser;')
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE loginSystem_administrator ADD state varchar(15) DEFAULT 'ACTIVE'")
+                cursor.execute(
+                    "ALTER TABLE loginSystem_administrator ADD state varchar(15) DEFAULT 'ACTIVE'")
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD securityLevel integer DEFAULT 1')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD securityLevel integer DEFAULT 1')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD twoFA integer DEFAULT 0')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD twoFA integer DEFAULT 0')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD api integer')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD api integer')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD acl_id integer')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD acl_id integer')
             except:
                 pass
             try:
@@ -705,7 +729,8 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute("insert into loginSystem_acl (id, name, adminStatus) values (1,'admin',1)")
+                cursor.execute(
+                    "insert into loginSystem_acl (id, name, adminStatus) values (1,'admin',1)")
             except:
                 pass
 
@@ -721,34 +746,40 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute("UPDATE loginSystem_administrator SET  acl_id = 1 where userName = 'admin'")
+                cursor.execute(
+                    "UPDATE loginSystem_administrator SET  acl_id = 1 where userName = 'admin'")
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_acl ADD config longtext')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_acl ADD config longtext')
             except:
                 pass
 
             try:
-                cursor.execute("UPDATE loginSystem_acl SET config = '%s' where name = 'admin'" % (Upgrade.AdminACL))
+                cursor.execute("UPDATE loginSystem_acl SET config = '%s' where name = 'admin'" % (
+                    Upgrade.AdminACL))
             except BaseException as msg:
                 print(str(msg))
                 import sleep
                 sleep(10)
 
             try:
-                cursor.execute("UPDATE loginSystem_acl SET config = '%s' where name = 'reseller'" % (Upgrade.ResellerACL))
+                cursor.execute("UPDATE loginSystem_acl SET config = '%s' where name = 'reseller'" % (
+                    Upgrade.ResellerACL))
             except:
                 pass
 
             try:
-                cursor.execute("UPDATE loginSystem_acl SET config = '%s' where name = 'user'" % (Upgrade.UserACL))
+                cursor.execute(
+                    "UPDATE loginSystem_acl SET config = '%s' where name = 'user'" % (Upgrade.UserACL))
             except:
                 pass
 
             try:
-                cursor.execute("alter table loginSystem_administrator drop initUserAccountsLimit")
+                cursor.execute(
+                    "alter table loginSystem_administrator drop initUserAccountsLimit")
             except:
                 pass
 
@@ -758,7 +789,8 @@ autocreate_system_folders = On
             except:
                 pass
             try:
-                cursor.execute("ALTER TABLE `websiteFunctions_aliasdomains` ADD COLUMN `master_id` integer NOT NULL")
+                cursor.execute(
+                    "ALTER TABLE `websiteFunctions_aliasdomains` ADD COLUMN `master_id` integer NOT NULL")
             except:
                 pass
             try:
@@ -768,42 +800,50 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE websiteFunctions_websites ADD config longtext')
+                cursor.execute(
+                    'ALTER TABLE websiteFunctions_websites ADD config longtext')
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE websiteFunctions_websites MODIFY externalApp varchar(30)")
+                cursor.execute(
+                    "ALTER TABLE websiteFunctions_websites MODIFY externalApp varchar(30)")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE emailMarketing_smtphosts MODIFY userName varchar(200)")
+                cursor.execute(
+                    "ALTER TABLE emailMarketing_smtphosts MODIFY userName varchar(200)")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE emailMarketing_smtphosts MODIFY password varchar(200)")
+                cursor.execute(
+                    "ALTER TABLE emailMarketing_smtphosts MODIFY password varchar(200)")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE websiteFunctions_backups MODIFY fileName varchar(200)")
+                cursor.execute(
+                    "ALTER TABLE websiteFunctions_backups MODIFY fileName varchar(200)")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE loginSystem_acl ADD COLUMN listUsers INT DEFAULT 0;")
+                cursor.execute(
+                    "ALTER TABLE loginSystem_acl ADD COLUMN listUsers INT DEFAULT 0;")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE loginSystem_acl ADD COLUMN listEmails INT DEFAULT 1;")
+                cursor.execute(
+                    "ALTER TABLE loginSystem_acl ADD COLUMN listEmails INT DEFAULT 1;")
             except:
                 pass
 
             try:
-                cursor.execute("ALTER TABLE loginSystem_acl ADD COLUMN listPackages INT DEFAULT 0;")
+                cursor.execute(
+                    "ALTER TABLE loginSystem_acl ADD COLUMN listPackages INT DEFAULT 0;")
             except:
                 pass
 
@@ -879,17 +919,20 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE e_users ADD DiskUsage varchar(200)')
+                cursor.execute(
+                    'ALTER TABLE e_users ADD DiskUsage varchar(200)')
             except:
                 pass
 
             try:
-                cursor.execute('CREATE TABLE `websiteFunctions_wpplugins` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `Name` varchar(255) NOT NULL, `config` longtext NOT NULL, `owner_id` integer NOT NULL)')
+                cursor.execute(
+                    'CREATE TABLE `websiteFunctions_wpplugins` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `Name` varchar(255) NOT NULL, `config` longtext NOT NULL, `owner_id` integer NOT NULL)')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE `websiteFunctions_wpplugins` ADD CONSTRAINT `websiteFunctions_wpp_owner_id_493a02c7_fk_loginSyst` FOREIGN KEY (`owner_id`) REFERENCES `loginSystem_administrator` (`id`)')
+                cursor.execute(
+                    'ALTER TABLE `websiteFunctions_wpplugins` ADD CONSTRAINT `websiteFunctions_wpp_owner_id_493a02c7_fk_loginSyst` FOREIGN KEY (`owner_id`) REFERENCES `loginSystem_administrator` (`id`)')
             except:
                 pass
 
@@ -899,22 +942,26 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE `websiteFunctions_wpsites` ADD CONSTRAINT `websiteFunctions_wps_owner_id_6d67df2a_fk_websiteFu` FOREIGN KEY (`owner_id`) REFERENCES `websiteFunctions_websites` (`id`)')
+                cursor.execute(
+                    'ALTER TABLE `websiteFunctions_wpsites` ADD CONSTRAINT `websiteFunctions_wps_owner_id_6d67df2a_fk_websiteFu` FOREIGN KEY (`owner_id`) REFERENCES `websiteFunctions_websites` (`id`)')
             except:
                 pass
 
             try:
-                cursor.execute('CREATE TABLE `websiteFunctions_wpstaging` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `owner_id` integer NOT NULL, `wpsite_id` integer NOT NULL)')
+                cursor.execute(
+                    'CREATE TABLE `websiteFunctions_wpstaging` (`id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY, `owner_id` integer NOT NULL, `wpsite_id` integer NOT NULL)')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE `websiteFunctions_wpstaging` ADD CONSTRAINT `websiteFunctions_wps_owner_id_543d8aec_fk_websiteFu` FOREIGN KEY (`owner_id`) REFERENCES `websiteFunctions_wpsites` (`id`);')
+                cursor.execute(
+                    'ALTER TABLE `websiteFunctions_wpstaging` ADD CONSTRAINT `websiteFunctions_wps_owner_id_543d8aec_fk_websiteFu` FOREIGN KEY (`owner_id`) REFERENCES `websiteFunctions_wpsites` (`id`);')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE `websiteFunctions_wpstaging` ADD CONSTRAINT `websiteFunctions_wps_wpsite_id_82843593_fk_websiteFu` FOREIGN KEY (`wpsite_id`) REFERENCES `websiteFunctions_wpsites` (`id`)')
+                cursor.execute(
+                    'ALTER TABLE `websiteFunctions_wpstaging` ADD CONSTRAINT `websiteFunctions_wps_wpsite_id_82843593_fk_websiteFu` FOREIGN KEY (`wpsite_id`) REFERENCES `websiteFunctions_wpsites` (`id`)')
             except:
                 pass
 
@@ -924,7 +971,8 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute("ALTER TABLE `websiteFunctions_wpsitesbackup` ADD CONSTRAINT `websiteFunctions_wps_owner_id_8a8dd0c5_fk_loginSyst` FOREIGN KEY (`owner_id`) REFERENCES `loginSystem_administrator` (`id`); ")
+                cursor.execute(
+                    "ALTER TABLE `websiteFunctions_wpsitesbackup` ADD CONSTRAINT `websiteFunctions_wps_owner_id_8a8dd0c5_fk_loginSyst` FOREIGN KEY (`owner_id`) REFERENCES `loginSystem_administrator` (`id`); ")
             except:
                 pass
 
@@ -1006,7 +1054,8 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE s3Backups_backupplan ADD config longtext')
+                cursor.execute(
+                    'ALTER TABLE s3Backups_backupplan ADD config longtext')
             except:
                 pass
 
@@ -1433,17 +1482,20 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_administrator ADD config longtext')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_administrator ADD config longtext')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE loginSystem_acl ADD config longtext')
+                cursor.execute(
+                    'ALTER TABLE loginSystem_acl ADD config longtext')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE dockerManager_containers ADD volumes longtext')
+                cursor.execute(
+                    'ALTER TABLE dockerManager_containers ADD volumes longtext')
             except:
                 pass
 
@@ -1549,17 +1601,20 @@ autocreate_system_folders = On
                 pass
 
             try:
-                cursor.execute('alter table manageServices_pdnsstatus add masterServer varchar(200)')
+                cursor.execute(
+                    'alter table manageServices_pdnsstatus add masterServer varchar(200)')
             except:
                 pass
 
             try:
-                cursor.execute('alter table manageServices_pdnsstatus add masterIP varchar(200)')
+                cursor.execute(
+                    'alter table manageServices_pdnsstatus add masterIP varchar(200)')
             except:
                 pass
 
             try:
-                cursor.execute('ALTER TABLE `manageServices_pdnsstatus` CHANGE `type` `type` VARCHAR(10) NULL;')
+                cursor.execute(
+                    'ALTER TABLE `manageServices_pdnsstatus` CHANGE `type` `type` VARCHAR(10) NULL;')
             except:
                 pass
 
@@ -1638,7 +1693,8 @@ autocreate_system_folders = On
             Upgrade.executioner(command, 'python manage.py makemigrations', 0)
 
             command = '/usr/local/CyberPanel/bin/python manage.py makemigrations'
-            Upgrade.executioner(command, '/usr/local/CyberPanel/bin/python manage.py migrate', 0)
+            Upgrade.executioner(
+                command, '/usr/local/CyberPanel/bin/python manage.py migrate', 0)
 
             os.chdir(cwd)
 
@@ -1664,9 +1720,7 @@ autocreate_system_folders = On
             except:
                 pass
 
-
             query = 'ALTER TABLE IncBackups_backupjob ADD retention integer DEFAULT 0'
-
 
             try:
                 cursor.execute(query)
@@ -1833,26 +1887,26 @@ autocreate_system_folders = On
     @staticmethod
     def downloadAndUpgrade(versionNumbring, branch):
         try:
-            ## Download latest version.
+            # Download latest version.
 
-            ## Backup settings file.
+            # Backup settings file.
 
             Upgrade.stdOut("Backing up settings file.")
 
-            ## CyberPanel DB Creds
+            # CyberPanel DB Creds
             dbName = settings.DATABASES['default']['NAME']
             dbUser = settings.DATABASES['default']['USER']
             password = settings.DATABASES['default']['PASSWORD']
             host = settings.DATABASES['default']['HOST']
             port = settings.DATABASES['default']['PORT']
 
-            ## Root DB Creds
+            # Root DB Creds
 
             rootdbName = settings.DATABASES['rootdb']['NAME']
             rootdbdbUser = settings.DATABASES['rootdb']['USER']
             rootdbpassword = settings.DATABASES['rootdb']['PASSWORD']
 
-            ## Complete db string
+            # Complete db string
 
             completDBString = """\nDATABASES = {
     'default': {
@@ -1877,7 +1931,7 @@ autocreate_system_folders = On
 
             Upgrade.stdOut("Settings file backed up.")
 
-            ## Check git branch status
+            # Check git branch status
 
             os.chdir('/usr/local/CyberCP')
 
@@ -1892,7 +1946,8 @@ autocreate_system_folders = On
                 return 0, 'Failed to execute %s' % (command)
 
             command = 'git status'
-            currentBranch = subprocess.check_output(shlex.split(command)).decode()
+            currentBranch = subprocess.check_output(
+                shlex.split(command)).decode()
 
             if currentBranch.find('On branch %s' % (branch)) > -1 and currentBranch.find(
                     'On branch %s-dev' % (branch)) == -1:
@@ -1936,7 +1991,7 @@ autocreate_system_folders = On
                 if not Upgrade.executioner(command, command, 1):
                     return 0, 'Failed to execute %s' % (command)
 
-            ## Copy settings file
+            # Copy settings file
 
             settingsData = open(settingsFile, 'r').readlines()
 
@@ -2052,7 +2107,8 @@ echo $oConfig->Save() ? 'Done' : 'Error';
 
 ?>""" % (generate_pass())
 
-                writeToFile = open('/usr/local/CyberCP/public/snappymail.php', 'w')
+                writeToFile = open(
+                    '/usr/local/CyberCP/public/snappymail.php', 'w')
                 writeToFile.write(content)
                 writeToFile.close()
 
@@ -2070,7 +2126,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             command = "usermod -G lscpd,lsadm,nogroup lscpd"
             Upgrade.executioner(command, 'chown core code', 0)
 
-            ###### fix Core CyberPanel permissions
+            # fix Core CyberPanel permissions
 
             command = "find /usr/local/CyberCP -type d -exec chmod 0755 {} \;"
             Upgrade.executioner(command, 'chown core code', 0)
@@ -2081,12 +2137,12 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             command = "chmod -R 755 /usr/local/CyberCP/bin"
             Upgrade.executioner(command, 'chown core code', 0)
 
-            ## change owner
+            # change owner
 
             command = "chown -R root:root /usr/local/CyberCP"
             Upgrade.executioner(command, 'chown core code', 0)
 
-            ########### Fix LSCPD
+            # Fix LSCPD
 
             command = "find /usr/local/lscp -type d -exec chmod 0755 {} \;"
             Upgrade.executioner(command, 'chown core code', 0)
@@ -2103,7 +2159,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             command = "chown -R lscpd:lscpd /usr/local/CyberCP/public/phpmyadmin/tmp"
             Upgrade.executioner(command, 'chown core code', 0)
 
-            ## change owner
+            # change owner
 
             command = "chown -R root:root /usr/local/lscp"
             Upgrade.executioner(command, 'chown core code', 0)
@@ -2188,8 +2244,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             clScripts = ['/usr/local/CyberCP/CLScript/panel_info.py',
                          '/usr/local/CyberCP/CLScript/CloudLinuxPackages.py',
                          '/usr/local/CyberCP/CLScript/CloudLinuxUsers.py',
-                         '/usr/local/CyberCP/CLScript/CloudLinuxDomains.py'
-                , '/usr/local/CyberCP/CLScript/CloudLinuxResellers.py',
+                         '/usr/local/CyberCP/CLScript/CloudLinuxDomains.py', '/usr/local/CyberCP/CLScript/CloudLinuxResellers.py',
                          '/usr/local/CyberCP/CLScript/CloudLinuxAdmins.py',
                          '/usr/local/CyberCP/CLScript/CloudLinuxDB.py', '/usr/local/CyberCP/CLScript/UserInfo.py']
 
@@ -2225,7 +2280,8 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             ###
 
             WriteToFile = open('/etc/fstab', 'a')
-            WriteToFile.write('proc    /proc        proc        defaults,hidepid=2    0 0\n')
+            WriteToFile.write(
+                'proc    /proc        proc        defaults,hidepid=2    0 0\n')
             WriteToFile.close()
 
             command = 'mount -o remount,rw,hidepid=2 /proc'
@@ -2247,7 +2303,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             command = 'chmod 750 /usr/local/lsws/logs'
             Upgrade.executioner(command, 0)
 
-            ## symlink protection
+            # symlink protection
 
             writeToFile = open('/usr/lib/sysctl.d/50-default.conf', 'a')
             writeToFile.writelines('fs.protected_hardlinks = 1\n')
@@ -2341,7 +2397,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
             dovecotConfPath = '/etc/dovecot/'
             postfixConfPath = '/etc/postfix/'
 
-            ## Take backup of configurations
+            # Take backup of configurations
 
             configbackups = '/home/cyberpanel/configbackups'
 
@@ -2370,7 +2426,8 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                     Upgrade.executioner(command, 0)
 
                 import django
-                os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
+                os.environ.setdefault(
+                    "DJANGO_SETTINGS_MODULE", "CyberCP.settings")
                 django.setup()
                 from mailServer.models import EUsers
 
@@ -2379,13 +2436,14 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                     if items.password.find('CRYPT') > -1:
                         continue
                     command = 'doveadm pw -p %s' % (items.password)
-                    items.password = subprocess.check_output(shlex.split(command)).decode("utf-8").strip('\n')
+                    items.password = subprocess.check_output(
+                        shlex.split(command)).decode("utf-8").strip('\n')
                     items.save()
 
                 command = "systemctl restart dovecot"
                 Upgrade.executioner(command, 0)
 
-                ### Postfix Upgrade
+                # Postfix Upgrade
 
                 command = 'yum remove postfix -y'
                 Upgrade.executioner(command, 0)
@@ -2407,7 +2465,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
 
                 Upgrade.executioner(command, 0)
 
-                ### Restore dovecot/postfix conf
+                # Restore dovecot/postfix conf
 
                 command = 'cp -pR %s/dovecot/ /etc/' % (configbackups)
                 Upgrade.executioner(command, 0)
@@ -2415,7 +2473,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                 command = 'cp -pR %s/postfix/ /etc/' % (configbackups)
                 Upgrade.executioner(command, 0)
 
-                ## Restored
+                # Restored
 
                 command = 'systemctl restart postfix'
                 Upgrade.executioner(command, 0)
@@ -2437,7 +2495,6 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                 #
                 # command = 'DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical apt -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y'
                 # subprocess.call(command, shell=True)
-
 
             dovecotConf = '/etc/dovecot/dovecot.conf'
 
@@ -2492,7 +2549,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
 
                 command = 'apt-get install restic -y'
                 Upgrade.executioner(command, 'Install Restic')
-                
+
                 command = 'restic self-update'
                 Upgrade.executioner(command, 'Install Restic')
 
@@ -2533,7 +2590,8 @@ service_port = 9000
 """
 
                 if not os.path.exists('/opt/cpvendor/etc/integration.ini'):
-                    writeToFile = open('/opt/cpvendor/etc/integration.ini', 'w')
+                    writeToFile = open(
+                        '/opt/cpvendor/etc/integration.ini', 'w')
                     writeToFile.write(content)
                     writeToFile.close()
 
@@ -2549,7 +2607,8 @@ pdns
 vmail
 """
 
-                writeToFile = open('/etc/cagefs/exclude/cyberpanelexclude', 'w')
+                writeToFile = open(
+                    '/etc/cagefs/exclude/cyberpanelexclude', 'w')
                 writeToFile.write(content)
                 writeToFile.close()
 
@@ -2621,10 +2680,18 @@ vmail
 0 0 */3 * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py '3 Days'
 0 0 * * 0 /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py '1 Week'
 """
+# https://github.com/tbaldur/cyberpanel-LTS/commit/06c704e9ba9a165c88d2b5ff2f68917a2b6afed8
                 writeToFile = open(cronPath, 'a')
                 writeToFile.write(content)
                 writeToFile.close()
-
+            # Update website disk usage every 15 minutes
+            if data.find("IncScheduler.py CalculateAndUpdateDiskUsage") == -1:
+                content = """
+*/15 * * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py CalculateAndUpdateDiskUsage'
+"""
+                writeToFile = open(cronPath, 'a')
+                writeToFile.write(content)
+                writeToFile.close()
 
         else:
             content = """
@@ -2641,7 +2708,7 @@ vmail
             writeToFile.write(content)
             writeToFile.close()
 
-        ### Check and remove OLS restart if lsws ent detected
+        # Check and remove OLS restart if lsws ent detected
 
         if not os.path.exists('/usr/local/lsws/bin/openlitespeed'):
 
@@ -2656,7 +2723,6 @@ vmail
                     writeToFile.writelines(items)
 
             writeToFile.close()
-
 
         if not os.path.exists(CentOSPath) or not os.path.exists(openEulerPath):
             command = 'chmod 600 %s' % (cronPath)
@@ -2675,14 +2741,22 @@ vmail
             elif acl.config == '{}':
                 acl.config = '{"adminStatus":%s, "versionManagement": %s, "createNewUser": %s, "listUsers": %s, "deleteUser": %s, "resellerCenter": %s, "changeUserACL": %s, "createWebsite": %s, "modifyWebsite": %s, "suspendWebsite": %s, "deleteWebsite": %s, "createPackage": %s, "listPackages": %s, "deletePackage": %s, "modifyPackage": %s, "createDatabase": %s, "deleteDatabase": %s, "listDatabases": %s, "createNameServer": %s, "createDNSZone": %s, "deleteZone": %s, "addDeleteRecords": %s, "createEmail": %s, "listEmails": %s, "deleteEmail": %s, "emailForwarding": %s, "changeEmailPassword": %s, "dkimManager": %s, "createFTPAccount": %s, "deleteFTPAccount": %s, "listFTPAccounts": %s, "createBackup": %s, "restoreBackup": %s, "addDeleteDestinations": %s, "scheduleBackups": %s, "remoteBackups": %s, "googleDriveBackups": %s, "manageSSL": %s, "hostnameSSL": %s, "mailServerSSL": %s }' \
                              % (str(acl.adminStatus), str(acl.versionManagement), str(acl.createNewUser),
-                                str(acl.listUsers), str(acl.deleteUser), str(acl.resellerCenter), str(acl.changeUserACL),
-                                str(acl.createWebsite), str(acl.modifyWebsite), str(acl.suspendWebsite), str(acl.deleteWebsite),
-                                str(acl.createPackage), str(acl.listPackages), str(acl.deletePackage), str(acl.modifyPackage),
-                                str(acl.createDatabase), str(acl.deleteDatabase), str(acl.listDatabases), str(acl.createNameServer),
-                                str(acl.createDNSZone), str(acl.deleteZone), str(acl.addDeleteRecords), str(acl.createEmail),
-                                str(acl.listEmails), str(acl.deleteEmail), str(acl.emailForwarding), str(acl.changeEmailPassword),
-                                str(acl.dkimManager), str(acl.createFTPAccount), str(acl.deleteFTPAccount), str(acl.listFTPAccounts),
-                                str(acl.createBackup), str(acl.restoreBackup), str(acl.addDeleteDestinations), str(acl.scheduleBackups), str(acl.remoteBackups), '1',
+                                str(acl.listUsers), str(acl.deleteUser), str(
+                                    acl.resellerCenter), str(acl.changeUserACL),
+                                str(acl.createWebsite), str(acl.modifyWebsite), str(
+                                    acl.suspendWebsite), str(acl.deleteWebsite),
+                                str(acl.createPackage), str(acl.listPackages), str(
+                                    acl.deletePackage), str(acl.modifyPackage),
+                                str(acl.createDatabase), str(acl.deleteDatabase), str(
+                                    acl.listDatabases), str(acl.createNameServer),
+                                str(acl.createDNSZone), str(acl.deleteZone), str(
+                                    acl.addDeleteRecords), str(acl.createEmail),
+                                str(acl.listEmails), str(acl.deleteEmail), str(
+                                    acl.emailForwarding), str(acl.changeEmailPassword),
+                                str(acl.dkimManager), str(acl.createFTPAccount), str(
+                                    acl.deleteFTPAccount), str(acl.listFTPAccounts),
+                                str(acl.createBackup), str(acl.restoreBackup), str(acl.addDeleteDestinations), str(
+                                    acl.scheduleBackups), str(acl.remoteBackups), '1',
                                 str(acl.manageSSL), str(acl.hostnameSSL), str(acl.mailServerSSL))
                 acl.save()
 
@@ -2694,15 +2768,17 @@ vmail
 
         if os.path.exists(Upgrade.CentOSPath) or os.path.exists(Upgrade.openEulerPath):
             command = 'yum list installed'
-            Upgrade.installedOutput = subprocess.check_output(shlex.split(command)).decode()
+            Upgrade.installedOutput = subprocess.check_output(
+                shlex.split(command)).decode()
         else:
             command = 'apt list'
-            Upgrade.installedOutput = subprocess.check_output(shlex.split(command)).decode()
+            Upgrade.installedOutput = subprocess.check_output(
+                shlex.split(command)).decode()
 
         command = 'systemctl stop cpssh'
         Upgrade.executioner(command, 'fix csf if there', 0)
 
-        ## Add LSPHP7.4 TO LSWS Ent configs
+        # Add LSPHP7.4 TO LSWS Ent configs
 
         if not os.path.exists('/usr/local/lsws/bin/openlitespeed'):
 
@@ -2725,7 +2801,7 @@ vmail
         command = 'yum remove yum-plugin-priorities -y'
         Upgrade.executioner(command, 'remove yum-plugin-priorities', 0)
 
-        ## Current Version
+        # Current Version
 
         command = "systemctl stop lscpd"
         Upgrade.executioner(command, 'stop lscpd', 0)
@@ -2767,7 +2843,7 @@ vmail
 
         Upgrade.applyLoginSystemMigrations()
 
-        ## Put function here to update custom ACLs
+        # Put function here to update custom ACLs
 
         Upgrade.UpdateConfigOfCustomACL()
 
@@ -2781,31 +2857,30 @@ vmail
         Upgrade.someDirectories()
         Upgrade.installLSCPD(branch)
 
-        ### General migrations are not needed any more
+        # General migrations are not needed any more
 
         # Upgrade.GeneralMigrations()
 
         # Upgrade.p3()
 
-        ## Also disable email service upgrade
+        # Also disable email service upgrade
 
         # if os.path.exists(postfixPath):
         #     Upgrade.upgradeDovecot()
 
-
-        ## Upgrade version
+        # Upgrade version
 
         Upgrade.fixPermissions()
 
         ##
 
-        ### Disable version upgrade too
+        # Disable version upgrade too
 
         # Upgrade.upgradeVersion()
 
         Upgrade.UpdateMaxSSLCons()
 
-        ## Update LSCPD PHP
+        # Update LSCPD PHP
 
         phpPath = '/usr/local/lscp/fcgi-bin/lsphp'
 
@@ -2831,7 +2906,7 @@ vmail
         Upgrade.installCLScripts()
         Upgrade.runSomeImportantBash()
 
-        ## Move static files
+        # Move static files
 
         imunifyPath = '/usr/local/CyberCP/public/imunify'
 
@@ -2849,8 +2924,8 @@ vmail
             command = 'chmod +x /usr/local/CyberCP/public/imunifyav/bin/execute.py'
             Upgrade.executioner(command, command, 1)
 
-
         Upgrade.stdOut("Upgrade Completed.")
+
 
 def main():
 

@@ -1096,6 +1096,16 @@ cd cyberpanel/install || exit
 Debug_Log2 "Necessary components installed..,5"
 }
 
+# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
+
+Pre_Install_crowdsec(){
+if [[ "$Server_OS" = "Ubuntu" ]]
+curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | sudo bash
+else
+curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh | sudo bash
+fi
+}
+
 Pre_Install_System_Tweak() {
 Debug_Log2 "Setting up system tweak...,20"
 Line_Number=$(grep -n "127.0.0.1" /etc/hosts | cut -d: -f 1)
@@ -2007,6 +2017,10 @@ Pre_Install_Setup_Repository
 Pre_Install_Setup_Git_URL
 
 Pre_Install_Required_Components
+
+# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
+
+Pre_Install_crowdsec
 
 Pre_Install_System_Tweak
 
