@@ -87,8 +87,7 @@ ROOT_URLCONF = 'CyberCP.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -152,7 +151,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en'
 
-TIME_ZONE = 'UTC'
+# https://docs.djangoproject.com/en/1.11/topics/i18n/timezones/
+
+TIME_ZONE = 'Africa/Nairobi'
 
 USE_I18N = True
 

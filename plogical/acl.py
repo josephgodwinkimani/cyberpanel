@@ -940,21 +940,21 @@ class ACLManager:
 
     @staticmethod
     def CheckForPremFeature(feature):
-        try:
+        # try:
 
-            if ProcessUtilities.decideServer() == ProcessUtilities.ent:
-                return 1
+        #  if ProcessUtilities.decideServer() == ProcessUtilities.ent:
+        #        return 1
 
-            url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-            data = {
-                "name": feature,
-                "IP": ACLManager.GetServerIP()
-            }
+        #    url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
+        #    data = {
+        #        "name": feature,
+        #        "IP": ACLManager.GetServerIP()
+        #    }
 
-            import requests
-            response = requests.post(url, data=json.dumps(data))
-            return response.json()['status']
-        except:
+        #    import requests
+        #    response = requests.post(url, data=json.dumps(data))
+        #    return response.json()['status']
+        # except:
             return 1
 
     @staticmethod

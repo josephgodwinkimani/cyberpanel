@@ -1,29 +1,30 @@
 #!/usr/local/CyberCP/bin/python
+import threading as multi
+from boto3.s3.transfer import TransferConfig
+from websiteFunctions.models import NormalBackupJobs, NormalBackupJobLogs
+import socket
+import requests
+from plogical.backupSchedule import backupSchedule
+from googleapiclient.http import MediaFileUpload
+from googleapiclient.discovery import build
+import google.oauth2.credentials
+import datetime
+import time
+from websiteFunctions.website import WebsiteManager
+from websiteFunctions.models import GitLogs, Websites, GDrive, GDriveJobLogs
+import json
+import argparse
+from random import randint
+from IncBackups.models import BackupJob
+from IncBackups.IncBackupsControl import IncJobs
+import django
 import os.path
 import sys
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
-import django
 
 django.setup()
-from IncBackups.IncBackupsControl import IncJobs
-from IncBackups.models import BackupJob
-from random import randint
-import argparse
-import json
-from websiteFunctions.models import GitLogs, Websites, GDrive, GDriveJobLogs
-from websiteFunctions.website import WebsiteManager
-import time
-import datetime
-import google.oauth2.credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from plogical.backupSchedule import backupSchedule
-import requests
-import socket
-from websiteFunctions.models import NormalBackupJobs, NormalBackupJobLogs
-from boto3.s3.transfer import TransferConfig
 
 try:
     from s3Backups.models import BackupPlan, BackupLogs
@@ -34,7 +35,6 @@ try:
     from plogical.processUtilities import ProcessUtilities
 except:
     pass
-import threading as multi
 
 
 class IncScheduler(multi.Thread):
@@ -43,7 +43,7 @@ class IncScheduler(multi.Thread):
 
     timeFormat = time.strftime("%m.%d.%Y_%H-%M-%S")
 
-    ### Normal scheduled backups constants
+    # Normal scheduled backups constants
 
     frequency = 'frequency'
     allSites = 'allSites'
@@ -62,14 +62,16 @@ class IncScheduler(multi.Thread):
     @staticmethod
     def startBackup(type):
         try:
-            logging.statusWriter(IncScheduler.logPath, 'Starting Incremental Backup job..', 1)
+            logging.statusWriter(IncScheduler.logPath,
+                                 'Starting Incremental Backup job..', 1)
             tempPath = "/home/cyberpanel/" + str(randint(1000, 9999))
             for job in BackupJob.objects.all():
                 logging.statusWriter(IncScheduler.logPath, 'Job Description:\n\n Destination: %s, Frequency: %s.\n ' % (
                     job.destination, job.frequency), 1)
                 if job.frequency == type:
                     for web in job.jobsites_set.all():
-                        logging.statusWriter(IncScheduler.logPath, 'Backing up %s.' % (web.website), 1)
+                        logging.statusWriter(
+                            IncScheduler.logPath, 'Backing up %s.' % (web.website), 1)
 
                         extraArgs = {}
                         extraArgs['website'] = web.website
@@ -96,7 +98,7 @@ class IncScheduler(multi.Thread):
                         startJob = IncJobs('createBackup', extraArgs)
                         startJob.start()
 
-                        ### Checking status
+                        # Checking status
 
                         while True:
                             if os.path.exists(tempPath):
@@ -104,14 +106,15 @@ class IncScheduler(multi.Thread):
 
                                 if result.find("Completed") > -1:
 
-                                    ### Removing Files
+                                    # Removing Files
 
                                     os.remove(tempPath)
 
-                                    logging.statusWriter(IncScheduler.logPath, 'Backed up %s.' % (web.website), 1)
+                                    logging.statusWriter(
+                                        IncScheduler.logPath, 'Backed up %s.' % (web.website), 1)
                                     break
                                 elif result.find("[5009]") > -1:
-                                    ## removing status file, so that backup can re-runn
+                                    # removing status file, so that backup can re-runn
                                     try:
                                         os.remove(tempPath)
                                     except:
@@ -160,13 +163,17 @@ class IncScheduler(multi.Thread):
                             resp = json.loads(resp.content)
 
                             if resp['status'] == 1:
-                                message = 'Folder: %s, Status: %s' % (gitConf['folder'], resp['commandStatus'])
+                                message = 'Folder: %s, Status: %s' % (
+                                    gitConf['folder'], resp['commandStatus'])
                                 finalText = '%s\n%s' % (finalText, message)
-                                GitLogs(owner=web, type='INFO', message=message).save()
+                                GitLogs(owner=web, type='INFO',
+                                        message=message).save()
                             else:
-                                message = 'Folder: %s, Status: %s' % (gitConf['folder'], resp['commandStatus'])
+                                message = 'Folder: %s, Status: %s' % (
+                                    gitConf['folder'], resp['commandStatus'])
                                 finalText = '%s\n%s' % (finalText, message)
-                                GitLogs(owner=web, type='ERROR', message=message).save()
+                                GitLogs(owner=web, type='ERROR',
+                                        message=message).save()
 
                         if gitConf['autoPush'] == type:
 
@@ -175,11 +182,15 @@ class IncScheduler(multi.Thread):
                             resp = json.loads(resp.content)
 
                             if resp['status'] == 1:
-                                GitLogs(owner=web, type='INFO', message=resp['commandStatus']).save()
-                                finalText = '%s\n%s' % (finalText, resp['commandStatus'])
+                                GitLogs(owner=web, type='INFO',
+                                        message=resp['commandStatus']).save()
+                                finalText = '%s\n%s' % (
+                                    finalText, resp['commandStatus'])
                             else:
-                                GitLogs(owner=web, type='ERROR', message=resp['commandStatus']).save()
-                                finalText = '%s\n%s' % (finalText, resp['commandStatus'])
+                                GitLogs(owner=web, type='ERROR',
+                                        message=resp['commandStatus']).save()
+                                finalText = '%s\n%s' % (
+                                    finalText, resp['commandStatus'])
                     except BaseException as msg:
                         message = 'File: %s, Status: %s' % (file, str(msg))
                         finalText = '%s\n%s' % (finalText, message)
@@ -187,7 +198,8 @@ class IncScheduler(multi.Thread):
                 message = '[%s Cron] Finished checking for %s on %s.' % (
                     type, website, time.strftime("%m.%d.%Y_%H-%M-%S"))
                 finalText = '%s\n%s' % (finalText, message)
-                logging.SendEmail(web.adminEmail, web.adminEmail, finalText, 'Git report for %s.' % (web.domain))
+                logging.SendEmail(web.adminEmail, web.adminEmail,
+                                  finalText, 'Git report for %s.' % (web.domain))
                 GitLogs(owner=web, type='INFO', message=message).save()
 
         except BaseException as msg:
@@ -199,38 +211,45 @@ class IncScheduler(multi.Thread):
 
         try:
 
-            import psutil, math
+            import psutil
+            import math
             from websiteFunctions.models import Administrator
             admin = Administrator.objects.get(pk=1)
 
             diskUsage = math.floor(psutil.disk_usage('/')[3])
 
             from plogical.acl import ACLManager
-            message = '%s - Disk Usage Warning - CyberPanel' % (ACLManager.fetchIP())
+            message = '%s - Disk Usage Warning - CyberPanel' % (
+                ACLManager.fetchIP())
 
             if diskUsage >= 50 and diskUsage <= 60:
 
-                finalText = 'Current disk usage at "/" is %s percent. No action required.' % (str(diskUsage))
-                logging.SendEmail(sender_email, admin.email, finalText, message)
+                finalText = 'Current disk usage at "/" is %s percent. No action required.' % (
+                    str(diskUsage))
+                logging.SendEmail(sender_email, admin.email,
+                                  finalText, message)
 
             elif diskUsage >= 60 and diskUsage <= 80:
 
                 finalText = 'Current disk usage at "/" is %s percent. We recommend clearing log directory by running \n\n rm -rf /usr/local/lsws/logs/*. \n\n When disk usage go above 80 percent we will automatically run this command.' % (
                     str(diskUsage))
-                logging.SendEmail(sender_email, admin.email, finalText, message)
+                logging.SendEmail(sender_email, admin.email,
+                                  finalText, message)
 
             elif diskUsage > 80:
 
                 finalText = 'Current disk usage at "/" is %s percent. We are going to run below command to free up space, If disk usage is still high, manual action is required by the system administrator. \n\n rm -rf /usr/local/lsws/logs/*.' % (
                     str(diskUsage))
-                logging.SendEmail(sender_email, admin.email, finalText, message)
+                logging.SendEmail(sender_email, admin.email,
+                                  finalText, message)
 
                 command = 'rm -rf /usr/local/lsws/logs/*'
                 import subprocess
                 subprocess.call(command, shell=True)
 
         except BaseException as msg:
-            logging.writeToFile('[IncScheduler:193:checkDiskUsage] %s.' % str(msg))
+            logging.writeToFile(
+                '[IncScheduler:193:checkDiskUsage] %s.' % str(msg))
 
     @staticmethod
     def runGoogleDriveBackups(type):
@@ -258,11 +277,13 @@ class IncScheduler(multi.Thread):
                     except BaseException as msg:
                         try:
                             import requests
-                            finalData = json.dumps({'refresh_token': gDriveData['refresh_token']})
+                            finalData = json.dumps(
+                                {'refresh_token': gDriveData['refresh_token']})
                             r = requests.post("https://platform.cyberpersons.com/refreshToken", data=finalData
                                               )
 
-                            gDriveData['token'] = json.loads(r.text)['access_token']
+                            gDriveData['token'] = json.loads(
+                                r.text)['access_token']
 
                             credentials = google.oauth2.credentials.Credentials(gDriveData['token'],
                                                                                 gDriveData['refresh_token'],
@@ -271,7 +292,8 @@ class IncScheduler(multi.Thread):
                                                                                 None,
                                                                                 gDriveData['scopes'])
 
-                            drive = build('drive', 'v3', credentials=credentials)
+                            drive = build(
+                                'drive', 'v3', credentials=credentials)
                             drive.files().list(pageSize=5, fields="files(id, name)").execute()
 
                             items.auth = json.dumps(gDriveData)
@@ -286,7 +308,7 @@ class IncScheduler(multi.Thread):
                         folderIDIP = gDriveData['folderIDIP']
                     except:
 
-                        ## Create CyberPanel Folder
+                        # Create CyberPanel Folder
 
                         file_metadata = {
                             'name': '%s-%s' % (items.name, ipAddress),
@@ -301,7 +323,7 @@ class IncScheduler(multi.Thread):
                         items.auth = json.dumps(gDriveData)
                         items.save()
 
-                    ### Current folder to store files
+                    # Current folder to store files
 
                     file_metadata = {
                         'name': time.strftime("%m.%d.%Y_%H-%M-%S"),
@@ -314,11 +336,12 @@ class IncScheduler(multi.Thread):
 
                     ###
 
-                    GDriveJobLogs(owner=items, status=backupSchedule.INFO, message='Starting backup job..').save()
+                    GDriveJobLogs(owner=items, status=backupSchedule.INFO,
+                                  message='Starting backup job..').save()
 
                     for website in items.gdrivesites_set.all():
 
-                        ### If  this website dont exists continue
+                        # If  this website dont exists continue
 
                         try:
                             Websites.objects.get(domain=website.domain)
@@ -331,7 +354,8 @@ class IncScheduler(multi.Thread):
                             GDriveJobLogs(owner=items, status=backupSchedule.INFO,
                                           message='Local backup creation started for %s..' % (website.domain)).save()
 
-                            retValues = backupSchedule.createLocalBackup(website.domain, backupLogPath)
+                            retValues = backupSchedule.createLocalBackup(
+                                website.domain, backupLogPath)
 
                             if retValues[0] == 0:
                                 GDriveJobLogs(owner=items, status=backupSchedule.ERROR,
@@ -346,15 +370,18 @@ class IncScheduler(multi.Thread):
                                 'name': '%s' % (fileName),
                                 'parents': [folderID]
                             }
-                            media = MediaFileUpload(completeFileToSend, mimetype='application/gzip', resumable=True)
+                            media = MediaFileUpload(
+                                completeFileToSend, mimetype='application/gzip', resumable=True)
                             try:
                                 drive.files().create(body=file_metadata, media_body=media, fields='id').execute()
                             except:
                                 import requests
-                                finalData = json.dumps({'refresh_token': gDriveData['refresh_token']})
+                                finalData = json.dumps(
+                                    {'refresh_token': gDriveData['refresh_token']})
                                 r = requests.post("https://platform.cyberpersons.com/refreshToken", data=finalData
                                                   )
-                                gDriveData['token'] = json.loads(r.text)['access_token']
+                                gDriveData['token'] = json.loads(
+                                    r.text)['access_token']
 
                                 credentials = google.oauth2.credentials.Credentials(gDriveData['token'],
                                                                                     gDriveData['refresh_token'],
@@ -363,7 +390,8 @@ class IncScheduler(multi.Thread):
                                                                                     None,
                                                                                     gDriveData['scopes'])
 
-                                drive = build('drive', 'v3', credentials=credentials)
+                                drive = build(
+                                    'drive', 'v3', credentials=credentials)
                                 drive.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
                                 items.auth = json.dumps(gDriveData)
@@ -385,18 +413,18 @@ class IncScheduler(multi.Thread):
 
                     # logging.writeToFile('job completed')
 
-                    url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-                    data = {
-                        "name": "backups-retention",
-                        "IP": ipAddress
-                    }
+                    # url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
+                    # data = {
+                    #    "name": "backups-retention",
+                    #    "IP": ipAddress
+                    # }
 
-                    import requests
-                    response = requests.post(url, data=json.dumps(data))
-                    Status = response.json()['status']
+                    # import requests
+                    # response = requests.post(url, data=json.dumps(data))
+                    # Status = response.json()['status']
 
-                    if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:
-                        try:
+                    # if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:
+                       try:
 
                             page_token = None
                             while True:
@@ -409,7 +437,8 @@ class IncScheduler(multi.Thread):
                                     # print('Fetch Main folder ID: %s (%s)' % (file.get('name'), file.get('id')))
                                     # logging.writeToFile('Fetch Main folder ID: %s (%s)' % (file.get('name'), file.get('id')))
                                     mainfolder_id = file.get('id')
-                                page_token = response.get('nextPageToken', None)
+                                page_token = response.get(
+                                    'nextPageToken', None)
                                 if page_token is None:
                                     break
                             # print("new job started ")
@@ -427,30 +456,40 @@ class IncScheduler(multi.Thread):
                                         ab = file.get('createdTime')[:10]
                                         filename = file.get('name')
                                         fileDeleteID = file.get('id')
-                                        timestamp = time.mktime(datetime.datetime.strptime(ab, "%Y-%m-%d").timetuple())
+                                        timestamp = time.mktime(
+                                            datetime.datetime.strptime(ab, "%Y-%m-%d").timetuple())
                                         CUrrenttimestamp = time.time()
                                         timerrtention = gDriveData['FileRetentiontime']
                                         if (timerrtention == '1d'):
-                                            new = CUrrenttimestamp - float(86400)
+                                            new = CUrrenttimestamp - \
+                                                float(86400)
                                             if (new >= timestamp):
                                                 resp = drive.files().delete(fileId=fileDeleteID).execute()
-                                                logging.writeToFile('Delete file %s ' % filename)
+                                                logging.writeToFile(
+                                                    'Delete file %s ' % filename)
                                         elif (timerrtention == '1w'):
-                                            new = CUrrenttimestamp - float(604800)
+                                            new = CUrrenttimestamp - \
+                                                float(604800)
                                             if (new >= timestamp):
                                                 resp = drive.files().delete(fileId=fileDeleteID).execute()
-                                                logging.writeToFile('Delete file %s ' % filename)
+                                                logging.writeToFile(
+                                                    'Delete file %s ' % filename)
                                         elif (timerrtention == '1m'):
-                                            new = CUrrenttimestamp - float(2592000)
+                                            new = CUrrenttimestamp - \
+                                                float(2592000)
                                             if (new >= timestamp):
                                                 resp = drive.files().delete(fileId=fileDeleteID).execute()
-                                                logging.writeToFile('Delete file %s ' % filename)
+                                                logging.writeToFile(
+                                                    'Delete file %s ' % filename)
                                         elif (timerrtention == '6m'):
-                                            new = CUrrenttimestamp - float(15552000)
+                                            new = CUrrenttimestamp - \
+                                                float(15552000)
                                             if (new >= timestamp):
                                                 resp = drive.files().delete(fileId=fileDeleteID).execute()
-                                                logging.writeToFile('Delete file %s ' % filename)
-                                    page_token = response.get('nextPageToken', None)
+                                                logging.writeToFile(
+                                                    'Delete file %s ' % filename)
+                                    page_token = response.get(
+                                        'nextPageToken', None)
                                     if page_token is None:
                                         break
 
@@ -458,9 +497,11 @@ class IncScheduler(multi.Thread):
 
                             except BaseException as msg:
                                 print('An error occurred fetch child: %s' % msg)
-                                logging.writeToFile('An error occurred fetch child: %s' % msg)
+                                logging.writeToFile(
+                                    'An error occurred fetch child: %s' % msg)
                         except BaseException as msg:
-                            logging.writeToFile('job not completed [ERROR:]..%s' % msg)
+                            logging.writeToFile(
+                                'job not completed [ERROR:]..%s' % msg)
 
             except BaseException as msg:
                 GDriveJobLogs(owner=items, status=backupSchedule.ERROR,
@@ -473,13 +514,13 @@ class IncScheduler(multi.Thread):
         from plogical.backupSchedule import backupSchedule
         import socket
 
-        ## SFTP Destination Config sample
+        # SFTP Destination Config sample
         ## {"type": "SFTP", "ip": "ip", "username": "root", "port": "22", "path": "/home/backup"}
 
-        ## Local Destination config sample
+        # Local Destination config sample
         ## {"type": "local", "path": "/home/backup"}
 
-        ## Backup jobs config
+        # Backup jobs config
 
         ## {"frequency": "Daily", "allSites": "Selected Only"}
         ## {"frequency": "Daily"}
@@ -493,13 +534,14 @@ class IncScheduler(multi.Thread):
 
             if destinationConfig['type'] == 'local':
 
-                finalPath = '%s/%s' % (destinationConfig['path'].rstrip('/'), currentTime)
+                finalPath = '%s/%s' % (
+                    destinationConfig['path'].rstrip('/'), currentTime)
                 command = 'mkdir -p %s' % (finalPath)
                 ProcessUtilities.executioner(command)
 
                 if jobConfig[IncScheduler.frequency] == type:
 
-                    ### Check if an old job prematurely killed, then start from there.
+                    # Check if an old job prematurely killed, then start from there.
                     try:
                         oldJobContinue = 1
                         pid = jobConfig['pid']
@@ -513,14 +555,14 @@ class IncScheduler(multi.Thread):
                         if result.find(pid) > -1 and result.find('IncScheduler.py') > -1:
                             quit(1)
 
-
                     except:
-                        ### Save some important info in backup config
+                        # Save some important info in backup config
                         oldJobContinue = 0
                         jobConfig['pid'] = str(os.getpid())
                         jobConfig['finalPath'] = finalPath
 
-                    NormalBackupJobLogs.objects.filter(owner=backupjob).delete()
+                    NormalBackupJobLogs.objects.filter(
+                        owner=backupjob).delete()
                     NormalBackupJobLogs(owner=backupjob, status=backupSchedule.INFO,
                                         message='Starting %s backup on %s..' % (
                                             type, time.strftime("%m.%d.%Y_%H-%M-%S"))).save()
@@ -548,10 +590,11 @@ class IncScheduler(multi.Thread):
                         else:
                             domain = site.domain.domain
 
-                        ## Save currently backing domain in db, so that i can restart from here when prematurely killed
+                        # Save currently backing domain in db, so that i can restart from here when prematurely killed
 
                         jobConfig['website'] = domain
-                        jobConfig[IncScheduler.lastRun] = time.strftime("%d %b %Y, %I:%M %p")
+                        jobConfig[IncScheduler.lastRun] = time.strftime(
+                            "%d %b %Y, %I:%M %p")
                         jobConfig[IncScheduler.currentStatus] = 'Running..'
                         backupjob.config = json.dumps(jobConfig)
                         backupjob.save()
@@ -563,16 +606,19 @@ class IncScheduler(multi.Thread):
                             else:
                                 continue
 
-                        retValues = backupSchedule.createLocalBackup(domain, '/dev/null')
+                        retValues = backupSchedule.createLocalBackup(
+                            domain, '/dev/null')
 
                         if retValues[0] == 0:
                             NormalBackupJobLogs(owner=backupjob, status=backupSchedule.ERROR,
                                                 message='Backup failed for %s on %s.' % (
                                                     domain, time.strftime("%m.%d.%Y_%H-%M-%S"))).save()
 
-                            SUBJECT = "Automatic backup failed for %s on %s." % (domain, currentTime)
+                            SUBJECT = "Automatic backup failed for %s on %s." % (
+                                domain, currentTime)
                             adminEmailPath = '/home/cyberpanel/adminEmail'
-                            adminEmail = open(adminEmailPath, 'r').read().rstrip('\n')
+                            adminEmail = open(
+                                adminEmailPath, 'r').read().rstrip('\n')
                             sender = 'root@%s' % (socket.gethostname())
                             TO = [adminEmail]
                             message = """\
@@ -603,7 +649,8 @@ Automatic backup failed for %s on %s.
             else:
                 import subprocess
                 import shlex
-                finalPath = '%s/%s' % (destinationConfig['path'].rstrip('/'), currentTime)
+                finalPath = '%s/%s' % (
+                    destinationConfig['path'].rstrip('/'), currentTime)
                 command = "ssh -o StrictHostKeyChecking=no -p " + destinationConfig[
                     'port'] + " -i /root/.ssh/cyberpanel " + destinationConfig['username'] + "@" + destinationConfig[
                               'ip'] + " mkdir -p %s" % (finalPath)
@@ -611,7 +658,7 @@ Automatic backup failed for %s on %s.
 
                 if jobConfig[IncScheduler.frequency] == type:
 
-                    ### Check if an old job prematurely killed, then start from there.
+                    # Check if an old job prematurely killed, then start from there.
                     # try:
                     #     oldJobContinue = 1
                     #     pid = jobConfig['pid']
@@ -636,7 +683,8 @@ Automatic backup failed for %s on %s.
                     jobConfig['pid'] = str(os.getpid())
                     jobConfig['finalPath'] = finalPath
 
-                    NormalBackupJobLogs.objects.filter(owner=backupjob).delete()
+                    NormalBackupJobLogs.objects.filter(
+                        owner=backupjob).delete()
                     NormalBackupJobLogs(owner=backupjob, status=backupSchedule.INFO,
                                         message='Starting %s backup on %s..' % (
                                             type, time.strftime("%m.%d.%Y_%H-%M-%S"))).save()
@@ -665,7 +713,7 @@ Automatic backup failed for %s on %s.
                         else:
                             domain = site.domain.domain
 
-                        ### If  this website dont exists continue
+                        # If  this website dont exists continue
 
                         try:
                             Websites.objects.get(domain=domain)
@@ -674,10 +722,11 @@ Automatic backup failed for %s on %s.
 
                         ##
 
-                        ## Save currently backing domain in db, so that i can restart from here when prematurely killed
+                        # Save currently backing domain in db, so that i can restart from here when prematurely killed
 
                         jobConfig['website'] = domain
-                        jobConfig[IncScheduler.lastRun] = time.strftime("%d %b %Y, %I:%M %p")
+                        jobConfig[IncScheduler.lastRun] = time.strftime(
+                            "%d %b %Y, %I:%M %p")
                         jobConfig[IncScheduler.currentStatus] = 'Running..'
                         backupjob.config = json.dumps(jobConfig)
                         backupjob.save()
@@ -689,16 +738,19 @@ Automatic backup failed for %s on %s.
                             else:
                                 continue
 
-                        retValues = backupSchedule.createLocalBackup(domain, '/dev/null')
+                        retValues = backupSchedule.createLocalBackup(
+                            domain, '/dev/null')
 
                         if retValues[0] == 0:
                             NormalBackupJobLogs(owner=backupjob, status=backupSchedule.ERROR,
                                                 message='Backup failed for %s on %s.' % (
                                                     domain, time.strftime("%m.%d.%Y_%H-%M-%S"))).save()
 
-                            SUBJECT = "Automatic backup failed for %s on %s." % (domain, currentTime)
+                            SUBJECT = "Automatic backup failed for %s on %s." % (
+                                domain, currentTime)
                             adminEmailPath = '/home/cyberpanel/adminEmail'
-                            adminEmail = open(adminEmailPath, 'r').read().rstrip('\n')
+                            adminEmail = open(
+                                adminEmailPath, 'r').read().rstrip('\n')
                             sender = 'root@%s' % (socket.gethostname())
                             TO = [adminEmail]
                             message = """\
@@ -833,7 +885,8 @@ Automatic backup failed for %s on %s.
                 finalResult = open(tempStatusPath, 'r').read()
 
                 if result == 1:
-                    key = plan.name + '/' + items.domain + '/' + fileName.split('/')[-1]
+                    key = plan.name + '/' + items.domain + \
+                        '/' + fileName.split('/')[-1]
                     client.upload_file(
                         fileName,
                         bucketName,
@@ -859,7 +912,8 @@ Automatic backup failed for %s on %s.
         except BaseException as msg:
             logging.writeToFile(str(msg) + ' [S3Backups.runBackupPlan]')
             plan = BackupPlan.objects.get(name=planName)
-            BackupLogs(owner=plan, timeStamp=time.strftime("%b %d %Y, %H:%M:%S"), level='ERROR', msg=str(msg)).save()
+            BackupLogs(owner=plan, timeStamp=time.strftime(
+                "%b %d %Y, %H:%M:%S"), level='ERROR', msg=str(msg)).save()
 
     @staticmethod
     def runAWSBackups(freq):
@@ -883,10 +937,13 @@ Automatic backup failed for %s on %s.
 
                 for eDomain in eDomains:
                     for email in eDomain.eusers_set.all():
-                        emailPath = '/home/vmail/%s/%s' % (website.domain, email.email.split('@')[0])
-                        email.DiskUsage = virtualHostUtilities.getDiskUsageofPath(emailPath)
+                        emailPath = '/home/vmail/%s/%s' % (
+                            website.domain, email.email.split('@')[0])
+                        email.DiskUsage = virtualHostUtilities.getDiskUsageofPath(
+                            emailPath)
                         email.save()
-                        print('Disk Usage of %s is %s' % (email.email, email.DiskUsage))
+                        print('Disk Usage of %s is %s' %
+                              (email.email, email.DiskUsage))
 
                 config['DiskUsage'], config['DiskUsagePercentage'] = virtualHostUtilities.getDiskUsage(
                     "/home/" + website.domain, website.package.diskSpace)
@@ -896,31 +953,37 @@ Automatic backup failed for %s on %s.
                         command = 'chattr -R +i /home/%s/' % (website.domain)
                         ProcessUtilities.executioner(command)
 
-                        command = 'chattr -R -i /home/%s/logs/' % (website.domain)
+                        command = 'chattr -R -i /home/%s/logs/' % (
+                            website.domain)
                         ProcessUtilities.executioner(command)
 
-                        command = 'chattr -R -i /home/%s/.trash/' % (website.domain)
+                        command = 'chattr -R -i /home/%s/.trash/' % (
+                            website.domain)
                         ProcessUtilities.executioner(command)
 
-                        command = 'chattr -R -i /home/%s/backup/' % (website.domain)
+                        command = 'chattr -R -i /home/%s/backup/' % (
+                            website.domain)
                         ProcessUtilities.executioner(command)
 
-                        command = 'chattr -R -i /home/%s/incbackup/' % (website.domain)
+                        command = 'chattr -R -i /home/%s/incbackup/' % (
+                            website.domain)
                         ProcessUtilities.executioner(command)
                     else:
                         command = 'chattr -R -i /home/%s/' % (website.domain)
                         ProcessUtilities.executioner(command)
 
-                ## Calculate bw usage
+                # Calculate bw usage
 
                 from plogical.vhost import vhost
-                config['bwInMB'], config['bwUsage'] = vhost.findDomainBW(website.domain, int(website.package.bandwidth))
+                config['bwInMB'], config['bwUsage'] = vhost.findDomainBW(
+                    website.domain, int(website.package.bandwidth))
 
                 website.config = json.dumps(config)
                 website.save()
 
             except BaseException as msg:
-                logging.writeToFile('%s. [CalculateAndUpdateDiskUsage:753]' % (str(msg)))
+                logging.writeToFile(
+                    '%s. [CalculateAndUpdateDiskUsage:753]' % (str(msg)))
 
     @staticmethod
     def WPUpdates():
@@ -932,23 +995,25 @@ Automatic backup failed for %s on %s.
                 except:
                     config = {}
 
-                ### Core Updates
+                # Core Updates
 
                 if config['updates'] == 'Minor and Security Updates':
-                    command = 'wp core update --minor --allow-root --path=/home/%s/public_html' % (config['domainName'])
+                    command = 'wp core update --minor --allow-root --path=/home/%s/public_html' % (
+                        config['domainName'])
                     ProcessUtilities.executioner(command)
                 elif config['updates'] == 'All (minor and major)':
-                    command = 'wp core update --allow-root --path=/home/%s/public_html' % (config['domainName'])
+                    command = 'wp core update --allow-root --path=/home/%s/public_html' % (
+                        config['domainName'])
                     ProcessUtilities.executioner(command)
 
-                ### Plugins, for plugins we will do minor updates only.
+                # Plugins, for plugins we will do minor updates only.
 
                 if config['pluginUpdates'] == 'Enabled':
                     command = 'wp plugin update --all --minor --allow-root --path=/home/%s/public_html' % (
                         config['domainName'])
                     ProcessUtilities.executioner(command)
 
-                ### Themes, for plugins we will do minor updates only.
+                # Themes, for plugins we will do minor updates only.
 
                 if config['themeUpdates'] == 'Enabled':
                     command = 'wp theme update --all --minor --allow-root --path=/home/%s/public_html' % (
@@ -979,7 +1044,8 @@ Automatic backup failed for %s on %s.
                 except:
                     continue
                 try:
-                    allRemoteBackupsiteobj = RemoteBackupsites.objects.filter(owner=config.pk)
+                    allRemoteBackupsiteobj = RemoteBackupsites.objects.filter(
+                        owner=config.pk)
                     for i in allRemoteBackupsiteobj:
                         try:
                             backupsiteID = i.WPsites
@@ -992,40 +1058,7 @@ Automatic backup failed for %s on %s.
 
                             if config.timeintervel == function:
                                 #al = float(Currenttime) - float(1800)
-                                #if float(al) >= float(Lastrun):
-                                #if 1 == 1:
-
-                                extraArgs = {}
-                                extraArgs['adminID'] = Admin.pk
-                                extraArgs['WPid'] = wpsite.pk
-                                extraArgs['Backuptype'] = Backuptype
-                                extraArgs['BackupDestination'] = config.RemoteBackupConfig.configtype
-                                extraArgs['SFTPID'] = config.RemoteBackupConfig_id
-
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
-                                status, msg, backupID = background.WPCreateBackup()
-                                if status == 1:
-                                    filename = msg
-                                    if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
-                                        command = f"rm -r {filename}"
-                                        ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
-                                        obj.lastrun = time.time()
-                                        obj.save()
-                                    elif config.RemoteBackupConfig.configtype == "S3":
-                                        IncScheduler.SendToS3Cloud(filename, config.RemoteBackupConfig_id, backupID,
-                                                                   config.id)
-                                        command = f"rm -r {filename}"
-                                        ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
-                                        obj.lastrun = time.time()
-                                        obj.save()
-
-                            elif config.timeintervel == function:
-                                #al = float(Currenttime) - float(3600)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
                                 # if 1 == 1:
 
                                 extraArgs = {}
@@ -1035,16 +1068,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = config.RemoteBackupConfig.configtype
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1052,13 +1089,52 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
+                                        obj.lastrun = time.time()
+                                        obj.save()
+
+                            elif config.timeintervel == function:
+                                #al = float(Currenttime) - float(3600)
+                                # if float(al) >= float(Lastrun):
+                                # if 1 == 1:
+
+                                extraArgs = {}
+                                extraArgs['adminID'] = Admin.pk
+                                extraArgs['WPid'] = wpsite.pk
+                                extraArgs['Backuptype'] = Backuptype
+                                extraArgs['BackupDestination'] = config.RemoteBackupConfig.configtype
+                                extraArgs['SFTPID'] = config.RemoteBackupConfig_id
+
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
+                                status, msg, backupID = background.WPCreateBackup()
+                                if status == 1:
+                                    filename = msg
+                                    if config.RemoteBackupConfig.configtype == "SFTP":
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
+                                        command = f"rm -r {filename}"
+                                        ProcessUtilities.executioner(command)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
+                                        obj.lastrun = time.time()
+                                        obj.save()
+                                    elif config.RemoteBackupConfig.configtype == "S3":
+                                        IncScheduler.SendToS3Cloud(filename, config.RemoteBackupConfig_id, backupID,
+                                                                   config.id)
+                                        command = f"rm -r {filename}"
+                                        ProcessUtilities.executioner(command)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
 
                             elif config.timeintervel == function:
                                 #al = float(Currenttime) - float(21600)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
 
                                 extraArgs = {}
                                 extraArgs['adminID'] = Admin.pk
@@ -1067,16 +1143,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = "SFTP"
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1084,13 +1164,14 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
 
                             elif config.timeintervel == function:
                                 #al = float(Currenttime) - float(43200)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
                                 extraArgs = {}
                                 extraArgs['adminID'] = Admin.pk
                                 extraArgs['WPid'] = wpsite.pk
@@ -1098,16 +1179,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = "SFTP"
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1115,13 +1200,14 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
 
                             elif config.timeintervel == function:
                                 #al = float(Currenttime) - float(86400)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
 
                                 extraArgs = {}
                                 extraArgs['adminID'] = Admin.pk
@@ -1130,16 +1216,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = "SFTP"
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1147,13 +1237,14 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
 
                             elif config.timeintervel == function:
                                 #al = float(Currenttime) - float(259200)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
 
                                 extraArgs = {}
                                 extraArgs['adminID'] = Admin.pk
@@ -1162,16 +1253,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = "SFTP"
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1179,13 +1274,14 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
 
                             elif config.timeintervel == function:
                                 #al = float(Currenttime) - float(604800)
-                                #if float(al) >= float(Lastrun):
+                                # if float(al) >= float(Lastrun):
 
                                 extraArgs = {}
                                 extraArgs['adminID'] = Admin.pk
@@ -1194,16 +1290,20 @@ Automatic backup failed for %s on %s.
                                 extraArgs['BackupDestination'] = "SFTP"
                                 extraArgs['SFTPID'] = config.RemoteBackupConfig_id
 
-                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
-                                background = ApplicationInstaller('WPCreateBackup', extraArgs)
+                                extraArgs['tempStatusPath'] = "/home/cyberpanel/" + \
+                                    str(randint(1000, 9999))
+                                background = ApplicationInstaller(
+                                    'WPCreateBackup', extraArgs)
                                 status, msg, backupID = background.WPCreateBackup()
                                 if status == 1:
                                     filename = msg
                                     if config.RemoteBackupConfig.configtype == "SFTP":
-                                        IncScheduler.SendTORemote(filename, config.RemoteBackupConfig_id)
+                                        IncScheduler.SendTORemote(
+                                            filename, config.RemoteBackupConfig_id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                                     elif config.RemoteBackupConfig.configtype == "S3":
@@ -1211,7 +1311,8 @@ Automatic backup failed for %s on %s.
                                                                    config.id)
                                         command = f"rm -r {filename}"
                                         ProcessUtilities.executioner(command)
-                                        obj = RemoteBackupSchedule.objects.get(pk=config.id)
+                                        obj = RemoteBackupSchedule.objects.get(
+                                            pk=config.id)
                                         obj.lastrun = time.time()
                                         obj.save()
                         except:
@@ -1254,7 +1355,6 @@ Automatic backup failed for %s on %s.
                         sftp.put(FileName)
 
 
-
         except BaseException as msg:
             logging.writeToFile('%s. [SendTORemote]' % (str(msg)))
 
@@ -1270,7 +1370,8 @@ Automatic backup failed for %s on %s.
             Backupobj = WPSitesBackup.objects.get(pk=backupID)
             backupConfig = json.loads(Backupobj.config)
             websitedomain = backupConfig['WebDomain']
-            RemoteBackupOBJ = RemoteBackupConfig.objects.get(pk=RemoteBackupCofigID)
+            RemoteBackupOBJ = RemoteBackupConfig.objects.get(
+                pk=RemoteBackupCofigID)
             config = json.loads(RemoteBackupOBJ.config)
             provider = config['Provider']
             if provider == "Backblaze":
@@ -1303,24 +1404,24 @@ Automatic backup failed for %s on %s.
             #     print("Error in Creating bucket...: %s" % str(msg))
             #     logging.writeToFile("Create bucket error---%s:" % str(msg))
 
-
-            ####getting Bucket from backup schedule
+            # getting Bucket from backup schedule
             Scheduleobj = RemoteBackupSchedule.objects.get(pk=scheduleID)
             Scheduleconfig = json.loads(Scheduleobj.config)
             BucketName = Scheduleconfig['BucketName']
-            #####Uploading File
+            # Uploading File
 
             uploadfilename = backupConfig['name']
-            print("uploadfilename....%s"%uploadfilename)
+            print("uploadfilename....%s" %uploadfilename)
 
             try:
-                res = client.upload_file(Filename=FileName, Bucket=BucketName, Key=uploadfilename)
+                res = client.upload_file(
+                    Filename=FileName, Bucket=BucketName, Key=uploadfilename)
                 print("res of Uploading...: %s" % res)
 
             except BaseException as msg:
                 print("Error in Uploading...: %s" % msg)
 
-            ###################### version id, this only applied to blackbaze
+            # version id, this only applied to blackbaze
             try:
 
                 s3 = boto3.resource(
@@ -1351,11 +1452,7 @@ Automatic backup failed for %s on %s.
                 Backupobj.save()
 
             except BaseException as msg:
-                print("Version ID Error: %s"%str(msg))
-
-
-
-
+                print("Version ID Error: %s" %str(msg))
 
 
         except BaseException as msg:
@@ -1380,7 +1477,7 @@ def main():
     IncScheduler.CalculateAndUpdateDiskUsage()
     IncScheduler.WPUpdates()
 
-    ### Run incremental backups in sep thread
+    # Run incremental backups in sep thread
 
     ib = IncScheduler('startBackup', {'freq': args.function})
     ib.start()

@@ -1052,8 +1052,8 @@ class FileManager:
         command = 'chown -R -P %s:%s /home/%s/public_html/.[^.]*' % (externalApp, externalApp, domainName)
         ProcessUtilities.popenExecutioner(command)
 
-        # command = "chown root:%s /home/" % (groupName) + domainName + "/logs"
-        # ProcessUtilities.popenExecutioner(command)
+        command = "chown root:%s /home/" % (groupName) + domainName + "/logs"
+        ProcessUtilities.popenExecutioner(command)
 
         command = "find %s -type d -exec chmod 0755 {} \;" % ("/home/" + domainName + "/public_html")
         ProcessUtilities.popenExecutioner(command)

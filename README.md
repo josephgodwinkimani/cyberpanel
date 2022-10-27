@@ -15,6 +15,11 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
 * One-click Backups and Restores.
 
+## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/blob/main/CHANGELOG.MD)
+
+* Count vmail folder size to disk usage by [@tbaldur](https://github.com/tbaldur)
+* 
+
 # Supported PHP Versions
 
 * PHP 8.1
@@ -34,14 +39,14 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```
-sh <(curl https://cyberpanel.net/install.sh || wget -O - https://cyberpanel.net/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/usmannasir/cyberpanel/stable/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/usmannasir/cyberpanel/stable/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/preUpgrade.sh)
 ```
 
 # Resources

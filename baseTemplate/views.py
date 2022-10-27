@@ -37,7 +37,6 @@ def getAdminStatus(request):
         val = request.session['userID']
         currentACL = ACLManager.loadedACL(val)
 
-
         if os.path.exists('/home/cyberpanel/postfix'):
             currentACL['emailAsWhole'] = 1
         else:
@@ -98,29 +97,31 @@ def getLoadAverage(request):
 
 @ensure_csrf_cookie
 def versionManagment(request):
-    ## Get latest version
+    # Get latest version
 
-    getVersion = requests.get('https://cyberpanel.net/version.txt')
+    getVersion = requests.get(
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
     latest = getVersion.json()
     latestVersion = latest['version']
     latestBuild = latest['build']
 
-    ## Get local version
+    # Get local version
 
     currentVersion = VERSION
     currentBuild = str(BUILD)
 
-    u = "https://api.github.com/repos/usmannasir/cyberpanel/commits?sha=v%s.%s" % (latestVersion, latestBuild)
+    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked/commits?sha=v%s.%s" % (
+        latestVersion, latestBuild)
     logging.CyberCPLogFileWriter.writeToFile(u)
     r = requests.get(u)
     latestcomit = r.json()[0]['sha']
 
-    command ="git -C /usr/local/CyberCP/ rev-parse HEAD"
+    command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
     output = ProcessUtilities.outputExecutioner(command)
 
     Currentcomt = output.rstrip("\n")
     notechk = True
-    
+
     # command ="git fetch -C /usr/local/CyberCP/"
     # output = ProcessUtilities.outputExecutioner(command)
     #
@@ -129,14 +130,12 @@ def versionManagment(request):
     #
     # numCommits = output.rstrip("\n")
 
-    if(Currentcomt == latestcomit):
+    if (Currentcomt == latestcomit):
         notechk = False
-
 
     template = 'baseTemplate/versionManagment.html'
     finalData = {'build': currentBuild, 'currentVersion': currentVersion, 'latestVersion': latestVersion,
-                 'latestBuild': latestBuild, 'latestcomit': latestcomit, "Currentcomt": Currentcomt, "Notecheck" : notechk }
-
+                 'latestBuild': latestBuild, 'latestcomit': latestcomit, "Currentcomt": Currentcomt, "Notecheck": notechk}
 
     proc = httpProc(request, template, finalData, 'versionManagement')
     return proc.render()
@@ -169,9 +168,9 @@ def upgrade(request):
 
         return HttpResponse(json_data)
 
-
     except KeyError:
-        adminData = {"upgrade": 1, "error_message": "Please login or refresh this page."}
+        adminData = {"upgrade": 1,
+                     "error_message": "Please login or refresh this page."}
         json_data = json.dumps(adminData)
         return HttpResponse(json_data)
 
@@ -195,7 +194,8 @@ def upgradeStatus(request):
                 if upgradeLog.find("Upgrade Completed") > -1:
 
                     vers = version.objects.get(pk=1)
-                    getVersion = requests.get('https://cyberpanel.net/version.txt')
+                    getVersion = requests.get(
+                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
                     latest = getVersion.json()
                     vers.currentVersion = latest['version']
                     vers.build = latest['build']
@@ -213,13 +213,13 @@ def upgradeStatus(request):
                                              'upgradeLog': upgradeLog})
                     return HttpResponse(final_json)
 
-
         except BaseException as msg:
             final_dic = {'upgradeStatus': 0, 'error_message': str(msg)}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
     except KeyError:
-        final_dic = {'upgradeStatus': 0, 'error_message': "Not Logged In, please refresh the page or login again."}
+        final_dic = {'upgradeStatus': 0,
+                     'error_message': "Not Logged In, please refresh the page or login again."}
         final_json = json.dumps(final_dic)
         return HttpResponse(final_json)
 
@@ -227,7 +227,8 @@ def upgradeStatus(request):
 def upgradeVersion(request):
     try:
         vers = version.objects.get(pk=1)
-        getVersion = requests.get('https://cyberpanel.net/version.txt')
+        getVersion = requests.get(
+            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
         latest = getVersion.json()
         vers.currentVersion = latest['version']
         vers.build = latest['build']
@@ -240,7 +241,7 @@ def upgradeVersion(request):
 
 @ensure_csrf_cookie
 def design(request):
-    ### Load Custom CSS
+    # Load Custom CSS
     try:
         from baseTemplate.models import CyberPanelCosmetic
         cosmetic = CyberPanelCosmetic.objects.get(pk=1)
@@ -264,15 +265,15 @@ def design(request):
         cosmetic.save()
         finalData['saved'] = 1
 
-    ####### Fetch sha...
+    # Fetch sha...
 
-    sha_url = "https://api.github.com/repos/usmannasir/CyberPanel-Themes/commits"
+    sha_url = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked-Themes/commits"
 
     sha_res = requests.get(sha_url)
 
     sha = sha_res.json()[0]['sha']
 
-    l = "https://api.github.com/repos/usmannasir/CyberPanel-Themes/git/trees/%s" % sha
+    l = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked-Themes/git/trees/%s" % sha
     fres = requests.get(l)
     tott = len(fres.json()['tree'])
     finalData['tree'] = []
@@ -300,7 +301,8 @@ def getthemedata(request):
 
         #logging.CyberCPLogFileWriter.writeToFile(str(data) + "  [themedata]")
 
-        url = "https://raw.githubusercontent.com/usmannasir/CyberPanel-Themes/main/%s/design.css" % data['Themename']
+        url = "https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked-Themes/main/%s/design.css" % data[
+            'Themename']
 
         res = requests.get(url)
 
@@ -312,4 +314,3 @@ def getthemedata(request):
         final_dic = {'status': 0, 'error_message': str(msg)}
         final_json = json.dumps(final_dic)
         return HttpResponse(final_json)
-
