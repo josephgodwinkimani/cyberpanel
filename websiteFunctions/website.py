@@ -209,14 +209,13 @@ class WebsiteManager:
         currentACL = ACLManager.loadedACL(userID)
         admin = Administrator.objects.get(pk=userID)
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
 
-            Data['backupobj'] = WPSitesBackup.objects.get(pk=BackupID)
-
-            if ACLManager.CheckIPBackupObjectOwner(currentACL, Data['backupobj'], admin) == 1:
-                pass
-            else:
-                return ACLManager.loadError()
+        Data['backupobj'] = WPSitesBackup.objects.get(pk=BackupID)
+        if ACLManager.CheckIPBackupObjectOwner(currentACL, Data['backupobj'], admin) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
 
             config = json.loads(Data['backupobj'].config)
             Data['FileName'] = config['name']
@@ -228,8 +227,8 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/WPRestoreHome.html',
                             Data, 'createWebsite')
             return proc.render()
-        else:
-            return redirect("https://cyberpanel.net/cyberpanel-addons")
+        # else:
+        #   return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def RemoteBackupConfig(self, request=None, userID=None, DeleteID=None):
         Data = {}
@@ -243,7 +242,7 @@ class WebsiteManager:
         except:
             pass
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
 
             Data['WPsites'] = ACLManager.GetALLWPObjects(currentACL, userID)
             allcon = RemoteBackupConfig.objects.all()
@@ -277,8 +276,8 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/RemoteBackupConfig.html',
                             Data, 'createWebsite')
             return proc.render()
-        else:
-            return redirect("https://cyberpanel.net/cyberpanel-addons")
+        # else:
+        #    return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def BackupfileConfig(self, request=None, userID=None, RemoteConfigID=None, DeleteID=None):
         Data = {}
@@ -295,7 +294,7 @@ class WebsiteManager:
         except:
             pass
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
             Data['WPsites'] = ACLManager.GetALLWPObjects(currentACL, userID)
             allsechedule = RemoteBackupSchedule.objects.filter(
                 RemoteBackupConfig=RemoteConfigobj)
@@ -315,8 +314,8 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/BackupfileConfig.html',
                             Data, 'createWebsite')
             return proc.render()
-        else:
-            return redirect("https://cyberpanel.net/cyberpanel-addons")
+        # else:
+        #    return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def AddRemoteBackupsite(self, request=None, userID=None, RemoteScheduleID=None, DeleteSiteID=None):
         Data = {}
@@ -335,7 +334,7 @@ class WebsiteManager:
         except:
             pass
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
             Data['WPsites'] = ACLManager.GetALLWPObjects(currentACL, userID)
             allRemoteBackupsites = RemoteBackupsites.objects.filter(
                 owner=RemoteBackupScheduleobj)
@@ -352,8 +351,8 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/AddRemoteBackupSite.html',
                             Data, 'createWebsite')
             return proc.render()
-        else:
-            return redirect("https://cyberpanel.net/cyberpanel-addons")
+        # else:
+        #    return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def RestoreBackups(self, request=None, userID=None, DeleteID=None):
         Data = {}
@@ -449,8 +448,7 @@ class WebsiteManager:
         # response = requests.post(url, data=json.dumps(data))
         # Status = response.json()['status']
 
-        # if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:      
-
+        # if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:
 
             # Get title
 
@@ -483,7 +481,7 @@ class WebsiteManager:
 
     def ConfigurePlugins(self, request=None, userID=None, data=None):
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
             currentACL = ACLManager.loadedACL(userID)
             userobj = Administrator.objects.get(pk=userID)
 
@@ -494,11 +492,11 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/WPConfigurePlugins.html',
                             Data, 'createWebsite')
             return proc.render()
-        else:
-            return redirect("https://cyberpanel.net/cyberpanel-addons")
+       # else:
+        #    return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def Addnewplugin(self, request=None, userID=None, data=None):
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        # if ACLManager.CheckForPremFeature('wp-manager'):
             currentACL = ACLManager.loadedACL(userID)
             adminNames = ACLManager.loadAllUsers(userID)
             packagesName = ACLManager.loadPackages(userID, currentACL)
@@ -509,38 +507,35 @@ class WebsiteManager:
             proc = httpProc(request, 'websiteFunctions/WPAddNewPlugin.html',
                             Data, 'createWebsite')
             return proc.render()
-        return redirect("https://cyberpanel.net/cyberpanel-addons")
+        # return redirect("https://cyberpanel.net/cyberpanel-addons")
 
     def SearchOnkeyupPlugin(self, userID=None, data=None):
         try:
-            if ACLManager.CheckForPremFeature('wp-manager'):
-                currentACL = ACLManager.loadedACL(userID)
+            # if ACLManager.CheckForPremFeature('wp-manager'):
+            currentACL = ACLManager.loadedACL(userID)
 
-                pluginname = data['pluginname']
-                # logging.CyberCPLogFileWriter.writeToFile("Plugin Name ....... %s"%pluginname)
+            pluginname = data['pluginname']
+            # logging.CyberCPLogFileWriter.writeToFile("Plugin Name ....... %s"%pluginname)
 
-                url = "http://api.wordpress.org/plugins/info/1.1/?action=query_plugins&request[search]=%s" % str(
-                    pluginname)
-                import requests
+            url = "http://api.wordpress.org/plugins/info/1.1/?action=query_plugins&request[search]=%s" % str(pluginname)
+            import requests
 
-                res = requests.get(url)
-                r = res.json()
+            res = requests.get(url)
+            r = res.json()
 
-                # return proc.ajax(1, 'Done', {'plugins': r})
+            # return proc.ajax(1, 'Done', {'plugins': r})
 
-                data_ret = {'status': 1, 'plugns': r, }
+            data_ret = {'status': 1,'plugns': r,}
 
-                json_data = json.dumps(data_ret)
-                return HttpResponse(json_data)
-            else:
-                data_ret = {'status': 0, 'createWebSiteStatus': 0,
-                            'error_message': 'Premium feature not available.'}
-                json_data = json.dumps(data_ret)
-                return HttpResponse(json_data)
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+            # else:
+                # data_ret = {'status': 0, 'createWebSiteStatus': 0, 'error_message': 'Premium feature not available.'}
+                # json_data = json.dumps(data_ret)
+                # return HttpResponse(json_data)
 
         except BaseException as msg:
-            data_ret = {'status': 0, 'createWebSiteStatus': 0,
-                        'error_message': str(msg)}
+            data_ret = {'status': 0, 'createWebSiteStatus': 0, 'error_message': str(msg)}
             json_data = json.dumps(data_ret)
             return HttpResponse(json_data)
 

@@ -1,5 +1,7 @@
 # CyberPanel
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/04d6ab6bb42c45739ef98c172bb466d2)](https://www.codacy.com/gh/josephgodwinkimani/cyberpanel-nitpicked/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josephgodwinkimani/cyberpanel-nitpicked&amp;utm_campaign=Badge_Grade)
+
 Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 ## Features & Services
