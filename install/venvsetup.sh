@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#CyberPanel installer script for Ubuntu 18.04 and CentOS 7.X
+#CyberPanel installer script for Ubuntu 18.04 - 20.04 and CentOS 7.X
 DEV="OFF"
-BRANCH="stable"
+BRANCH="main"
 POSTFIX_VARIABLE="ON"
 POWERDNS_VARIABLE="ON"
 PUREFTPD_VARIABLE="ON"
 PROVIDER="undefined"
 SERIAL_NO=""
 DIR=$(pwd)
-TEMP=$(curl --silent https://cyberpanel.net/version.txt)
+TEMP=$(curl --silent https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt)
 CP_VER1=${TEMP:12:3}
 CP_VER2=${TEMP:25:1}
 SERVER_OS="CentOS"
@@ -67,7 +67,7 @@ rm -rf /root/cyberpanel-tmp
 special_change(){
 sed -i 's|cyberpanel.sh|'$DOWNLOAD_SERVER'|g' install.py
 sed -i 's|mirror.cyberpanel.net|'$DOWNLOAD_SERVER'|g' install.py
-sed -i 's|git clone https://github.com/usmannasir/cyberpanel|echo downloaded|g' install.py
+sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked|echo downloaded|g' install.py
 #change to CDN first, regardless country
 sed -i 's|http://|https://|g' install.py
 
@@ -95,7 +95,7 @@ sed -i 's|https://copr.fedorainfracloud.org/coprs/copart/restic/repo/epel-7/copa
 
 sed -i 's|yum -y install https://cyberpanel.sh/gf-release-latest.gf.el7.noarch.rpm|wget -O /etc/yum.repos.d/gf.repo https://'$DOWNLOAD_SERVER'/gf-plus/gf.repo|g' install.py
 sed -i 's|dovecot-2.3-latest|dovecot-2.3-latest-mirror|g' install.py
-sed -i 's|git clone https://github.com/usmannasir/cyberpanel|wget https://cyberpanel.sh/cyberpanel-git.tar.gz \&\& tar xzvf cyberpanel-git.tar.gz|g' install.py
+sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked' install.py
 sed -i 's|https://repo.dovecot.org/ce-2.3-latest/centos/$releasever/RPMS/$basearch|https://'$DOWNLOAD_SERVER'/dovecot/|g' install.py
 sed -i 's|'$DOWNLOAD_SERVER'|cyberpanel.sh|g' install.py
 sed -i 's|https://www.litespeedtech.com/packages/5.0/lsws-5.4.2-ent-x86_64-linux.tar.gz|https://'$DOWNLOAD_SERVER'/litespeed/lsws-'$LSWS_STABLE_VER'-ent-x86_64-linux.tar.gz|g' installCyberPanel.py
@@ -914,13 +914,13 @@ if [[ $SERVER_COUNTRY == "CN" ]] ; then
 	cd cyberpanel/install
 else
 	if [[ $DEV == "ON" ]] ; then
-	git clone https://github.com/usmannasir/cyberpanel
+	git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked
 	cd cyberpanel
 	git checkout $BRANCH_NAME
 	cd -
 	cd cyberpanel/install
 	else
-	git clone https://github.com/usmannasir/cyberpanel
+	git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked
 	cd cyberpanel/install
 	fi
 fi
@@ -952,7 +952,7 @@ if grep "CyberPanel installation successfully completed" /var/log/installLogs.tx
 if [[ $DEV == "ON" ]] ; then
 python3.6 -m venv /usr/local/CyberCP
 source /usr/local/CyberCP/bin/activate
-wget -O requirements.txt https://raw.githubusercontent.com/usmannasir/cyberpanel/$BRANCH_NAME/requirments.txt
+wget -O requirements.txt https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/$BRANCH_NAME/requirments.txt
 pip3.6 install --ignore-installed -r requirements.txt
 systemctl restart lscpd
 fi

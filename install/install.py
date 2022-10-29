@@ -408,7 +408,7 @@ class preFlightsChecks:
 
         os.chdir('/usr/local')
 
-        command = "git clone https://github.com/usmannasir/cyberpanel"
+        command = "git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked"
         preFlightsChecks.call(command, self.distro,
                               command, command, 1, 1, os.EX_OSERR)
 
@@ -997,7 +997,7 @@ password="%s"
             if not os.path.exists("/usr/local/CyberCP/public"):
                 os.mkdir("/usr/local/CyberCP/public")
 
-            command = 'wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/usmannasir/cyberpanel/raw/stable/phpmyadmin.zip'
+            command = 'wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/josephgodwinkimani/cyberpanel-nitpicked/raw/main/phpmyadmin.zip'
 
             preFlightsChecks.call(command, self.distro, '[download_install_phpmyadmin]',
                                   command, 1, 0, os.EX_OSERR)
@@ -1653,6 +1653,9 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             labsData = """[labs]
 imap_folder_list_limit = 0
 autocreate_system_folders = On
+[logs]
+enable = On
+level = 4
 """
 
             writeToFile = open(labsPath, 'a')
@@ -1909,16 +1912,16 @@ autocreate_system_folders = On
                                   command, command, 1, 0, os.EX_OSERR)
 
             try:
-                if os.path.exists('comodo.tar.gz'):
-                    os.remove('comodo.tar.gz')
+                if os.path.exists('cwaf_rules_ls-1.233.tgz'):
+                    os.remove('cwaf_rules_ls-1.233.tgz')
             except:
                 pass
 
-            command = "wget https://cyberpanel.net/modsec/comodo.tar.gz"
+            command = "wget https://github.com/josephgodwinkimani/cyberpanel-nitpicked/cwaf_rules_ls-1.233.tgz"
             preFlightsChecks.call(command, self.distro,
                                   command, command, 1, 0, os.EX_OSERR)
 
-            command = "tar -zxf comodo.tar.gz -C /usr/local/lscp/modsec"
+            command = "tar -zxf cwaf_rules_ls-1.233.tgz -C /usr/local/lscp/modsec"
             preFlightsChecks.call(command, self.distro,
                                   command, command, 1, 0, os.EX_OSERR)
 
@@ -1946,30 +1949,32 @@ autocreate_system_folders = On
             modsecurity_rules_file /usr/local/lscp/modsec/comodo/02_Global_Generic.conf
             modsecurity_rules_file /usr/local/lscp/modsec/comodo/03_Global_Agents.conf
             modsecurity_rules_file /usr/local/lscp/modsec/comodo/04_Global_Domains.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/05_Global_Backdoor.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/06_XSS_XSS.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/07_Global_Other.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/08_Bruteforce_Bruteforce.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/09_HTTP_HTTP.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/10_HTTP_HTTPDoS.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/11_HTTP_Protocol.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/12_HTTP_Request.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/13_Outgoing_FilterGen.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/14_Outgoing_FilterASP.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/15_Outgoing_FilterPHP.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/16_Outgoing_FilterSQL.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/17_Outgoing_FilterOther.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/18_Outgoing_FilterInFrame.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/19_Outgoing_FiltersEnd.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/20_PHP_PHPGen.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/21_SQL_SQLi.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/22_Apps_Joomla.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/23_Apps_JComponent.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/24_Apps_WordPress.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/25_Apps_WPPlugin.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/26_Apps_WHMCS.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/27_Apps_Drupal.conf
-            modsecurity_rules_file /usr/local/lscp/modsec/comodo/28_Apps_OtherApps.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/05_Global_Incoming.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/06_Global_Backdoor.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/07_XSS_XSS.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/08_Global_Other.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/09_Bruteforce_Bruteforce.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/10_HTTP_HTTP.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/11_HTTP_HTTPDoS.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/12_HTTP_Protocol.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/13_HTTP_Request.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/14_Outgoing_FilterGen.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/15_Outgoing_FilterASP.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/16_Outgoing_FilterPHP.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/17_Outgoing_FilterSQL.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/18_Outgoing_FilterOther.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/19_Outgoing_FilterInFrame.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/20_Outgoing_FiltersEnd.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/21_PHP_PHPGen.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/22_SQL_SQLi.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/23_ROR_RORGen.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/24_Apps_Joomla.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/25_Apps_JComponent.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/26_Apps_WordPress.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/27_Apps_WPPlugin.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/28_Apps_WHMCS.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/29_Apps_Drupal.conf
+            modsecurity_rules_file /usr/local/lscp/modsec/comodo/30_Apps_OtherApps.conf
         }
         """
 
@@ -2104,6 +2109,15 @@ autocreate_system_folders = On
 
         return 1
 
+    def setupPHPSessions(self):
+        try:
+
+            command = "wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/cyberpanel_sessions.sh -O /usr/local/cyberpanel_sessions.sh"
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+        except:
+            return 0
+
     def setup_cron(self):
 
         try:
@@ -2165,6 +2179,7 @@ autocreate_system_folders = On
 
 */3 * * * * if ! find /home/*/public_html/ -maxdepth 2 -type f -newer /usr/local/lsws/cgid -name '.htaccess' -exec false {} +; then /usr/local/lsws/bin/lswsctrl restart; fi
 */15 * * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py CalculateAndUpdateDiskUsage
+17,47 * * * * /usr/local/cyberpanel_sessions.sh >/dev/null 2>&1 >> /var/spool/cron/root
 """
 
             cronFile.write(content)
@@ -2238,7 +2253,8 @@ autocreate_system_folders = On
     def test_Requests(self):
         try:
             import requests
-            getVersion = requests.get('https://cyberpanel.net/version.txt')
+            getVersion = requests.get(
+                'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
             latest = getVersion.json()
         except BaseException as msg:
 
@@ -2848,6 +2864,8 @@ def main():
     checks.downoad_and_install_raindloop()
     checks.download_install_phpmyadmin()
     checks.setupCLI()
+    # https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/cyberpanel_sessions.sh
+    checks.setupPHPSessions()
     checks.setup_cron()
     checks.installRestic()
     checks.installAcme()
@@ -2896,13 +2914,18 @@ def main():
         # command = 'mkdir -p /usr/local/lscp/cyberpanel/snappymail/data/data/default/configs/'
         # subprocess.call(shlex.split(command))
 
+        snappymailinipath = '/usr/local/lscp/cyberpanel/snappymail/data/_data_/_default_/configs/application.ini'
+
         writeToFile = open(
-            '/usr/local/lscp/cyberpanel/snappymail/data/_data_/_default_/configs/application.ini', 'a')
+            snappymailinipath, 'a')
 
         writeToFile.write("""
 [security]
 admin_login = "admin"
 admin_password = "12345"
+[logs]
+enable = On
+level = 4
 """)
         writeToFile.close()
 

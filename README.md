@@ -41,14 +41,14 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/stable/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/preUpgrade.sh)
 ```
 
 # Resources

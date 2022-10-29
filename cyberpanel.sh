@@ -61,14 +61,14 @@ PowerDNS_Switch="On"
 PureFTPd_Switch="On"
 
 Server_IP=""
-Server_Country="Unknow"
+Server_Country="Unknown"
 Server_OS=""
 Server_OS_Version=""
 Server_Provider='Undefined'
 
 Watchdog="On"
 Redis_Hosting="No"
-Temp_Value=$(curl --silent --max-time 30 -4 https://cyberpanel.net/version.txt)
+Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt)
 Panel_Version=${Temp_Value:12:3}
 Panel_Build=${Temp_Value:25:1}
 
@@ -216,7 +216,7 @@ echo -e "\nChecking server location...\n"
 if [[ "$Server_Country" != "CN" ]] ; then
   Server_Country=$(curl --silent --max-time 10 -4 https://cyberpanel.sh/?country)
   if [[ ${#Server_Country} != "2" ]] ; then
-   Server_Country="Unknow"
+   Server_Country="Unknown"
   fi
 fi
 #to avoid repeated check_ip called by debug_log2 to break force mirror for CN servers.
@@ -302,7 +302,7 @@ echo -e "Checking virtualization type..."
 #  Debug_Log2 "CyberPanel does not support LXC.. [404]"
 #  exit
 #fi
-#remove per https://github.com/josephgodwinkimani/cyberpanel-nitpicked/issues/589
+#remove per https://github.com/usmannasir/cyberpanel/issues/589
 
 if hostnamectl | grep -q "Virtualization: openvz"; then
   echo -e "OpenVZ detected...\n"
