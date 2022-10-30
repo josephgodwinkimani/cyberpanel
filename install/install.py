@@ -772,6 +772,21 @@ password="%s"
 
         ###
 
+    def downoad_and_install_rclone(self):
+        try:
+            #######
+
+            if os.path.exists("/usr/bin/rclone"):
+                return 0
+
+            command = 'curl https://rclone.org/install.sh | sudo bash'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+
+        except BaseException as msg:
+            logging.InstallLog.writeToFile(
+                '[ERROR] ' + str(msg) + " [downoad_and_install_rclone]")
+
     # https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
 
     def install_crowdsec(self):
@@ -2850,6 +2865,7 @@ def main():
                 installCyberPanel.InstallCyberPanel.mysqlPassword, mysql)
             checks.setup_postfix_dovecot_config(mysql)
 
+    checks.downoad_and_install_rclone()
     # https://github.com/tbaldur/cyberpanel-LTS/commit/06c704e9ba9a165c88d2b5ff2f68917a2b6afed8
     checks.install_crowdsec()
     checks.install_unzip()

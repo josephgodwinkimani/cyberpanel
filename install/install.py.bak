@@ -684,6 +684,212 @@ password="%s"
 
         ###
 
+    def downoad_and_install_rclone(self):
+        try:
+            #######
+
+            if os.path.exists("/usr/bin/rclone"):
+                return 0
+
+            command = 'curl https://rclone.org/install.sh | sudo bash'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+
+        except BaseException as msg:
+            logging.InstallLog.writeToFile(
+                '[ERROR] ' + str(msg) + " [downoad_and_install_rclone]")
+
+    # https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
+
+    def install_crowdsec(self):
+        self.stdOut("Install CrowdSec")
+        try:
+            if self.distro == centos:  # Install centos7 and clone distros
+                command = 'yum -y install crowdsec'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+                command = 'yum -y crowdsec-firewall-bouncer-iptables'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+            elif self.distro == cent8:  # Install centos8 and clone distros
+                command = 'dnf -y install crowdsec'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+                command = 'dnf -y install crowdsec-firewall-bouncer-iptables'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+            else:  # Install ubuntu
+                command = 'apt -y install crowdsec'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+                command = 'apt -y install crowdsec-firewall-bouncer-iptables'
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR)
+            # Setup collections
+            command = 'cscli collections install crowdsecurity/base-http-scenario'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/iptables'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/linux'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/sshd'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/postfix'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/mariadb'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/modsecurity'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/linux-lpe'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/litespeed'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/dovecot'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/exchange'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/vsftpd'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install fulljackz/pureftpd'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli collections install crowdsecurity/wordpress'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            # Setup scenarios
+            command = 'cscli scenarios install crowdsecurity/litespeed-admin-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/iptables-scan-multi_ports'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/apache_log4j2_cve-2021-44228'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2021-4034'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-26134'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-35914'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-37042'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-40684'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-41082'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/CVE-2022-42889'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/dovecot-spam'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/f5-big-ip-cve-2020-5902'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-backdoors-attempts'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-bf-wordpress_bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-bf-wordpress_bf_xmlrpc'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-crawl-non_statics'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-generic-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-sensitive-files'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-sqli-probing'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-wordpress_user-enum'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-wordpress_wpconfig'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/http-xss-probing'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/mariadb-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/postfix-spam'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install fulljackz/pureftpd-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/ssh-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/ssh-slow-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli scenarios install crowdsecurity/vsftpd-bf'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+
+            # Setup parsers
+            command = 'cscli parsers install crowdsecurity/litespeed-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/dovecot-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/exchange-imap-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/exchange-pop-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/exchange-smtp-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/iptables-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/mariadb-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/postfix-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install fulljackz/pureftpd-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+            command = 'cscli parsers install crowdsecurity/sshd-logs'
+            preFlightsChecks.call(command, self.distro,
+                                  command, command, 1, 0, os.EX_OSERR)
+
+        except BaseException as msg:
+            logging.InstallLog.writeToFile(
+                '[ERROR] ' + str(msg) + " [install_crowdsec]")
+
     def install_unzip(self):
         self.stdOut("Install unzip")
         try:
@@ -2311,7 +2517,10 @@ def main():
             checks.install_postfix_dovecot()
             checks.setup_email_Passwords(installCyberPanel.InstallCyberPanel.mysqlPassword, mysql)
             checks.setup_postfix_dovecot_config(mysql)
-
+            
+    checks.downoad_and_install_rclone()
+    # https://github.com/tbaldur/cyberpanel-LTS/commit/06c704e9ba9a165c88d2b5ff2f68917a2b6afed8
+    checks.install_crowdsec()
     checks.install_unzip()
     checks.install_zip()
     checks.install_rsync()

@@ -13,7 +13,7 @@ Nitpick branch
 * [OLS default settings tuning - Get real IPs from cloudflare by default, Symbolic links protection for shared environments](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/commit/17e0592d37df44bb87da88fbf5e038285705643d) Author: [tmoore](https://community.cyberpanel.net/u/tmoore)
 * [Wrong/Missing php processors to compile at OLS panel](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/commit/dadfc18209aec416fe3bc2088a24e8a5a30c8076)
 * [Add CrowdSec scenarios, parsers, collections and patch needed features](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/commit/31aa77e6c7481475c03025499adc7e3d41c3ce63)
-*
+* [Fix install script, add Comodo Modsecurity rules v1.233](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/commit/0e8ffd43b1e0214da44d3ec5f84a452d8c7ad7fe)
 
 **Security:**
 *
