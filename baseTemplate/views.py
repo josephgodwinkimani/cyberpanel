@@ -100,7 +100,7 @@ def versionManagment(request):
     # Get latest version
 
     getVersion = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
     latest = getVersion.json()
     latestVersion = latest['version']
     latestBuild = latest['build']
@@ -110,7 +110,7 @@ def versionManagment(request):
     currentVersion = VERSION
     currentBuild = str(BUILD)
 
-    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked/commits?sha=v%s.%s" % (
+    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=v%s.%s" % (
         latestVersion, latestBuild)
     logging.CyberCPLogFileWriter.writeToFile(u)
     r = requests.get(u)
@@ -195,7 +195,7 @@ def upgradeStatus(request):
 
                     vers = version.objects.get(pk=1)
                     getVersion = requests.get(
-                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
+                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
                     latest = getVersion.json()
                     vers.currentVersion = latest['version']
                     vers.build = latest['build']
@@ -228,7 +228,7 @@ def upgradeVersion(request):
     try:
         vers = version.objects.get(pk=1)
         getVersion = requests.get(
-            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
+            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
         latest = getVersion.json()
         vers.currentVersion = latest['version']
         vers.build = latest['build']
@@ -267,13 +267,13 @@ def design(request):
 
     # Fetch sha...
 
-    sha_url = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked-Themes/commits"
+    sha_url = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-Themes/commits"
 
     sha_res = requests.get(sha_url)
 
     sha = sha_res.json()[0]['sha']
 
-    l = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-nitpicked-Themes/git/trees/%s" % sha
+    l = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-Themes/git/trees/%s" % sha
     fres = requests.get(l)
     tott = len(fres.json()['tree'])
     finalData['tree'] = []
@@ -301,7 +301,7 @@ def getthemedata(request):
 
         #logging.CyberCPLogFileWriter.writeToFile(str(data) + "  [themedata]")
 
-        url = "https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked-Themes/main/%s/design.css" % data[
+        url = "https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-Themes/main/%s/design.css" % data[
             'Themename']
 
         res = requests.get(url)

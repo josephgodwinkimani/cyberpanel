@@ -1332,7 +1332,7 @@ if [[ $Server_Edition = "Enterprise" ]] ; then
   Enterprise_Flag="--ent ent --serial "
 fi
 
-sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked|echo downloaded|g' install.py
+sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel|echo downloaded|g' install.py
 sed -i 's|mirror.cyberpanel.net|cyberpanel.sh|g' install.py
 
 

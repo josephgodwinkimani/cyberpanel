@@ -273,12 +273,12 @@ fi
 Pre_Upgrade_Setup_Git_URL() {
   if [[ $Server_Country != "CN" ]] ; then
     Git_User="josephgodwinkimani"
-    Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
-    Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
+    Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
+    Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
   else
     Git_User="josephgodwinkimani"
-    Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
-    Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
+    Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
+    Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
   fi
 
   if [[ "$Debug" = "On" ]] ; then
@@ -534,13 +534,13 @@ fi
 wget "${Git_Content_URL}/${Branch_Name}/plogical/upgrade.py"
 
 if [[ "$Server_Country" = "CN" ]] ; then
-  sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked|echo git cloned|g' upgrade.py
+  sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel|echo git cloned|g' upgrade.py
 
   Retry_Command "git clone ${Git_Clone_URL}"
     Check_Return "git clone ${Git_Clone_URL}"
 
   # shellcheck disable=SC2086
-  sed -i 's|https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/install/litespeed/httpd_config.xml|'${Git_Content_URL}/${Branch_Name}'//install/litespeed/httpd_config.xml|g' upgrade.py
+  sed -i 's|https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install/litespeed/httpd_config.xml|'${Git_Content_URL}/${Branch_Name}'//install/litespeed/httpd_config.xml|g' upgrade.py
   sed -i 's|https://cyberpanel.sh/composer.sh|https://gitee.com/qtwrk/cyberpanel/raw/stable/install/composer_cn.sh|g' upgrade.py
 fi
 
@@ -549,12 +549,12 @@ fi
 Pre_Upgrade_Setup_Git_URL() {
 if [[ $Server_Country != "CN" ]] ; then
   Git_User="josephgodwinkimani"
-  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
-  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
+  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
+  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
 else
   Git_User="josephgodwinkimani"
-  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
-  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
+  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
+  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
 fi
 
 if [[ "$Debug" = "On" ]] ; then

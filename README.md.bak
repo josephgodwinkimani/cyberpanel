@@ -1,6 +1,6 @@
 # CyberPanel
 
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/04d6ab6bb42c45739ef98c172bb466d2)](https://www.codacy.com/gh/josephgodwinkimani/cyberpanel-nitpicked/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josephgodwinkimani/cyberpanel-nitpicked&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/04d6ab6bb42c45739ef98c172bb466d2)](https://www.codacy.com/gh/josephgodwinkimani/cyberpanel/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josephgodwinkimani/cyberpanel&amp;utm_campaign=Badge_Grade)
 
 Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
@@ -17,7 +17,7 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
 * One-click Backups and Restores.
 
-## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/blob/main/CHANGELOG.MD)
+## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel/blob/main/CHANGELOG.MD)
 
 * Count vmail folder size to disk usage by [@tbaldur](https://github.com/tbaldur)
 * 
@@ -41,14 +41,14 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
 ```
 
 # Resources

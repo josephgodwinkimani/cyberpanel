@@ -17,7 +17,7 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
 * One-click Backups and Restores.
 
-## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel-nitpicked/blob/main/CHANGELOG.MD)
+## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel/blob/main/CHANGELOG.MD)
 
 * Count vmail folder size to disk usage by [@tbaldur](https://github.com/tbaldur)
 * 
