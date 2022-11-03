@@ -1100,7 +1100,7 @@ Debug_Log2 "Necessary components installed..,5"
 # https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
 
 Pre_Install_crowdsec(){
-if [[ "$Server_OS" = "Ubuntu" ]]
+if [[ "$Server_OS" = "Ubuntu" ]]; then
 curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | sudo bash
 else
 curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh | sudo bash
