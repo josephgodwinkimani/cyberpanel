@@ -75,7 +75,7 @@ Panel_Build=${Temp_Value:25:1}
 # Branch_Name="v${Panel_Version}.${Panel_Build}"
 Branch_Name="main"
 
-if [[ $Branch_Name = v*.*.* ]] ; then
+if [[ $Branch_Name = "main" ]] ; then
   echo -e  "\nBranch name fetched...$Branch_Name"
 else
   echo -e "\nUnable to fetch Branch name..."
