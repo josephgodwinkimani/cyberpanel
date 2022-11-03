@@ -1,3 +1,12 @@
+import grp
+import pwd
+import argparse
+import shlex
+import subprocess
+import shutil
+import time
+import MySQLdb as mysql
+from CyberCP import settings
 import os
 import os.path
 import sys
@@ -6,15 +15,6 @@ import random
 
 sys.path.append("/usr/local/CyberCP")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
-from CyberCP import settings
-import MySQLdb as mysql
-import time
-import shutil
-import subprocess
-import shlex
-import argparse
-import pwd
-import grp
 
 VERSION = "2.3"
 BUILD = 2
@@ -2208,6 +2208,48 @@ autocreate_system_folders = On
             Upgrade.stdOut(str(msg) + " [installLSCPD]")
 
     @staticmethod
+    def upgrade_crowdsec():
+        try:
+            if not os.path.exists("/etc/crowdsec"):
+                Upgrade.stdOut("Upgrade CrowdSec")
+                if Upgrade.FindOperatingSytem() == CENTOS7:  # Upgrade centos7
+                    command = "yum -y upgrade crowdsec"
+                    Upgrade.executioner(command, 0)
+                elif Upgrade.FindOperatingSytem() == CENTOS8:  # Upgrade centos8
+                    command = "dnf -y upgrade crowdsec"
+                    Upgrade.executioner(command, 0)
+                else:  # Upgrade ubuntu
+                    command = "apt -y upgrade crowdsec"
+                    Upgrade.executioner(command, 0)
+                # Upgrade collections
+                command = "cscli collections upgrade crowdsecurity/base-http-scenario"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/iptables"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/linux"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/sshd"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/postfix"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/mariadb"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/modsecurity"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/linux-lpe"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/litespeed"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/dovecot"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/vsftpd"
+                Upgrade.executioner(command, 0)
+                command = "cscli collections upgrade crowdsecurity/wordpress"
+                Upgrade.executioner(command, 0)
+        except BaseException as msg:
+            Upgrade.stdOut(str(msg) + " [upgrade_crowdsec]")
+
+    @staticmethod
     def fixPermissions():
         try:
 
@@ -2981,7 +3023,7 @@ vmail
             if os.path.exists("httpd_config.xml"):
                 os.remove("httpd_config.xml")
 
-            command = "wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/stable/install/litespeed/httpd_config.xml"
+            command = "wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install/litespeed/httpd_config.xml"
             Upgrade.executioner(command, command, 0)
             # os.remove('/usr/local/lsws/conf/httpd_config.xml')
             # shutil.copy('httpd_config.xml', '/usr/local/lsws/conf/httpd_config.xml')
@@ -3063,6 +3105,8 @@ vmail
 
         # if os.path.exists(postfixPath):
         #     Upgrade.upgradeDovecot()
+
+        Upgrade.upgrade_crowdsec()
 
         # Upgrade version
 
