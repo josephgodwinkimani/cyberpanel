@@ -56,4 +56,4 @@ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/p
 * [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
 * [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
 * [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
-*
+* [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)
