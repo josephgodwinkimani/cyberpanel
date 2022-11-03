@@ -1,20 +1,19 @@
+import os
+import os.path
+import sys
 import string
 import random
+sys.path.append('/usr/local/CyberCP')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
 from CyberCP import settings
 import MySQLdb as mysql
 import time
 import shutil
 import subprocess
 import shlex
-import os
-import os.path
-import sys
 import argparse
 import pwd
 import grp
-
-sys.path.append('/usr/local/CyberCP')
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
 
 VERSION = '2.3'
 BUILD = 2
