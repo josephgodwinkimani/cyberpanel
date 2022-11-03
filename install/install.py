@@ -408,7 +408,7 @@ class preFlightsChecks:
 
         os.chdir('/usr/local')
 
-        command = "git clone https://github.com/josephgodwinkimani/cyberpanel-nitpicked"
+        command = "git clone https://github.com/josephgodwinkimani/cyberpanel"
         preFlightsChecks.call(command, self.distro,
                               command, command, 1, 1, os.EX_OSERR)
 
@@ -1012,7 +1012,7 @@ password="%s"
             if not os.path.exists("/usr/local/CyberCP/public"):
                 os.mkdir("/usr/local/CyberCP/public")
 
-            command = 'wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/josephgodwinkimani/cyberpanel-nitpicked/raw/main/phpmyadmin.zip'
+            command = 'wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/josephgodwinkimani/cyberpanel/raw/main/phpmyadmin.zip'
 
             preFlightsChecks.call(command, self.distro, '[download_install_phpmyadmin]',
                                   command, 1, 0, os.EX_OSERR)
@@ -1932,7 +1932,7 @@ level = 4
             except:
                 pass
 
-            command = "wget https://github.com/josephgodwinkimani/cyberpanel-nitpicked/cwaf_rules_ls-1.233.tgz"
+            command = "wget https://github.com/josephgodwinkimani/cyberpanel/cwaf_rules_ls-1.233.tgz"
             preFlightsChecks.call(command, self.distro,
                                   command, command, 1, 0, os.EX_OSERR)
 
@@ -2269,7 +2269,7 @@ level = 4
         try:
             import requests
             getVersion = requests.get(
-                'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt')
+                'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
             latest = getVersion.json()
         except BaseException as msg:
 
