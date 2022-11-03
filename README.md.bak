@@ -53,11 +53,7 @@ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/p
 
 # Resources
 
-* [Official Site.](https://cyberpanel.net)
-* [Docs (Old).](https://docs.cyberpanel.net)
-* [Docs (New).](https://community.cyberpanel.net/docs)
-* [Changelog.](https://community.cyberpanel.net/t/change-logs/161)
-* [Forums.](https://community.cyberpanel.net)
-* [Discord.](https://discord.gg/g8k8Db3)
-* [Facebook Group.](https://www.facebook.com/groups/cyberpanel)
-* [YouTube Channel.](https://www.youtube.com/channel/UCS6sgUWEhaFl1TO238Ck0xw)
+* [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
+* [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
+* [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
+* [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)

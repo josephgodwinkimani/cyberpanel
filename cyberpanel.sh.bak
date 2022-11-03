@@ -1632,7 +1632,7 @@ echo "                                                                   "
 echo "                Visit: https://$Server_IP:8090                     "
 echo "                Panel username: admin                              "
 if [[ "$Custom_Pass" = "True" ]]; then
-echo "                Panel password: *****                              "
+echo "                Panel password: $Admin_Pass                        "
 else
 echo "                Panel password: $Admin_Pass                        "
 fi
