@@ -72,7 +72,8 @@ Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/jo
 Panel_Version=${Temp_Value:12:3}
 Panel_Build=${Temp_Value:25:1}
 
-Branch_Name="v${Panel_Version}.${Panel_Build}"
+# Branch_Name="v${Panel_Version}.${Panel_Build}"
+Branch_Name="main"
 
 if [[ $Branch_Name = v*.*.* ]] ; then
   echo -e  "\nBranch name fetched...$Branch_Name"
@@ -113,7 +114,7 @@ echo -e "\n${1}=${2}\n" >> "/var/log/cyberpanel_debug_$(date +"%Y-%m-%d")_${Rand
 Debug_Log2() {
 Check_Server_IP "$@" >/dev/null 2>&1
 echo -e "\n${1}" >> /var/log/installLogs.txt
-curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
+#curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
 }
 
 Branch_Check() {
@@ -1830,13 +1831,13 @@ chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64 || true
 
 Pre_Install_Setup_Git_URL() {
 if [[ $Server_Country != "CN" ]] ; then
-  Git_User="usmannasir"
-  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
-  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
+  Git_User="josephgodwinkimani"
+  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
+  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
 else
-  Git_User="qtwrk"
-  Git_Content_URL="https://gitee.com/${Git_User}/cyberpanel/raw"
-  Git_Clone_URL="https://gitee.com/${Git_User}/cyberpanel.git"
+  Git_User="josephgodwinkimani"
+  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel-nitpicked"
+  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel-nitpicked.git"
 fi
 
 if [[ "$Debug" = "On" ]] ; then
