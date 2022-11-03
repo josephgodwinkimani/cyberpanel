@@ -1662,7 +1662,7 @@ chmod 600 /etc/cyberpanel/webadmin_passwd
 
 Post_Install_Setup_Watchdog() {
 if [[ "$Watchdog" = "On" ]]; then
-  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/stable/CPScripts/watchdog.sh"
+  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/main/CPScripts/watchdog.sh"
   chmod 700 /etc/cyberpanel/watchdog.sh
   ln -s /etc/cyberpanel/watchdog.sh /usr/local/bin/watchdog
   #shellcheck disable=SC2009
@@ -1714,6 +1714,7 @@ echo "                Panel password: $Admin_Pass                        "
 else
 echo "                Panel password: $Admin_Pass                        "
 fi
+echo "                Configure Rclone: rclone config                    "
 #echo "                Visit: https://$Server_IP:7080                     "
 #echo "                WebAdmin console username: admin                   "
 #echo "                WebAdmin console password: $Webadmin_Pass          "
@@ -1723,17 +1724,17 @@ fi
 #echo "                snappymail Admin password: $snappymailAdminPass        "
 echo "                                                                   "
 echo -e "             Run \e[31mcyberpanel help\e[39m to get FAQ info"
-echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version."
-echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools ."
-echo "                                                                   "
-echo "              Website : https://www.cyberpanel.net                 "
-echo "              Forums  : https://forums.cyberpanel.net              "
-echo "              Wikipage: https://docs.cyberpanel.net                "
-echo "              Docs    : https://cyberpanel.net/docs/               "
-echo "                                                                   "
-echo -e "            Enjoy your accelerated Internet by                  "
-echo -e "                CyberPanel & $Word 				                     "
-echo "###################################################################"
+echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version.         "
+echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools .             "
+echo "                                                                                            "
+echo "              Website   : https://github.com/josephgodwinkimani/cyberpanel                  "
+echo "              CrowdSec  : https://doc.crowdsec.net/docs/intro                               "
+echo "              RClone    : https://rclone.org/docs/                                          "
+echo "              Docs      : https://cyberpanel.net/docs/                                      "
+echo "                                                                                            "
+echo -e "            Enjoy your accelerated Internet by                                           "
+echo -e "                CyberPanel & $Word 				                                              "
+echo "############################################################################################"
 
 if [[ "$Server_Provider" != "Undefined" ]]; then
   echo -e "\033[0;32m$Server_Provider\033[39m detected..."

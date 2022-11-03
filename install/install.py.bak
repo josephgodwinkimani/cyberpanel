@@ -872,6 +872,7 @@ password="%s"
             )
 
     # https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
+    # install the agent
 
     def install_crowdsec(self):
         self.stdOut("Install CrowdSec")
@@ -881,16 +882,8 @@ password="%s"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-                command = "yum -y crowdsec-firewall-bouncer-iptables"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
             elif self.distro == cent8:  # Install centos8 and clone distros
                 command = "dnf -y install crowdsec"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-                command = "dnf -y install crowdsec-firewall-bouncer-iptables"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
@@ -899,10 +892,42 @@ password="%s"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
+            # Enable service
+            command = "systemctl enable crowdsec"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
+            command = "systemctl start crowdsec"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
+            # Install a Firewall
+            if self.distro == centos:  # Install centos7 and clone distros
+                command = "yum -y crowdsec-firewall-bouncer-iptables"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+            elif self.distro == cent8:  # Install centos8 and clone distros
+                command = "dnf -y install crowdsec-firewall-bouncer-iptables"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+            else:  # Install ubuntu
                 command = "apt -y install crowdsec-firewall-bouncer-iptables"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
+
+            # Setup Bouncer
+            command = "systemctl enable crowdsec-firewall-bouncer"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
+            command = "systemctl start crowdsec-firewall-bouncer"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
+
             # Setup collections
             command = "cscli collections install crowdsecurity/base-http-scenario"
             preFlightsChecks.call(
@@ -1116,6 +1141,12 @@ password="%s"
                 command, self.distro, command, command, 1, 0, os.EX_OSERR
             )
             command = "cscli parsers install crowdsecurity/sshd-logs"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
+
+            # restart service
+            command = "systemctl restart crowdsec"
             preFlightsChecks.call(
                 command, self.distro, command, command, 1, 0, os.EX_OSERR
             )
