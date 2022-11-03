@@ -16,6 +16,11 @@ elif echo $OUTPUT | grep -q "CloudLinux 7" ; then
 yum install curl wget -y 1> /dev/null
 yum update curl wget ca-certificates -y 1> /dev/null
                 SERVER_OS="CloudLinux"
+elif echo "$OUTPUT" | grep -q "AlmaLinux 8" ; then
+	echo "Checking and installing curl and wget"
+yum install curl wget -y 1> /dev/null
+yum update curl wget ca-certificates -y 1> /dev/null
+        SERVER_OS="AlmaLinux"
 elif echo $OUTPUT | grep -q "Ubuntu 18.04" ; then
 apt install -y -qq wget curl
                 SERVER_OS="Ubuntu"
@@ -32,11 +37,6 @@ elif echo $OUTPUT | grep -q "openEuler 22.03" ; then
         SERVER_OS="openEuler"
 yum install curl wget -y 1> /dev/null
 yum update curl wget ca-certificates -y 1> /dev/null
-elif echo "$OUTPUT" | grep -q "AlmaLinux 8" ; then
-	echo "Checking and installing curl and wget"
-yum install curl wget -y 1> /dev/null
-yum update curl wget ca-certificates -y 1> /dev/null
-        SERVER_OS="AlmaLinux"
 else
 
                 echo -e "\nUnable to detect your OS...\n"
