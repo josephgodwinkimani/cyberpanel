@@ -25,7 +25,7 @@ Server_OS=""
 Server_OS_Version=""
 Server_Provider='Undefined'
 
-Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-nitpicked/main/version.txt)
+Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt)
 Panel_Version=${Temp_Value:12:3}
 Panel_Build=${Temp_Value:25:1}
 
