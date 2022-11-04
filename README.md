@@ -40,15 +40,54 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 # Installation Instructions
 
 
-```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
+```bash
+$ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
+```bash
+$ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
+
+# Add additional logs for CrowdSec
+
+```bash
+$ nano /etc/crowdsec/acquis.yaml
+```
+Add at the end:
+
+```
+...
+#https://doc.crowdsec.net/docs/data_sources/file
+source: file
+filenames:
+ - /home/cyberpanel/error-logs.txt
+ - /usr/local/lsws/logs/error.log
+ - /usr/local/lsws/logs/access.log #useless
+ - /var/log/maillog
+ - /var/log/messages
+ - /var/log/mysql/error.log #https://community.cyberpanel.net/t/how-to-check-database-logs/37979/2
+labels:
+ type: syslog
+ ```
+
+You can also acquire logs from journalctl files e.g.
+
+```
+...
+source: journalctl
+journalctl_filter:
+ - "_SYSTEMD_UNIT=ssh.service"
+labels:
+  type: journald
+ ```
+
+# Enroll your CrowdSec instance on https://app.crowdsec.net/
+
+```bash
+$ sudo cscli console enroll 1234567890abcdef1234567890
 ```
 
 # Resources
