@@ -92,6 +92,7 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 
 # Resources
 
+* [Getting started after Installation](https://community.cyberpanel.net/t/cant-access-website-show-cyberpanel-installed-page/38018/2)
 * [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
 * [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
 * [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
