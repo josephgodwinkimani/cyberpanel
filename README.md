@@ -98,3 +98,4 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 * [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
 * [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)
 * [Change MariaDB log configuration for your own purposes](https://community.cyberpanel.net/t/how-to-check-database-logs/37979/2)
+* [How to allow your SnappyMail users to change their mailbox passwords](https://community.cyberpanel.net/t/tutorial-how-to-allow-your-snappymail-users-to-change-their-mailbox-passwords/38084)
