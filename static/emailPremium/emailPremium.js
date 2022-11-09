@@ -20,7 +20,7 @@ app.controller('listDomains', function ($scope, $http) {
 
         url = "/emailPremium/getFurtherDomains";
 
-        var data = {page: pageNumber};
+        var data = { page: pageNumber };
 
         var config = {
             headers: {

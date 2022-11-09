@@ -759,8 +759,8 @@ fileManager.controller('fileManagerCtrl', function ($scope, $http, FileUploader,
     $scope.getFileContents = function () {
 
 
-        console.log("selectedfile"+ allFilesAndFolders)
-        console.log("currentpath"+ $scope.currentRPath)
+        // console.log("selectedfile"+ allFilesAndFolders)
+        // console.log("currentpath"+ $scope.currentRPath)
         var completePathForFile = $scope.currentRPath + "/" + allFilesAndFolders[0];
 
 
@@ -1638,7 +1638,7 @@ fileManager.controller('fileManagerCtrl', function ($scope, $http, FileUploader,
                 break;
 
 
-            case  'groupRead':
+            case 'groupRead':
                 if ($scope.groupRead === true) {
                     $scope.groupPermissions = $scope.groupPermissions + 4;
                 } else {
@@ -1677,7 +1677,7 @@ fileManager.controller('fileManagerCtrl', function ($scope, $http, FileUploader,
                 break;
 
 
-            case  'groupWrite':
+            case 'groupWrite':
                 if ($scope.groupWrite === true) {
                     $scope.groupPermissions = $scope.groupPermissions + 2;
                 } else {
@@ -1716,7 +1716,7 @@ fileManager.controller('fileManagerCtrl', function ($scope, $http, FileUploader,
                 break;
 
 
-            case  'groupExecute':
+            case 'groupExecute':
                 if ($scope.groupExecute === true) {
                     $scope.groupPermissions = $scope.groupPermissions + 1;
                 } else {
