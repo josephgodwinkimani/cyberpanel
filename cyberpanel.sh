@@ -61,21 +61,20 @@ PowerDNS_Switch="On"
 PureFTPd_Switch="On"
 
 Server_IP=""
-Server_Country="Unknown"
+Server_Country="Unknow"
 Server_OS=""
 Server_OS_Version=""
 Server_Provider='Undefined'
 
 Watchdog="On"
 Redis_Hosting="No"
-Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt)
-Panel_Version=${Temp_Value:12:3}
-Panel_Build=${Temp_Value:25:1}
+Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/version.txt)
+Panel_Version=${Temp_Value:12:8}
+Panel_Build=${Temp_Value:25:40}
 
-# Branch_Name="v${Panel_Version}.${Panel_Build}"
-Branch_Name="main"
+Branch_Name="${Panel_Version}"
 
-if [[ $Branch_Name = "main" ]] ; then
+if [[ $Branch_Name = ${Panel_Version} ]] ; then
   echo -e  "\nBranch name fetched...$Branch_Name"
 else
   echo -e "\nUnable to fetch Branch name..."
@@ -114,28 +113,7 @@ echo -e "\n${1}=${2}\n" >> "/var/log/cyberpanel_debug_$(date +"%Y-%m-%d")_${Rand
 Debug_Log2() {
 Check_Server_IP "$@" >/dev/null 2>&1
 echo -e "\n${1}" >> /var/log/installLogs.txt
-#curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
-}
-
-Branch_Check() {
-if [[ "$1" = *.*.* ]]; then
-  #check input if it's valid format as X.Y.Z
-  Output=$(awk -v num1="$Base_Number" -v num2="${1//[[:space:]]/}" '
-  BEGIN {
-    print "num1", (num1 < num2 ? "<" : ">="), "num2"
-  }
-  ')
-  if [[ $Output = *">="* ]]; then
-    echo -e "\nYou must use version number higher than 1.9.4"
-    exit
-  else
-    Branch_Name="v${1//[[:space:]]/}"
-    echo -e "\nSet branch name to $Branch_Name..."
-  fi
-else
-  echo -e "\nPlease input a valid format version number."
-  exit
-fi
+curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
 }
 
 License_Check() {
@@ -217,7 +195,7 @@ echo -e "\nChecking server location...\n"
 if [[ "$Server_Country" != "CN" ]] ; then
   Server_Country=$(curl --silent --max-time 10 -4 https://cyberpanel.sh/?country)
   if [[ ${#Server_Country} != "2" ]] ; then
-   Server_Country="Unknown"
+   Server_Country="Unknow"
   fi
 fi
 #to avoid repeated check_ip called by debug_log2 to break force mirror for CN servers.
@@ -303,7 +281,7 @@ echo -e "Checking virtualization type..."
 #  Debug_Log2 "CyberPanel does not support LXC.. [404]"
 #  exit
 #fi
-#remove per https://github.com/usmannasir/cyberpanel/issues/589
+#remove per https://github.com/josephgodwinkimani/cyberpanel/issues/589
 
 if hostnamectl | grep -q "Virtualization: openvz"; then
   echo -e "OpenVZ detected...\n"
@@ -492,7 +470,7 @@ else
       ;;
       -b | --branch)
       shift
-        Branch_Check "${1}"
+        echo -e "${1}"
       ;;
       -m | --minimal)
       if ! echo "$@" | grep -q -i "postfix\|pureftpd\|powerdns" ; then
@@ -578,7 +556,7 @@ fi
 }
 
 Interactive_Mode() {
-echo -e "		CyberPanel Installer v$Panel_Version.$Panel_Build
+echo -e "		CyberPanel Installer Build: $Panel_Build
 
 1. Install CyberPanel.
 
@@ -603,7 +581,7 @@ esac
 
 
 Interactive_Mode_Set_Parameter() {
-echo -e "		CyberPanel Installer v$Panel_Version.$Panel_Build
+echo -e "		CyberPanel Installer Build: $Panel_Build
 
 RAM check : $(free -m | awk 'NR==2{printf "%s/%sMB (%.2f%%)\n", $3,$2,$3*100/$2 }')
 
@@ -710,7 +688,7 @@ read -r Tmp_Input
 if [[ $Tmp_Input = "" ]]; then
   echo -e "Branch name set to $Branch_Name"
 else
-  Branch_Check "$Tmp_Input"
+  echo -e "$Tmp_Input"
 fi
 
 echo -e "\nPlease choose to use default admin password \e[31m1234567\e[39m, randomly generate one \e[31m(recommended)\e[39m or specify the admin password?"
@@ -1097,16 +1075,6 @@ cd cyberpanel/install || exit
 Debug_Log2 "Necessary components installed..,5"
 }
 
-# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
-
-Pre_Install_crowdsec(){
-if [[ "$Server_OS" = "Ubuntu" ]]; then
-curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | sudo bash
-else
-curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh | sudo bash
-fi
-}
-
 Pre_Install_System_Tweak() {
 Debug_Log2 "Setting up system tweak...,20"
 Line_Number=$(grep -n "127.0.0.1" /etc/hosts | cut -d: -f 1)
@@ -1347,7 +1315,7 @@ sed -i 's|./composer_cn.sh|COMPOSER_ALLOW_SUPERUSER=1 ./composer_cn.sh|g' instal
 sed -i 's|http://www.litespeedtech.com|https://cyberpanel.sh/www.litespeedtech.com|g' install.py
 sed -i 's|https://snappymail.eu/repository/latest.tar.gz|https://cyberpanel.sh/www.snappymail.eu/repository/latest.tar.gz|g' install.py
 
-sed -i "s|rep.cyberpanel.net|cyberpanel.sh/rep.cyberpanel.net|g" installCyberPanel.py
+sed -i "s|rep.cyberpanel.net|cyberpanel.sh/rep.cybeMain_Installationrpanel.net|g" installCyberPanel.py
 sed -i "s|rep.cyberpanel.net|cyberpanel.sh/rep.cyberpanel.net|g" install.py
 
 
@@ -1580,10 +1548,10 @@ fi
 
 Post_Install_PHP_Session_Setup() {
 echo -e "\nSetting up PHP session storage path...\n"
-#wget -O /root/php_session_script.sh "${Git_Content_URL}/stable/CPScripts/setup_php_sessions.sh"
-chmod +x /usr/local/CyberCP/CPScripts/setup_php_sessions.sh
-bash /usr/local/CyberCP/CPScripts/setup_php_sessions.sh
-#rm -f /root/php_session_script.sh
+wget -O /root/php_session_script.sh "${Git_Content_URL}/stable/CPScripts/setup_php_sessions.sh"
+chmod +x /root/php_session_script.sh
+bash /root/php_session_script.sh
+rm -f /root/php_session_script.sh
 Debug_Log2 "Setting up PHP session conf...,90"
 }
 
@@ -1662,7 +1630,7 @@ chmod 600 /etc/cyberpanel/webadmin_passwd
 
 Post_Install_Setup_Watchdog() {
 if [[ "$Watchdog" = "On" ]]; then
-  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/main/CPScripts/watchdog.sh"
+  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/stable/CPScripts/watchdog.sh"
   chmod 700 /etc/cyberpanel/watchdog.sh
   ln -s /etc/cyberpanel/watchdog.sh /usr/local/bin/watchdog
   #shellcheck disable=SC2009
@@ -1710,31 +1678,35 @@ echo "                                                                   "
 echo "                Visit: https://$Server_IP:8090                     "
 echo "                Panel username: admin                              "
 if [[ "$Custom_Pass" = "True" ]]; then
-echo "                Panel password: $Admin_Pass                        "
+echo "                Panel password: $Custom_Pass                       "
 else
 echo "                Panel password: $Admin_Pass                        "
 fi
-echo "                Configure Rclone: rclone config                    "
-#echo "                Visit: https://$Server_IP:7080                     "
-#echo "                WebAdmin console username: admin                   "
-#echo "                WebAdmin console password: $Webadmin_Pass          "
-#echo "                                                                   "
-#echo "                Visit: https://$Server_IP:8090/snappymail/?admin     "
-#echo "                snappymail Admin username: admin                     "
-#echo "                snappymail Admin password: $snappymailAdminPass        "
+echo "                Visit: https://$Server_IP:7080                     "
+echo "                WebAdmin console username: admin                   "
+#echo "                WebAdmin console password: $Webadmin_Pass         "
+if [[ "$Custom_Pass" = "True" ]]; then
+echo "                WebAdmin console password: $Custom_Pass            "
+else
+echo "                WebAdmin console password: $Admin_Pass             "
+fi
+echo "                                                                   "
+echo "                Visit: https://$Server_IP:8090/snappymail/?admin     "
+echo "                snappymail Admin username: admin                     "
+echo "                snappymail Admin password:                          "
 echo "                                                                   "
 echo -e "             Run \e[31mcyberpanel help\e[39m to get FAQ info"
-echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version.         "
-echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools .             "
-echo "                                                                                            "
-echo "              Website   : https://github.com/josephgodwinkimani/cyberpanel                  "
-echo "              CrowdSec  : https://doc.crowdsec.net/docs/intro                               "
-echo "              RClone    : https://rclone.org/docs/                                          "
-echo "              Docs      : https://cyberpanel.net/docs/                                      "
-echo "                                                                                            "
-echo -e "            Enjoy your accelerated Internet by                                           "
-echo -e "                CyberPanel & $Word 				                                              "
-echo "############################################################################################"
+echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version."
+echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools ."
+echo "                                                                   "
+echo "              Website : https://www.cyberpanel.net                 "
+echo "              Forums  : https://forums.cyberpanel.net              "
+echo "              Wikipage: https://docs.cyberpanel.net                "
+echo "              Docs    : https://cyberpanel.net/docs/               "
+echo "                                                                   "
+echo -e "            Enjoy your accelerated Internet by                  "
+echo -e "                CyberPanel & $Word 				                     "
+echo "###################################################################"
 
 if [[ "$Server_Provider" != "Undefined" ]]; then
   echo -e "\033[0;32m$Server_Provider\033[39m detected..."
@@ -1836,9 +1808,9 @@ if [[ $Server_Country != "CN" ]] ; then
   Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
   Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
 else
-  Git_User="josephgodwinkimani"
-  Git_Content_URL="https://raw.githubusercontent.com/${Git_User}/cyberpanel"
-  Git_Clone_URL="https://github.com/${Git_User}/cyberpanel.git"
+  echo -e "Oops, your region is not supported..."
+  Debug_Log2 "Oops, your region is not supported... [404]"
+  exit
 fi
 
 if [[ "$Debug" = "On" ]] ; then
@@ -2019,10 +1991,6 @@ Pre_Install_Setup_Repository
 Pre_Install_Setup_Git_URL
 
 Pre_Install_Required_Components
-
-# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
-
-Pre_Install_crowdsec
 
 Pre_Install_System_Tweak
 

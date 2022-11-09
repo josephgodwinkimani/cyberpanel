@@ -7,10 +7,9 @@ import requests
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
 
-
 class UpgradeCyberPanel:
 
-    # LogURL = "https://platform.cyberpersons.com/settings/RecvData"
+    LogURL = "https://platform.cyberpersons.com/settings/RecvData"
 
     def __init__(self, branch, mail, dns, ftp):
         ipFile = "/etc/cyberpanel/machineIP"
@@ -23,14 +22,12 @@ class UpgradeCyberPanel:
         self.dns = dns
 
     def PostStatus(self, message):
-        finalData = json.dumps(
-            {'ipAddress': self.ipAddress, "UpgradeCyberPanelStatus": message})
+        finalData = json.dumps({'ipAddress': self.ipAddress, "UpgradeCyberPanelStatus": message})
 
-        # try:
-        #    resp = requests.post(UpgradeCyberPanel.LogURL,
-        #                         data=finalData, timeout=10)
-        # except:
-        #    pass
+        try:
+            resp = requests.post(UpgradeCyberPanel.LogURL, data=finalData, timeout=10)
+        except:
+            pass
 
     def RestoreOldCP(self):
 
@@ -47,11 +44,11 @@ class UpgradeCyberPanel:
 
         from plogical.upgrade import Upgrade
 
-        # If any update command fails this check make sure upgrade process does not quit
+        ## If any update command fails this check make sure upgrade process does not quit
 
         Upgrade.FromCloud = 1
 
-        # Backup current CyberCP, incase of failure restore
+        ## Backup current CyberCP, incase of failure restore
 
         self.PostStatus('Backing up current installation..,5')
 
@@ -61,8 +58,7 @@ class UpgradeCyberPanel:
         if not Upgrade.executioner(command, command, 1):
             self.PostStatus('Failed to execute %s. [404]' % (command))
 
-        self.PostStatus('Upgrading/Downgrading to branch %s..,10' %
-                        (self.branch))
+        self.PostStatus('Upgrading/Downgrading to branch %s..,10' % (self.branch))
 
         status, message = Upgrade.downloadAndUpgrade(None, self.branch)
 
@@ -89,14 +85,14 @@ class UpgradeCyberPanel:
 
         self.PostStatus('Database updated.,55')
 
-        # Put function here to update custom ACLs
+        ## Put function here to update custom ACLs
 
         Upgrade.UpdateConfigOfCustomACL()
         Upgrade.enableServices()
         Upgrade.someDirectories()
         Upgrade.GeneralMigrations()
 
-        # Upgrade version
+        ## Upgrade version
 
         self.PostStatus('Fixing permissions,70')
 
@@ -111,8 +107,7 @@ class UpgradeCyberPanel:
         if not Upgrade.executioner(command, command, 1):
             self.PostStatus('Failed to execute %s. [404]' % (command))
 
-        self.PostStatus(
-            'CyberPanel Upgraded/Downgraded to %s. [200]' % (self.branch))
+        self.PostStatus('CyberPanel Upgraded/Downgraded to %s. [200]' % (self.branch))
 
 
 def main():
@@ -124,8 +119,7 @@ def main():
 
     args = parser.parse_args()
 
-    uc = UpgradeCyberPanel(args.branch, int(args.mail),
-                           int(args.dns), int(args.ftp))
+    uc = UpgradeCyberPanel(args.branch,int(args.mail),int(args.dns),int(args.ftp))
     uc.UpgardeNow()
 
 

@@ -1,6 +1,7 @@
 # CyberPanel
 
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/04d6ab6bb42c45739ef98c172bb466d2)](https://www.codacy.com/gh/josephgodwinkimani/cyberpanel/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=josephgodwinkimani/cyberpanel&amp;utm_campaign=Badge_Grade)
+### BUILD: 2 
+### FORKED COMMIT: d617e48d37b9f7bb65ffa6a23547bd8a9a99853e
 
 Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
@@ -16,11 +17,6 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * PHP Managment.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
 * One-click Backups and Restores.
-
-## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel/blob/main/CHANGELOG.MD)
-
-* Count vmail folder size to disk usage by [@tbaldur](https://github.com/tbaldur)
-* 
 
 # Supported PHP Versions
 
@@ -41,19 +37,20 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/install.sh)
 ```
 
 # Upgrading CyberPanel
 
+Not from a previous version but to fix any post-installation issues
 
 ```
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/preUpgrade.sh)
 ```
 
 # Resources
 
 * [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
-* [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
-* [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
+* [Setting up Fully qualified do25072021 name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-do25072021-name-for-snappymail/37898)
+* [How to change website do25072021 or subdo25072021](https://community.cyberpanel.net/t/tutorial-how-to-change-website-do25072021-or-subdo25072021/37917)
 * [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)

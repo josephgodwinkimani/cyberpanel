@@ -3,7 +3,9 @@
 
 export LC_CTYPE=en_US.UTF-8
 SUDO_TEST=$(set)
-BRANCH_NAME="stable"
+Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/version.txt)
+Panel_Version=${Temp_Value:12:8}
+BRANCH_NAME="${Panel_Version}"
 GIT_URL="github.com/josephgodwinkimani/cyberpanel"
 GIT_CONTENT_URL="raw.githubusercontent.com/josephgodwinkimani/cyberpanel"
 
@@ -152,8 +154,8 @@ else
 fi
 
 if [[ $SERVER_COUNTRY == "CN" ]] ; then
-	GIT_URL="gitee.com/qtwrk/cyberpanel"
-	GIT_CONTENT_URL="gitee.com/qtwrk/cyberpanel/raw"
+	echo -e "\nOops! Region is not supported...\n"	
+	exit
 fi
 
 #echo -e "CyberPanel Upgrade will start in 10 seconds"

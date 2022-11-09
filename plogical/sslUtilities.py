@@ -303,7 +303,7 @@ class sslUtilities:
                     f'Status Code: {str(resp.status_code)} for: {URLFetchPathWWW}. Error: {resp.text}')
         except BaseException as msg:
             logging.CyberCPLogFileWriter.writeToFile(
-                f'Status Code: Unknown for: {URLFetchPathWWW}. Error: {str(msg)}')
+                f'Status Code: Unkown for: {URLFetchPathWWW}. Error: {str(msg)}')
 
         try:
             resp = requests.get(URLFetchPathNONWWW, timeout=5)
@@ -339,11 +339,9 @@ class sslUtilities:
                     command = acmePath + " --issue -d " + virtualHostName + " -d www." + virtualHostName \
                               + ' --cert-file ' + existingCertPath + '/cert.pem' + ' --key-file ' + existingCertPath + '/privkey.pem' \
                               + ' --fullchain-file ' + existingCertPath + '/fullchain.pem' + ' -w /usr/local/lsws/Example/html -k ec-256 --force --server letsencrypt'
-                    ResultText = open(logging.CyberCPLogFileWriter.fileName, 'r').read()
-                    CurrentMessage = "Trying to obtain SSL for: " + virtualHostName + " and: www." + virtualHostName
-                    if (WWWStatus and NONWWWStatus) or ResultText.find(CurrentMessage) == -1:
 
-                        #logging.CyberCPLogFileWriter.writeToFile(CurrentMessage, 0)
+                    if WWWStatus and NONWWWStatus:
+                        logging.CyberCPLogFileWriter.writeToFile("Trying to obtain SSL for: " + virtualHostName + " and: www." + virtualHostName, 0)
 
                         logging.CyberCPLogFileWriter.writeToFile(command, 0)
 
@@ -366,10 +364,7 @@ class sslUtilities:
                                   + '/cert.pem' + ' --key-file ' + existingCertPath + '/privkey.pem' \
                                   + ' --fullchain-file ' + existingCertPath + '/fullchain.pem' + ' -w /usr/local/lsws/Example/html -k ec-256 --force --server letsencrypt'
 
-                        ResultText = open(logging.CyberCPLogFileWriter.fileName, 'r').read()
-                        CurrentMessage = '%s\nTrying to obtain SSL for: %s' % (finalText, virtualHostName)
-
-                        if NONWWWStatus or ResultText.find(CurrentMessage) == -1:
+                        if NONWWWStatus:
                             finalText = '%s\nTrying to obtain SSL for: %s' % (finalText, virtualHostName)
                             logging.CyberCPLogFileWriter.writeToFile("Trying to obtain SSL for: " + virtualHostName, 0)
                             output = subprocess.check_output(shlex.split(command)).decode("utf-8")

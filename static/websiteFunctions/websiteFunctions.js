@@ -2750,15 +2750,6 @@ RewriteRule ^(.*)$ http://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
 `;
 
-    const WordpressProtect = `### Rewrite Rules Added by CyberPanel Rewrite Rule Generator
-
-RewriteEngine On
-RewriteRule ^/(xmlrpc|wp-trackback)\.php - [F,L,NC]
-
-### End CyberPanel Generated Rules.
-
-`;
-
     $scope.applyRewriteTemplate = function () {
 
         if ($scope.rewriteTemplate === "Force HTTP -> HTTPS") {
@@ -2768,9 +2759,6 @@ RewriteRule ^/(xmlrpc|wp-trackback)\.php - [F,L,NC]
         }
         else if ($scope.rewriteTemplate === "Force WWW -> NON-WWW") {
             $scope.rewriteRules = WWWToNonWWW + $scope.rewriteRules;
-        }
-        else if ($scope.rewriteTemplate === "Disable Wordpress XMLRPC & Trackback") {
-            $scope.rewriteRules = WordpressProtect + $scope.rewriteRules;
         }
     };
 

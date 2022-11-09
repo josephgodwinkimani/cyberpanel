@@ -23,6 +23,7 @@ if [[ -n $YUM_CMD ]]; then
 
 
 
+
 elif [[ -n $APT_GET_CMD ]]; then
 	# Ubuntu
 	for phpver in $(ls -1 /usr/local/lsws/ |grep lsphp | sed 's/lsphp//g') ; do echo ""; echo "LSPHP $phpver" ; lsphpver=$(echo $phpver | sed 's/^\(.\{1\}\)/\1./'); sed -i -e "s|^;session.save_path.*|session.save_path = '/var/lib/lsphp/session/lsphp${phpver}'|g" -e "s|^session.save_path.*|session.save_path = '/var/lib/lsphp/session/lsphp${phpver}'|g" /usr/local/lsws/lsphp${phpver}/etc/php/${lsphpver}/litespeed/php.ini ; /usr/local/lsws/lsphp${phpver}/bin/php -i |grep -Ei 'session.save_path' && echo "" ; done; service lsws restart; killall lsphp;
@@ -36,13 +37,12 @@ fi
 # Setup a cron to clear stuff older then session.gc_maxlifetime currently set in the php.ini for each version
 
 # Create cron file if missing.
-# https://community.cyberpanel.net/t/how-to-increase-inodes-limit/37767/45
 if [[ ! -e /usr/local/CyberCP/bin/cleansessions ]]; then
 	touch /usr/local/CyberCP/bin/cleansessions
 	chmod +x /usr/local/CyberCP/bin/cleansessions
 	cat >> /usr/local/CyberCP/bin/cleansessions <<"EOL"
 #!/bin/bash
-for version in $(ls /usr/local/lsws|grep lsphp); do echo ""; echo "PHP $version"; session_time=$(/usr/local/lsws/${version}/bin/php -i |grep -Ei 'session.gc_maxlifetime'| grep -Eo "[[:digit:]]+"|sort -u); find -O3 "/var/lib/lsphp/session/${version}" -ignore_readdir_race -depth -mindepth 1 -name 'sess_*' -type f -cmin +$((session_time / 60)) -delete; done
+for version in $(ls /usr/local/lsws|grep lsphp); do echo ""; echo "PHP $version"; session_time=$(/usr/local/lsws/${version}/bin/php -i |grep -Ei 'session.gc_maxlifetime'| grep -Eo "[[:digit:]]+"|sort -u); find -O3 "/var/lib/lsphp/session/${version}" -ignore_readdir_race -depth -mindepth 1 -name 'sess_*' -type f -cmin "${session_time}" -delete; done
 EOL
 
 fi

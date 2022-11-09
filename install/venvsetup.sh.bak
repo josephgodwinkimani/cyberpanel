@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#CyberPanel installer script for Ubuntu 18.04 - 20.04 and CentOS 7.X
+#CyberPanel installer script for Ubuntu 18.04 and CentOS 7.X
 DEV="OFF"
-BRANCH="main"
+BRANCH="stable"
 POSTFIX_VARIABLE="ON"
 POWERDNS_VARIABLE="ON"
 PUREFTPD_VARIABLE="ON"
 PROVIDER="undefined"
 SERIAL_NO=""
 DIR=$(pwd)
-TEMP=$(curl --silent https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt)
+TEMP=$(curl --silent https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/version.txt)
 CP_VER1=${TEMP:12:3}
 CP_VER2=${TEMP:25:1}
 SERVER_OS="CentOS"
@@ -78,7 +78,7 @@ LSWS_STABLE_LINE=`cat /tmp/lsws_latest | grep LSWS_STABLE`
 LSWS_STABLE_VER=`expr "$LSWS_STABLE_LINE" : '.*LSWS_STABLE=\(.*\) BUILD .*'`
 
 if [[ $SERVER_COUNTRY == "CN" ]] ; then
-#line1="$(grep -n "github.com/usmannasir/cyberpanel" install.py | head -n 1 | cut -d: -f1)"
+#line1="$(grep -n "github.com/josephgodwinkimani/cyberpanel" install.py | head -n 1 | cut -d: -f1)"
 #line2=$((line1 - 1))
 #sed -i "${line2}i\ \ \ \ \ \ \ \ subprocess.call(command, shell=True)" install.py
 #sed -i "${line2}i\ \ \ \ \ \ \ \ command = 'tar xzvf cyberpanel-git.tar.gz'" install.py
@@ -95,7 +95,7 @@ sed -i 's|https://copr.fedorainfracloud.org/coprs/copart/restic/repo/epel-7/copa
 
 sed -i 's|yum -y install https://cyberpanel.sh/gf-release-latest.gf.el7.noarch.rpm|wget -O /etc/yum.repos.d/gf.repo https://'$DOWNLOAD_SERVER'/gf-plus/gf.repo|g' install.py
 sed -i 's|dovecot-2.3-latest|dovecot-2.3-latest-mirror|g' install.py
-sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel' install.py
+sed -i 's|git clone https://github.com/josephgodwinkimani/cyberpanel|wget https://cyberpanel.sh/cyberpanel-git.tar.gz \&\& tar xzvf cyberpanel-git.tar.gz|g' install.py
 sed -i 's|https://repo.dovecot.org/ce-2.3-latest/centos/$releasever/RPMS/$basearch|https://'$DOWNLOAD_SERVER'/dovecot/|g' install.py
 sed -i 's|'$DOWNLOAD_SERVER'|cyberpanel.sh|g' install.py
 sed -i 's|https://www.litespeedtech.com/packages/5.0/lsws-5.4.2-ent-x86_64-linux.tar.gz|https://'$DOWNLOAD_SERVER'/litespeed/lsws-'$LSWS_STABLE_VER'-ent-x86_64-linux.tar.gz|g' installCyberPanel.py
@@ -870,13 +870,6 @@ fi
 
 pip_virtualenv() {
 if [[ $DEV == "OFF" ]] ; then
-if [[ $SERVER_COUNTRY == "CN" ]] ; then
-	mkdir /root/.pip
-cat << EOF > /root/.pip/pip.conf
-[global]
-index-url = https://mirrors.aliyun.com/pypi/simple/ 
-EOF
-fi
 
 if [[ $PROVIDER == "Alibaba Cloud" ]] ; then
 	pip install --upgrade pip
@@ -887,18 +880,18 @@ pip install virtualenv
 virtualenv --system-site-packages /usr/local/CyberPanel
 source /usr/local/CyberPanel/bin/activate
 rm -rf requirements.txt
-wget -O requirements.txt https://raw.githubusercontent.com/usmannasir/cyberpanel/1.8.0/requirments.txt
+wget -O requirements.txt https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/requirments.txt
 pip install --ignore-installed -r requirements.txt
 virtualenv --system-site-packages /usr/local/CyberPanel
 fi
 
 if [[ $DEV == "ON" ]] ; then
 	#install dev branch 
-	#wget https://raw.githubusercontent.com/usmannasir/cyberpanel/$BRANCH_NAME/requirments.txt
+	#wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/$BRANCH_NAME/requirments.txt
 	cd /usr/local/
 	python3.6 -m venv CyberPanel
 	source /usr/local/CyberPanel/bin/activate
-	wget -O requirements.txt https://raw.githubusercontent.com/usmannasir/cyberpanel/$BRANCH_NAME/requirments.txt
+	wget -O requirements.txt https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/$BRANCH_NAME/requirments.txt
 	pip3.6 install --ignore-installed -r requirements.txt
 fi
 
@@ -907,22 +900,15 @@ if [ -f requirements.txt ] && [ -d cyberpanel ] ; then
 	rm -f requirements.txt
 fi
 
-if [[ $SERVER_COUNTRY == "CN" ]] ; then
-	wget https://cyberpanel.sh/cyberpanel-git.tar.gz
-	tar xzvf cyberpanel-git.tar.gz > /dev/null
-	cp -r cyberpanel /usr/local/cyberpanel
-	cd cyberpanel/install
+if [[ $DEV == "ON" ]] ; then
+git clone https://github.com/josephgodwinkimani/cyberpanel
+cd cyberpanel
+git checkout $BRANCH_NAME
+cd -
+cd cyberpanel/install
 else
-	if [[ $DEV == "ON" ]] ; then
-	git clone https://github.com/josephgodwinkimani/cyberpanel
-	cd cyberpanel
-	git checkout $BRANCH_NAME
-	cd -
-	cd cyberpanel/install
-	else
-	git clone https://github.com/josephgodwinkimani/cyberpanel
-	cd cyberpanel/install
-	fi
+git clone https://github.com/josephgodwinkimani/cyberpanel
+cd cyberpanel/install
 fi
 curl https://cyberpanel.sh/?version
 }
@@ -1256,13 +1242,8 @@ if [[ ${#SERVER_COUNTRY} == "2" ]] || [[ ${#SERVER_COUNTRY} == "6" ]] ; then
 	echo -e "\nChecking server..."
 	SERVER_COUNTRY="unknow"
 fi
-#SERVER_COUNTRY="CN"
-#test string
-if [[ $SERVER_COUNTRY == "CN" ]] ; then
-DOWNLOAD_SERVER="cyberpanel.sh"
-else
+
 DOWNLOAD_SERVER="cdn.cyberpanel.sh"
-fi
 
 check_OS
 check_root

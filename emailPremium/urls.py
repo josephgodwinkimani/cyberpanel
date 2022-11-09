@@ -52,11 +52,9 @@ urlpatterns = [
     url(r'^saveRspamdConfigurations$', views.saveRspamdConfigurations, name='saveRspamdConfigurations'),
     url(r'^savepostfixConfigurations$', views.savepostfixConfigurations, name='savepostfixConfigurations'),
     url(r'^saveRedisConfigurations$', views.saveRedisConfigurations, name='saveRedisConfigurations'),
-    url(r'^saveclamavConfigurations$', views.saveclamavConfigurations, name='saveclamavConfigurations'),
+    url(r'^saveRedisConfigurations$', views.saveRedisConfigurations, name='saveRedisConfigurations'),
     url(r'^unistallRspamd$', views.unistallRspamd, name='unistallRspamd'),
     url(r'^uninstallStatusRspamd$', views.uninstallStatusRspamd, name='uninstallStatusRspamd'),
-    url(r'^FetchRspamdLog$', views.FetchRspamdLog, name='FetchRspamdLog'),
-    url(r'^RestartRspamd$', views.RestartRspamd, name='RestartRspamd'),
 
     url(r'^EmailDebugger$', views.EmailDebugger, name='EmailDebugger'),
 

@@ -41,7 +41,6 @@ class mailUtilities:
     RspamdUnInstallLogPath = "/home/cyberpanel/RspamdUnInstallLogPath"
     cyberPanelHome = "/home/cyberpanel"
     mailScannerInstallLogPath = "/home/cyberpanel/mailScannerInstallLogPath"
-    RSpamdLogPath = '/var/log/rspamd/rspamd.log'
 
     @staticmethod
     def SendEmail(sender, receivers, message):
@@ -515,11 +514,6 @@ milter_default_action = accept
 
             if ProcessUtilities.decideDistro() == ProcessUtilities.centos:
 
-                writeToFile = open(mailUtilities.RspamdInstallLogPath, 'a')
-                writeToFile.writelines("Configuring RSPAMD repo..\n")
-                writeToFile.close()
-
-
                 command = 'curl https://rspamd.com/rpm-stable/centos-7/rspamd.repo > /etc/yum.repos.d/rspamd.repo'
                 ProcessUtilities.normalExecutioner(command, True)
 
@@ -531,13 +525,7 @@ milter_default_action = accept
 
 
                 command = 'sudo yum install rspamd clamav-server clamav-data clamav-update clamav-filesystem clamav clamav-scanner-systemd clamav-devel clamav-lib clamav-server-systemd -y'
-
             elif ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
-
-                writeToFile = open(mailUtilities.RspamdInstallLogPath, 'a')
-                writeToFile.writelines("Configuring RSPAMD repo..\n")
-                writeToFile.close()
-
                 command = 'curl https://rspamd.com/rpm-stable/centos-8/rspamd.repo > /etc/yum.repos.d/rspamd.repo'
                 ProcessUtilities.normalExecutioner(command, True)
 
@@ -547,7 +535,7 @@ milter_default_action = accept
                 command = 'yum update'
                 ProcessUtilities.normalExecutioner(command, True)
 
-                command = 'sudo yum install rspamd clamav clamd clamav-update -y'
+                command = 'sudo yum install rspamd clamav-server clamav-data clamav-update clamav-filesystem clamav clamav-scanner-systemd clamav-devel clamav-lib clamav-server-systemd -y'
             else:
                 command = 'sudo apt-get install rspamd clamav clamav-daemon -y'
 
@@ -648,123 +636,6 @@ read_servers = "127.0.0.1";
                 logging.CyberCPLogFileWriter.writeToFile("[Could not Install Rspamd.]")
                 return 0
             else:
-
-                if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
-                    command = 'setsebool -P antivirus_can_scan_system 1'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'setsebool -P clamd_use_jit 1'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'usermod -a -G clamscan _rspamd'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    clamavcontent = """
-User clamscan
-PidFile /var/run/clamd.scan/clamd.pid
-TCPSocket 3310
-TCPAddr 127.0.0.1
-ConcurrentDatabaseReload no
-Debug false
-FixStaleSocket true
-LocalSocketMode 666
-ScanMail true
-ScanArchive true
-#LogFile /var/log/clamd.scan/clamav.log
-"""
-                    writeToFile = open('/etc/clamd.d/scan.conf', 'w')
-                    writeToFile.write(clamavcontent)
-                    writeToFile.close()
-
-                    command = 'touch /var/log/clamd.scan/clamav.log'
-                    ProcessUtilities.normalExecutioner(command, False, 'clamscan')
-
-                    writeToFile = open(mailUtilities.RspamdInstallLogPath, 'a')
-                    writeToFile.writelines("Updating Freshclam database..\n")
-                    writeToFile.close()
-
-                    command = 'freshclam'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'systemctl start clamd@scan'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'systemctl restart rspamd'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-                elif ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
-
-                    command = 'usermod -a -G clamav _rspamd'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'chown -R clamav:clamav /var/run/clamav'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    clamavcontent = """
-User clamav
-PidFile /var/run/clamav/clamd.pid
-TCPSocket 3310
-TCPAddr 127.0.0.1
-ConcurrentDatabaseReload no
-Debug false
-FixStaleSocket true
-LocalSocketMode 666
-ScanMail true
-ScanArchive true
-LogFile /var/log/clamav/clamav.log
-"""
-                    writeToFile = open('/etc/clamav/clamd.conf', 'w')
-                    writeToFile.write(clamavcontent)
-                    writeToFile.close()
-
-
-                    writeToFile = open(mailUtilities.RspamdInstallLogPath, 'a')
-                    writeToFile.writelines("Updating Freshclam database..\n")
-                    writeToFile.close()
-
-                    command = 'freshclam'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'systemctl restart clamav-daemon'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                    command = 'systemctl restart rspamd'
-                    cmd = shlex.split(command)
-
-                    with open(mailUtilities.RspamdInstallLogPath, 'a') as f:
-                        res = subprocess.call(cmd, stdout=f)
-
-                time.sleep(5)
-
                 writeToFile = open(mailUtilities.RspamdInstallLogPath, 'a')
                 writeToFile.writelines("Rspamd Installed.[200]\n")
                 writeToFile.close()
@@ -974,57 +845,6 @@ LogFile /var/log/clamav/clamav.log
             str((msg) + " [changeRedisxConfig]")
             print(0, str(msg))
             return [0, str(msg) + " [changeRedisxConfig]"]
-
-    @staticmethod
-    def changeclamavConfig(install, changeclamavConfig):
-        try:
-            tempfilepath = "/home/cyberpanel/saveclamavConfigurations"
-            file = open(tempfilepath, "r")
-            jsondata1 = file.read()
-            jsondata = json.loads(jsondata1)
-            file.close()
-            LogFile= jsondata['LogFile']
-            TCPAddr= jsondata['TCPAddr']
-            TCPSocket= jsondata['TCPSocket']
-            clamav_Debug= jsondata['clamav_Debug']
-
-            if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
-                clamavconfpath = '/etc/clamd.d/scan.conf'
-            elif ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
-                clamavconfpath = "/etc/clamav/clamd.conf"
-
-            f = open(clamavconfpath, "r")
-            dataa = f.read()
-            f.close()
-            data = dataa.splitlines()
-
-            writeDataToFile = open(clamavconfpath, "w")
-            for i in data:
-                if i.find('TCPSocket') > -1:
-                    newitem = 'TCPSocket %s' % TCPSocket
-                    writeDataToFile.writelines(newitem + '\n')
-                elif i.find('TCPAddr') > -1:
-                    newitem = 'TCPAddr %s' % TCPAddr
-                    writeDataToFile.writelines(newitem + '\n')
-                elif i.find('LogFile') > -1:
-                    newitem = 'LogFile %s' % LogFile
-                    writeDataToFile.writelines(newitem + '\n')
-                elif i.find('Debug =') > -1:
-                    if clamav_Debug == True:
-                        newitem = 'Debug true'
-                        writeDataToFile.writelines(newitem + '\n')
-                    elif clamav_Debug == False:
-                        newitem = 'Debug false'
-                        writeDataToFile.writelines(newitem + '\n')
-                else:
-                    writeDataToFile.writelines(i + '\n')
-
-            return 1, 'None'
-        except BaseException as msg:
-            logging.CyberCPLogFileWriter.writeToFile(str(msg) + "[changeclamavConfig]")
-            str((msg) + " [changeclamavConfig]")
-            print(0, str(msg))
-            return [0, str(msg) + " [changeclamavConfig]"]
     @staticmethod
     def installMailScanner(install, SpamAssassin):
         try:
@@ -1278,10 +1098,17 @@ LogFile /var/log/clamav/clamav.log
     @staticmethod
     def checkIfRspamdInstalled():
         try:
-            if os.path.exists('/etc/rspamd/rspamd.conf'):
+            command= "apt list | grep rspamd"
+            result, stdout = ProcessUtilities.outputExecutioner(command, None, None, None, 1)
+
+            resul = stdout.find("installed")
+
+
+            if resul != -1:
                 return 1
             else:
                 return 0
+
         except BaseException as msg:
             logging.CyberCPLogFileWriter.writeToFile(
                 str(msg) + "  [checkIfMailScannerInstalled]")
@@ -2212,8 +2039,6 @@ def main():
         mailUtilities.changePostfixConfig("install", "changePostfixConfig")
     elif args.function == 'changeRedisxConfig':
         mailUtilities.changeRedisxConfig("install", "changeRedisxConfig")
-    elif args.function == 'changeclamavConfig':
-        mailUtilities.changeclamavConfig("install", "changeclamavConfig")
     elif args.function == 'AfterEffects':
         mailUtilities.AfterEffects(args.domain)
     elif args.function == "ResetEmailConfigurations":

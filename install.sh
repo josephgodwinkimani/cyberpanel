@@ -16,11 +16,6 @@ elif echo $OUTPUT | grep -q "CloudLinux 7" ; then
 yum install curl wget -y 1> /dev/null
 yum update curl wget ca-certificates -y 1> /dev/null
                 SERVER_OS="CloudLinux"
-elif echo "$OUTPUT" | grep -q "AlmaLinux 8" ; then
-	echo "Checking and installing curl and wget"
-yum install curl wget -y 1> /dev/null
-yum update curl wget ca-certificates -y 1> /dev/null
-        SERVER_OS="AlmaLinux"
 elif echo $OUTPUT | grep -q "Ubuntu 18.04" ; then
 apt install -y -qq wget curl
                 SERVER_OS="Ubuntu"
@@ -46,7 +41,6 @@ fi
 
 rm -f cyberpanel.sh
 rm -f install.tar.gz
-# curl --silent -o cyberpanel.sh "https://cyberpanel.sh/?dl&$SERVER_OS" 2>/dev/null
-curl --silent -o cyberpanel.sh "https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/cyberpanel.sh" 2>/dev/null
+curl --silent -o cyberpanel.sh "https://cyberpanel.sh/?dl&$SERVER_OS" 2>/dev/null
 chmod +x cyberpanel.sh
 ./cyberpanel.sh $@
