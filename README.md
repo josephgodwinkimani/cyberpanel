@@ -42,8 +42,6 @@ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/250720
 
 # Upgrading CyberPanel
 
-Not from a previous version but to fix any post-installation issues
-
 ```
 sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/25072021/preUpgrade.sh)
 ```
