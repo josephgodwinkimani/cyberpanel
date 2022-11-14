@@ -41,20 +41,20 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```bash
-$ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```bash
-$ sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
 ```
 
 # Add additional logs for CrowdSec
 
 ```bash
-$ nano /etc/crowdsec/acquis.yaml
+nano /etc/crowdsec/acquis.yaml
 ```
 Add at the end:
 
