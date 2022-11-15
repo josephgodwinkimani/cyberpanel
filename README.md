@@ -102,3 +102,4 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 * [Change MariaDB log configuration for your own purposes](https://community.cyberpanel.net/t/how-to-check-database-logs/37979/2)
 * [How to allow your SnappyMail users to change their mailbox passwords](https://community.cyberpanel.net/t/tutorial-how-to-allow-your-snappymail-users-to-change-their-mailbox-passwords/38084)
 * [Script to Install Ioncube in PHP 7.2 - 8.1](https://community.cyberpanel.net/t/how-to-install-ioncube-loader-extension-on-php-8-1/38145/2)
+* [How to clean PHP Sessions](https://community.cyberpanel.net/t/high-cpu-usage-4cpu-8gb-ram/37904/2)
