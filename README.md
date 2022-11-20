@@ -97,6 +97,7 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 * [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
 * [How to remove port 8090](https://community.cyberpanel.net/t/how-to-remove-port-8090-from-cyberpanel/30648)
 * [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
+* [How to install SSL certificate from external sources](https://community.cyberpanel.net/t/the-same-domain-for-website-and-e-mail/38322/2)
 * [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
 * [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)
 * [Change MariaDB log configuration for your own purposes](https://community.cyberpanel.net/t/how-to-check-database-logs/37979/2)
