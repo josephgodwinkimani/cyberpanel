@@ -90,6 +90,14 @@ labels:
 $ sudo cscli console enroll 1234567890abcdef1234567890
 ```
 
+# How to protect your CyberPanel server:
+
+* [Configure your Firewall](https://community.cyberpanel.net/docs?search=firewall&topic=132) 
+* [Secure SSH by disabling root access](https://community.cyberpanel.net/docs?search=ssh&topic=131) 
+* [Setup Backups for your client’s data](https://community.cyberpanel.net/docs?category=15&topic=122) 
+* [Install Imunify360](https://community.cyberpanel.net/docs?category=&search=imunify&topic=172)
+* [Setup Custom ACL for your users disallowing specific services per account](https://community.cyberpanel.net/docs?category=&search=ACL&tags=&topic=84#custom-acls-3)
+
 # Resources
 
 * [Getting started after Installation](https://community.cyberpanel.net/t/cant-access-website-show-cyberpanel-installed-page/38018/2)
