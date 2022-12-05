@@ -406,7 +406,7 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
         if os.path.exists("composer.sh"):
             os.remove("composer.sh")
 
-        command = "wget https://cyberpanel.sh/composer.sh"
+        command = "wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/composer.sh"
         Upgrade.executioner(command, 0)
 
         command = "chmod +x composer.sh"
@@ -3059,7 +3059,7 @@ vmail
         ##
 
         Upgrade.downloadAndUpgrade(versionNumbring, branch)
-        Upgrade.download_install_phpmyadmin()
+        # Upgrade.download_install_phpmyadmin()
         Upgrade.downoad_and_install_raindloop()
 
         ##
