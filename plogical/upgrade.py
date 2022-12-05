@@ -2631,10 +2631,6 @@ vmail
     @staticmethod
     def runSomeImportantBash():
 
-        # Remove invalid crons from /etc/crontab Reference: https://github.com/tbaldur/cyberpanel-LTS/issues/216
-        command = """sed -i '/CyberCP/d' /etc/crontab"""
-        Upgrade.executioner(command, command, 0, True)
-
         if os.path.exists('/usr/local/lsws/conf/httpd.conf'):
             # Setup /usr/local/lsws/conf/httpd.conf to use new Logformat standard for better stats and accesslogs
             command = """sed -i "s|^LogFormat.*|LogFormat '%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"' combined|g" /usr/local/lsws/conf/httpd.conf"""

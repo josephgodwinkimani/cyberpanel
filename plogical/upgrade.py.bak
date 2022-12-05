@@ -1,11 +1,3 @@
-import string
-import random
-from CyberCP import settings
-import MySQLdb as mysql
-import time
-import shutil
-import subprocess
-import shlex
 import os
 import os.path
 import sys
@@ -15,6 +7,14 @@ import grp
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
+import shlex
+import subprocess
+import shutil
+import time
+import MySQLdb as mysql
+from CyberCP import settings
+import random
+import string
 
 VERSION = '2.3'
 BUILD = 2
@@ -2630,10 +2630,6 @@ vmail
 
     @staticmethod
     def runSomeImportantBash():
-
-        # Remove invalid crons from /etc/crontab Reference: https://github.com/tbaldur/cyberpanel-LTS/issues/216
-        command = """sed -i '/CyberCP/d' /etc/crontab"""
-        Upgrade.executioner(command, command, 0, True)
 
         if os.path.exists('/usr/local/lsws/conf/httpd.conf'):
             # Setup /usr/local/lsws/conf/httpd.conf to use new Logformat standard for better stats and accesslogs
