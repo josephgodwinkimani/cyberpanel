@@ -1,11 +1,3 @@
-import string
-import random
-from CyberCP import settings
-import MySQLdb as mysql
-import time
-import shutil
-import subprocess
-import shlex
 import os
 import os.path
 import sys
@@ -15,6 +7,14 @@ import grp
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
+import shlex
+import subprocess
+import shutil
+import time
+import MySQLdb as mysql
+from CyberCP import settings
+import random
+import string
 
 VERSION = '2.3'
 BUILD = 2
