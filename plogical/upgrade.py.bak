@@ -310,7 +310,7 @@ class Upgrade:
             except:
                 pass
 
-            command = "wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/josephgodwinkimani/cyberpanel/raw/stable/phpmyadmin.zip"
+            command = "wget -O /usr/local/CyberCP/public/phpmyadmin.zip https://github.com/josephgodwinkimani/cyberpanel-mods/raw/main/phpmyadmin.zip"
             Upgrade.executioner(command, 0)
 
             command = "unzip /usr/local/CyberCP/public/phpmyadmin.zip -d /usr/local/CyberCP/public/phpmyadmin"

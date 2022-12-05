@@ -97,30 +97,38 @@ def getLoadAverage(request):
 
 @ensure_csrf_cookie
 def versionManagment(request):
+    # Get latest commit
+
+    getCommit = requests.get(
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
+    latestCommit = getCommit.json()
+
     # Get latest version
 
     getVersion = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
     latest = getVersion.json()
-    latestVersion = latest['commit']
-    # latestBuild = latest['build']
+
+    latestCommitVersion = latestCommit['commit']
+    latestVersion = latest['version']
+    latestBuild = latest['build']
 
     # Get local version
 
     currentVersion = VERSION
-    # currentBuild = str(BUILD)
+    currentBuild = str(BUILD)
 
     u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=%s" % (
-        latestVersion)
+        latestCommitVersion)
     logging.CyberCPLogFileWriter.writeToFile(u)
     r = requests.get(u)
     latestcomit = r.json()[0]['sha']
 
-    command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
-    output = ProcessUtilities.outputExecutioner(command)
+    # command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
+    # output = ProcessUtilities.outputExecutioner(command)
 
-    Currentcomt = output.rstrip("\n")
-    notechk = True
+    # Currentcomt = output.rstrip("\n")
+    # notechk = True
 
     # command ="git fetch -C /usr/local/CyberCP/"
     # output = ProcessUtilities.outputExecutioner(command)
@@ -129,6 +137,10 @@ def versionManagment(request):
     # output = ProcessUtilities.outputExecutioner(command)
     #
     # numCommits = output.rstrip("\n")
+  
+    fileObject = open('/usr/local/CyberCP/commit.txt', 'r')
+    data = fileObject.read()
+    Currentcomt = print(data)
 
     if (Currentcomt == latestcomit):
         notechk = False
