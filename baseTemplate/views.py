@@ -124,11 +124,11 @@ def versionManagment(request):
     r = requests.get(u)
     latestcomit = r.json()[0]['sha']
 
-    # command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
-    # output = ProcessUtilities.outputExecutioner(command)
+    command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
+    output = ProcessUtilities.outputExecutioner(command)
 
-    # Currentcomt = output.rstrip("\n")
-    # notechk = True
+    Currentcomt = output.rstrip("\n")
+    notechk = True
 
     # command ="git fetch -C /usr/local/CyberCP/"
     # output = ProcessUtilities.outputExecutioner(command)
@@ -138,12 +138,12 @@ def versionManagment(request):
     #
     # numCommits = output.rstrip("\n")
   
-    fileObject = open('/usr/local/CyberCP/commit.txt', 'r')
-    with open(fileObject) as file:
-        Currentcomt = print(file.read())
+    # fileObject = open('/usr/local/CyberCP/commit.txt', 'r')
+    # with open(fileObject) as file:
+    #    Currentcomt = print(file.read())
         # Currentcomt = print(data)
     
-    fileObject.close()
+    # fileObject.close()
 
     if (Currentcomt == latestcomit):
         notechk = False
