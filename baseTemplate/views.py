@@ -101,7 +101,7 @@ def versionManagment(request):
 
     getCommit = requests.get(
         'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
-    latestCommit = getCommit.text()
+    latestCommit = str(getCommit.content)
 
     # Get latest version
 
