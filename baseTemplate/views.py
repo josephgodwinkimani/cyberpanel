@@ -108,8 +108,7 @@ def versionManagment(request):
     getVersion = requests.get(
         'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
     latest = getVersion.json()
-
-    latestCommitVersion = latestCommit['commit']
+   
     latestVersion = latest['version']
     latestBuild = latest['build']
 
@@ -119,7 +118,7 @@ def versionManagment(request):
     currentBuild = str(BUILD)
 
     u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=%s" % (
-        latestCommitVersion)
+        latestCommit)
     logging.CyberCPLogFileWriter.writeToFile(u)
     r = requests.get(u)
     latestcomit = r.json()[0]['sha']
