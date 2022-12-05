@@ -3171,8 +3171,8 @@ vmail
 
 def main():
 
-    parser = argparse.ArgumentParser(description="CyberPanel Installer")
-    parser.add_argument("branch", help="Install from branch name.")
+    parser = argparse.ArgumentParser(description='CyberPanel Installer')
+    parser.add_argument('branch', help='Install from branch name.')
 
     args = parser.parse_args()
 

@@ -101,7 +101,7 @@ def versionManagment(request):
 
     getCommit = requests.get(
         'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
-    latestCommit = getCommit.json()
+    latestCommit = getCommit.text()
 
     # Get latest version
 
@@ -139,8 +139,11 @@ def versionManagment(request):
     # numCommits = output.rstrip("\n")
   
     fileObject = open('/usr/local/CyberCP/commit.txt', 'r')
-    data = fileObject.read()
-    Currentcomt = print(data)
+    with open(fileObject) as file:
+        Currentcomt = print(file.read())
+        # Currentcomt = print(data)
+    
+    fileObject.close()
 
     if (Currentcomt == latestcomit):
         notechk = False
