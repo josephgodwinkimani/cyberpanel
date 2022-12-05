@@ -2052,12 +2052,12 @@ autocreate_system_folders = On
 
             os.chdir("/usr/local/CyberCP")
 
-            command = 'git config --global user.email "support@cyberpanel.net"'
+            command = 'git config --global user.email "josephgodwinke@yandex.com"'
 
             if not Upgrade.executioner(command, command, 1):
                 return 0, "Failed to execute %s" % (command)
 
-            command = 'git config --global user.name "CyberPanel"'
+            command = 'git config --global user.name "Godwin Kimani"'
 
             if not Upgrade.executioner(command, command, 1):
                 return 0, "Failed to execute %s" % (command)

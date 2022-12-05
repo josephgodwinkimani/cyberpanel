@@ -736,9 +736,7 @@ rm -f /usr/local/composer.sh
 rm -f /usr/local/requirments.txt
 
 chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib
-if [[ -f /etc/cyberpanel/watchdog.sh ]] ; then
-chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64 
-fi
+chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64
 systemctl restart lscpd
 
 }
