@@ -17,7 +17,7 @@ Nitpick branch
 * [workaround for missing 'CyberCP' module](https://github.com/josephgodwinkimani/cyberpanel/commit/09b12d8e86cdc42d09c2fd335c04a8a2d6bbe85b)
 * [fix install and add almalinux installation](https://github.com/josephgodwinkimani/cyberpanel/commit/12ed05d83a8881cfef21bac3e9f2ea3b5f67691e)
 * [fix unable to fetch repo branch](https://github.com/josephgodwinkimani/cyberpanel/commit/10f558294523be094118ddfe1c350c8ef93c7dc7)
-*
+* [fix 500 error on version management page](https://github.com/josephgodwinkimani/cyberpanel/commit/6a0b58b14fa573a703113b9cdde0d2cfd7a4f203)
 
 **Security:**
 *
