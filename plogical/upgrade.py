@@ -2250,6 +2250,22 @@ autocreate_system_folders = On
             Upgrade.stdOut(str(msg) + " [upgrade_crowdsec]")
 
     @staticmethod
+    def download_and_install_rclone():
+        try:
+            #######
+
+            if os.path.exists("/usr/bin/rclone"):
+                # return 0
+                command = "rm /usr/bin/rclone"
+                Upgrade.executioner(command, 0)
+
+            command = "curl https://rclone.org/install.sh | sudo bash"
+            Upgrade.executioner(command, 0)
+
+        except BaseException as msg:
+            Upgrade.stdOut(str(msg) + " [download_and_install_rclone]")
+
+    @staticmethod
     def fixPermissions():
         try:
 
@@ -3107,6 +3123,10 @@ vmail
         #     Upgrade.upgradeDovecot()
 
         Upgrade.upgrade_crowdsec()
+
+        # Install if it doesn't exist, upgrade if it exists
+
+        Upgrade.download_and_install_rclone()
 
         # Upgrade version
 
