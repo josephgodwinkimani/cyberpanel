@@ -2253,14 +2253,14 @@ autocreate_system_folders = On
     def download_and_install_rclone():
         try:
             #######
-
             if os.path.exists("/usr/bin/rclone"):
                 # return 0
-                command = "rm /usr/bin/rclone"
+                command = "rclone selfupdate --stable"
                 Upgrade.executioner(command, 0)
 
-            command = "curl https://rclone.org/install.sh | sudo bash"
-            Upgrade.executioner(command, 0)
+            else:
+                command = "sh <(curl https://rclone.org/install.sh || wget -O - https://rclone.org/install.sh)"
+                Upgrade.executioner(command, 0)
 
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [download_and_install_rclone]")
