@@ -90,6 +90,19 @@ labels:
 $ sudo cscli console enroll 1234567890abcdef1234567890
 ```
 
+# Setup rclone backups
+
+1. Go to `https://SERVER_URL/backup/backupDestinations` add local path as `/home/backup`
+
+2. Go to `https://SERVER_URL/backup/scheduleBackup` and select destination as `backup`
+
+3. Add backup frequency (daily, weekly) and backup retention (0 = unlimited)
+
+4. A cronjob will run every day to copy these backups to remote backup 
+
+You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cyberpanel-mods/blob/main/rclone_sqlbackup_cronjob.sh), edit it and add it to `/var/spool/cron/crontabs/root` to run once everyday to backup all your databases to a remote location(s).
+
+
 # How to protect your CyberPanel server:
 
 * [Configure your Firewall](https://community.cyberpanel.net/docs?search=firewall&topic=132) 
