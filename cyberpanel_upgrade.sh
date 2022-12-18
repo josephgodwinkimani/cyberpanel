@@ -749,7 +749,7 @@ fi
 
 if curl -I -XGET -k "https://127.0.0.1:${Panel_Port#*:}" | grep -q "200 OK" ; then
   echo "###################################################################"
-  echo "                CyberPanel Upgraded                                "
+  echo "     CyberPanel Upgraded. See the logs /var/log/upgradeLogs.txt    "
   echo "###################################################################"
 else
   echo -e "\nSeems something wrong with upgrade, please check...\n"

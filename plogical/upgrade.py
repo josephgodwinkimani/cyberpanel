@@ -2259,8 +2259,21 @@ autocreate_system_folders = On
                 Upgrade.executioner(command, 0)
 
             else:
-                command = "bash <(curl https://rclone.org/install.sh)"
-                Upgrade.executioner(command, 0)
+                if Upgrade.FindOperatingSytem() == CENTOS7:  # Upgrade centos7
+                    command = "wget https://downloads.rclone.org/v1.60.1/rclone-v1.60.1-linux-amd64.rpm"
+                    Upgrade.executioner(command, 0)
+                    command = "yum localinstall rclone-v1.60.1-linux-amd64.rpm -y"
+                    Upgrade.executioner(command, 0)
+                elif Upgrade.FindOperatingSytem() == CENTOS8:  # Upgrade centos8
+                    command = "wget https://downloads.rclone.org/v1.60.1/rclone-v1.60.1-linux-amd64.rpm"
+                    Upgrade.executioner(command, 0)
+                    command = "yum localinstall rclone-v1.60.1-linux-amd64.rpm -y"
+                    Upgrade.executioner(command, 0)
+                else:  # Upgrade ubuntu
+                    command = "wget https://downloads.rclone.org/v1.60.1/rclone-v1.60.1-linux-amd64.deb"
+                    Upgrade.executioner(command, 0)
+                    command = "apt-get -y install ./rclone-v1.60.1-linux-amd64.deb"
+                    Upgrade.executioner(command, 0)
 
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [download_and_install_rclone]")

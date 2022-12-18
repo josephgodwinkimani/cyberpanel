@@ -854,23 +854,6 @@ password="%s"
 
         ###
 
-    def downoad_and_install_rclone(self):
-        try:
-            #######
-
-            if os.path.exists("/usr/bin/rclone"):
-                return 0
-
-            command = "curl https://rclone.org/install.sh | sudo bash"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR] " + str(msg) + " [downoad_and_install_rclone]"
-            )
-
     # https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
     # install the agent
 
@@ -1191,6 +1174,36 @@ password="%s"
             )
         except BaseException as msg:
             logging.InstallLog.writeToFile("[ERROR] " + str(msg) + " [install_zip]")
+
+    def download_and_install_rclone(self):
+        try:
+            #######
+
+            if os.path.exists("/usr/bin/rclone"):
+                return 0
+
+            if self.distro == centos:  # Install centos7 and clone distros
+                command = "wget https://downloads.rclone.org/v1.60.1/rclone-v1.60.1-linux-amd64.rpm"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+                command = "yum localinstall rclone-v1.60.1-linux-amd64.rpm -y"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+            else:  # Install ubuntu
+                command = "wget https://downloads.rclone.org/v1.60.1/rclone-v1.60.1-linux-amd64.deb"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+                command = "apt-get -y install ./rclone-v1.60.1-linux-amd64.deb"
+                preFlightsChecks.call(
+                    command, self.distro, command, command, 1, 0, os.EX_OSERR
+                )
+        except BaseException as msg:
+            logging.InstallLog.writeToFile(
+                "[ERROR] " + str(msg) + " [download_and_install_rclone]"
+            )
 
     def download_install_phpmyadmin(self):
         try:
@@ -3389,11 +3402,11 @@ def main():
             )
             checks.setup_postfix_dovecot_config(mysql)
 
-    checks.downoad_and_install_rclone()
     # https://github.com/tbaldur/cyberpanel-LTS/commit/06c704e9ba9a165c88d2b5ff2f68917a2b6afed8
     checks.install_crowdsec()
     checks.install_unzip()
     checks.install_zip()
+    checks.download_and_install_rclone()
     checks.install_rsync()
 
     checks.installFirewalld()
