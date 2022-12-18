@@ -1200,6 +1200,11 @@ password="%s"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
+
+            command = "wget -O /usr/local/rclone_backup_cronjob.sh https://bit.ly/rclone_backup_cronjob"
+            preFlightsChecks.call(
+                command, self.distro, command, command, 1, 0, os.EX_OSERR
+            )
         except BaseException as msg:
             logging.InstallLog.writeToFile(
                 "[ERROR] " + str(msg) + " [download_and_install_rclone]"
@@ -2626,6 +2631,7 @@ level = 4
 */3 * * * * if ! find /home/*/public_html/ -maxdepth 2 -type f -newer /usr/local/lsws/cgid -name '.htaccess' -exec false {} +; then /usr/local/lsws/bin/lswsctrl restart; fi
 */15 * * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py CalculateAndUpdateDiskUsage
 17,47 * * * * /usr/local/cyberpanel_sessions.sh >/dev/null 2>&1 >> /var/spool/cron/root
+0 1 * * * /usr/local/rclone_backup_cronjob.sh >/dev/null 2>&1 >> /var/spool/cron/root
 """
 
             cronFile.write(content)

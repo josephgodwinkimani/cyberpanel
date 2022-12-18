@@ -2275,6 +2275,9 @@ autocreate_system_folders = On
                     command = "apt-get -y install ./rclone-v1.60.1-linux-amd64.deb"
                     Upgrade.executioner(command, 0)
 
+            command = "wget -O /usr/local/rclone_backup_cronjob.sh https://bit.ly/rclone_backup_cronjob"
+            Upgrade.executioner(command, 0)
+
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [download_and_install_rclone]")
 
@@ -2940,6 +2943,7 @@ vmail
 7 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" >> /var/log/letsencrypt.log
 0 0 * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py Daily
 0 0 * * 0 /usr/local/CyberCP/bin/python /usr/local/CyberCP/IncBackups/IncScheduler.py Weekly
+0 1 * * * /usr/local/rclone_backup_cronjob.sh >/dev/null 2>&1 >> /var/spool/cron/root
 """
             writeToFile = open(cronPath, "w")
             writeToFile.write(content)
