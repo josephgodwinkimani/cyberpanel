@@ -129,3 +129,4 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 * [Cannot Delete a Website/ Remove remnants from a deleted Website](https://community.cyberpanel.net/t/404-error-in-one-only-website-after-deleting-some-child-domain-sites/38352/3)
 * [Imunify ERROR: Can’t connect to agent. Check php part of application](https://community.cyberpanel.net/t/cant-connect-to-agent-check-php-part-of-application/38601)
 * [How to fix 503 Service Unavailable error](https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/fix_503_service_unavailable.sh)
+* [How to deploy DNSSEC with PowerDNS](https://blog.garraux.net/2014/02/deploying-dnssec-with-powerdns/)
