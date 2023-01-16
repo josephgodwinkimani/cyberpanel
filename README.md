@@ -120,6 +120,7 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 * [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
 * [How to install SSL certificate from external sources](https://community.cyberpanel.net/t/the-same-domain-for-website-and-e-mail/38322/2)
 * [How to change website domain or subdomain](https://community.cyberpanel.net/t/tutorial-how-to-change-website-domain-or-subdomain/37917)
+* [How to Reset the Litespeed Admin Credentials](https://www.interserver.net/tips/kb/how-to-reset-the-litespeed-admin-credentials/)
 * [Setting up NodeJS for your apps](https://community.cyberpanel.net/t/deploy-nodejs-app-doesnnt-work/36389/2)
 * [Change MariaDB log configuration for your own purposes](https://community.cyberpanel.net/t/how-to-check-database-logs/37979/2)
 * [How to allow your SnappyMail users to change their mailbox passwords](https://community.cyberpanel.net/t/tutorial-how-to-allow-your-snappymail-users-to-change-their-mailbox-passwords/38084)
