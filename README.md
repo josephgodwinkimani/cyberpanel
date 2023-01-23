@@ -29,12 +29,6 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * PHP 7.4
 * PHP 7.3
 * PHP 7.2
-* PHP 7.1
-* PHP 7.0
-* PHP 5.6
-* PHP 5.5
-* PHP 5.4
-* PHP 5.3
 
 
 # Installation Instructions
@@ -102,6 +96,13 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 
 You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cyberpanel-mods/blob/main/rclone_sqlbackup_cronjob.sh), edit it and add it to `/var/spool/cron/crontabs/root` to run once everyday to backup all your databases to a remote location(s).
 
+# How this fork keeps up with [main repo](https://github.com/usmannasir/cyberpanel/tree/stable)
+
+1. Changes are released on stable branch of main repo
+
+2. After 14 days if there no reported issues all changes from main repo are adopted for testing
+
+3. A proper update is released here for use
 
 # How to protect your CyberPanel server:
 
