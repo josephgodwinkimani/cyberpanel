@@ -19,9 +19,6 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 ## [Extra Features & Services](https://github.com/josephgodwinkimani/cyberpanel/blob/main/CHANGELOG.MD)
 
-* Count vmail folder size to disk usage by [@tbaldur](https://github.com/tbaldur)
-* 
-
 # Supported PHP Versions
 
 * PHP 8.1
@@ -115,7 +112,7 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 # Resources
 
 * [Getting started after Installation](https://community.cyberpanel.net/t/cant-access-website-show-cyberpanel-installed-page/38018/2)
-* [How to setup DNS configurations for CyberPanel](https://community.cyberpanel.net/t/tutorial-how-to-setup-dns-configurations-for-cyberpanel/38094)
+* [How to Set Up DNS configurations for CyberPanel](https://community.cyberpanel.net/t/tutorial-how-to-setup-dns-configurations-for-cyberpanel/38094)
 * [How to install any PHP modules using PEAR Package Manager](https://community.cyberpanel.net/t/tutorial-how-to-install-any-php-modules-using-pear-package-manager/37785)
 * [How to remove port 8090](https://community.cyberpanel.net/t/how-to-remove-port-8090-from-cyberpanel/30648)
 * [Setting up Fully qualified domain name for SnappyMail](https://community.cyberpanel.net/t/tutorial-setting-up-fully-qualified-domain-name-for-snappymail/37898)
@@ -133,3 +130,7 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 * [How to fix 503 Service Unavailable error](https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/fix_503_service_unavailable.sh)
 * [How to deploy DNSSEC with PowerDNS](https://blog.garraux.net/2014/02/deploying-dnssec-with-powerdns/)
 * [How to Migrate from Cloudways to Vultr with CyberPanel Hosting](https://community.cyberpanel.net/t/trying-to-migrate-a-site-from-cloudways-vultr-to-vultr-cyberpanel/39421)
+* [How to Install WordPress Website on CyberPanel with DigitalOcean Cloud Hosting, Domain Name, Cloudflare CDN, Free SSL & Email for $5 Month](https://community.cyberpanel.net/t/full-setup-guide-on-installing-wordpress-website-on-cyberpanel-with-digitalocean-cloud-hosting-domain-name-cloudflare-cdn-free-ssl-email-for-5-month/31224)
+* [How to Add a Second IP address for your Websites](https://community.cyberpanel.net/t/tutorial-how-to-add-2nd-ip-for-websites/14117)
+* [How to Add GeoLite2 to MailWatch](https://community.cyberpanel.net/t/mailwatch-mailscanner-geolite2-activation/35227/4)
+* [How to Set up a Cronjob for a PHP file](https://community.cyberpanel.net/t/setup-a-cronjob-for-a-php-file/38435/8)

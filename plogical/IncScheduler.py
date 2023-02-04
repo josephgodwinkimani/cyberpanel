@@ -1198,12 +1198,8 @@ Automatic backup failed for %s on %s.
                         print("Disk Usage of %s is %s" %
                               (email.email, email.DiskUsage))
 
-                (
-                    config["DiskUsage"],
-                    config["DiskUsagePercentage"],
-                ) = virtualHostUtilities.getDiskUsage(
-                    "/home/" + website.domain, website.package.diskSpace
-                )
+                config['DiskUsage'], config['DiskUsagePercentage'] = virtualHostUtilities.getDiskUsage(
+                    "/home/" + website.domain, website.package.diskSpace)
 
                 if website.package.enforceDiskLimits:
                     if config["DiskUsagePercentage"] >= 100:
