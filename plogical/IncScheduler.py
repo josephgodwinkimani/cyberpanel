@@ -1,28 +1,27 @@
 #!/usr/local/CyberCP/bin/python
-import threading as multi
-from boto3.s3.transfer import TransferConfig
-from websiteFunctions.models import NormalBackupJobs, NormalBackupJobLogs
-import socket
-import requests
-from plogical.backupSchedule import backupSchedule
-import datetime
-import time
-from websiteFunctions.website import WebsiteManager
+import os.path
+import sys
+sys.path.append('/usr/local/CyberCP')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
+import django
+django.setup()
+from IncBackups.IncBackupsControl import IncJobs
+from IncBackups.models import BackupJob
+from random import randint
+import argparse
+import json
 from websiteFunctions.models import GitLogs, Websites, GDrive, GDriveJobLogs
+from websiteFunctions.website import WebsiteManager
+import time
+import datetime
 import google.oauth2.credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-import json
-import argparse
-from random import randint
-from IncBackups.models import BackupJob
-from IncBackups.IncBackupsControl import IncJobs
-import django
-import os.path
-import sys
-sys.path.append("/usr/local/CyberCP")
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
-django.setup()
+from plogical.backupSchedule import backupSchedule
+import requests
+import socket
+from websiteFunctions.models import NormalBackupJobs, NormalBackupJobLogs
+from boto3.s3.transfer import TransferConfig
 
 try:
     from s3Backups.models import BackupPlan, BackupLogs
@@ -33,6 +32,7 @@ try:
     from plogical.processUtilities import ProcessUtilities
 except:
     pass
+import threading as multi
 
 
 class IncScheduler(multi.Thread):
