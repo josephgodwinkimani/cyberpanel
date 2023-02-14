@@ -2222,7 +2222,7 @@ autocreate_system_folders = On
                     command = "apt -y upgrade crowdsec"
                     Upgrade.executioner(command, 0)
                 # Upgrade collections
-                command = "cscli collections upgrade crowdsecurity/base-http-scenario"
+                command = "cscli collections upgrade crowdsecurity/base-http-scenarios"
                 Upgrade.executioner(command, 0)
                 command = "cscli collections upgrade crowdsecurity/iptables"
                 Upgrade.executioner(command, 0)
