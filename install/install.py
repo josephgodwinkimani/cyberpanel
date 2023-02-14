@@ -912,7 +912,7 @@ password="%s"
             )
 
             # Setup collections
-            command = "cscli collections install crowdsecurity/base-http-scenario"
+            command = "cscli collections install crowdsecurity/base-http-scenarios"
             preFlightsChecks.call(
                 command, self.distro, command, command, 1, 0, os.EX_OSERR
             )
