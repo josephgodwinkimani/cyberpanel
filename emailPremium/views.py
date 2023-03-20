@@ -1919,12 +1919,18 @@ def RunServerLevelEmailChecks(request):
         else:
             return ACLManager.loadErrorJson()
 
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        if ACLManager.CheckForPremFeature('email-debugger'):
             ob = CloudManager()
             res = ob.RunServerLevelEmailChecks()
             return res
-    except KeyError:
-        return redirect(loadLoginPage)
+        else:
+            dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+            json_data = json.dumps(dic)
+            return HttpResponse(json_data)
+    except BaseException as msg:
+        dic = {'status': 0, 'error_message': str(msg)}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
 
 
 def ResetEmailConfigurations(request):
@@ -1941,8 +1947,14 @@ def ResetEmailConfigurations(request):
             res = ob.ResetEmailConfigurations()
 
             return res
-    except KeyError:
-        return redirect(loadLoginPage)
+        else:
+            dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+            json_data = json.dumps(dic)
+            return HttpResponse(json_data)
+    except BaseException as msg:
+        dic = {'status': 0, 'error_message': str(msg)}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
 
 
 def statusFunc(request):
@@ -1959,8 +1971,14 @@ def statusFunc(request):
             ob = CloudManager(json.loads(request.body))
             res = ob.statusFunc()
             return res
-    except KeyError:
-        return redirect(loadLoginPage)
+        else:
+            dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+            json_data = json.dumps(dic)
+            return HttpResponse(json_data)
+    except BaseException as msg:
+        dic = {'status': 0, 'error_message': str(msg)}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
 
 
 def ReadReport(request):
@@ -2042,6 +2060,11 @@ def ReadReport(request):
             except BaseException as msg:
                 logging.CyberCPLogFileWriter.writeToFile(
                     "Result....3:" + str(msg))
+
+            else:
+                dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+                json_data = json.dumps(dic)
+                return HttpResponse(json_data)
     except KeyError:
         return redirect(loadLoginPage)
 
@@ -2055,10 +2078,14 @@ def debugEmailForSite(request):
             pass
         else:
             return ACLManager.loadErrorJson()
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        if ACLManager.CheckForPremFeature('email-debugger'):
             ob = CloudManager(json.loads(request.body))
             res = ob.debugEmailForSite()
             return res
+        else:
+            dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+            json_data = json.dumps(dic)
+            return HttpResponse(json_data)
     except KeyError:
         return redirect(loadLoginPage)
 
@@ -2073,12 +2100,16 @@ def fixMailSSL(request):
         else:
             return ACLManager.loadErrorJson()
         admin = Administrator.objects.get(pk=userID)
-        if ACLManager.CheckForPremFeature('wp-manager'):
+        if ACLManager.CheckForPremFeature('email-debugger'):
             cm = CloudManager(json.loads(request.body), admin)
             res = cm.fixMailSSL(request)
             if os.path.exists(ProcessUtilities.debugPath):
                 logging.CyberCPLogFileWriter.writeToFile(
                     "Result....3:" + str(res.content))
             return res
+        else:
+            dic = {'status': 0, 'error_message': 'Kindly purchase email debugger Add-on'}
+            json_data = json.dumps(dic)
+            return HttpResponse(json_data)
     except KeyError:
         return redirect(loadLoginPage)

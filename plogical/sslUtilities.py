@@ -54,6 +54,19 @@ class sslUtilities:
         return 0
 
     @staticmethod
+    def checkSSLIPv6Listener():
+        try:
+            data = open("/usr/local/lsws/conf/httpd_config.conf").readlines()
+            for items in data:
+                if items.find("listener SSL IPv6") > -1:
+                    return 1
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(str(msg) + " [IO Error with main config file [checkSSLIPv6Listener]]")
+            return str(msg)
+        return 0
+
+    @staticmethod
     def getDNSRecords(virtualHostName):
         try:
 
@@ -110,6 +123,45 @@ class sslUtilities:
                     writeDataToFile.writelines(certChain)
                     writeDataToFile.writelines(sslProtocol)
                     writeDataToFile.writelines(enableECDHE) 
+                    writeDataToFile.writelines(renegProtection)
+                    writeDataToFile.writelines(sslSessionCache)
+                    writeDataToFile.writelines(enableSpdy)
+                    writeDataToFile.writelines(enableStapling)
+                    writeDataToFile.writelines(ocspRespMaxAge)
+                    writeDataToFile.writelines(map)
+                    writeDataToFile.writelines(final)
+                    writeDataToFile.writelines("\n")
+                    writeDataToFile.close()
+
+                elif sslUtilities.checkSSLIPv6Listener() != 1:
+
+                    writeDataToFile = open("/usr/local/lsws/conf/httpd_config.conf", 'a')
+
+                    listener = "listener SSL IPv6 {" + "\n"
+                    address = "  address                 [ANY]:443" + "\n"
+                    secure = "  secure                  1" + "\n"
+                    keyFile = "  keyFile                  /etc/letsencrypt/live/" + virtualHostName + "/privkey.pem\n"
+                    certFile = "  certFile                 /etc/letsencrypt/live/" + virtualHostName + "/fullchain.pem\n"
+                    certChain = "  certChain               1" + "\n"
+                    sslProtocol = "  sslProtocol             24" + "\n"
+                    enableECDHE = "  enableECDHE             1" + "\n"
+                    renegProtection = "  renegProtection         1" + "\n"
+                    sslSessionCache = "  sslSessionCache         1" + "\n"
+                    enableSpdy = "  enableSpdy              15" + "\n"
+                    enableStapling = "  enableStapling           1" + "\n"
+                    ocspRespMaxAge = "  ocspRespMaxAge           86400" + "\n"
+                    map = "  map                     " + virtualHostName + " " + virtualHostName + "\n"
+                    final = "}" + "\n" + "\n"
+
+                    writeDataToFile.writelines("\n")
+                    writeDataToFile.writelines(listener)
+                    writeDataToFile.writelines(address)
+                    writeDataToFile.writelines(secure)
+                    writeDataToFile.writelines(keyFile)
+                    writeDataToFile.writelines(certFile)
+                    writeDataToFile.writelines(certChain)
+                    writeDataToFile.writelines(sslProtocol)
+                    writeDataToFile.writelines(enableECDHE)
                     writeDataToFile.writelines(renegProtection)
                     writeDataToFile.writelines(sslSessionCache)
                     writeDataToFile.writelines(enableSpdy)
@@ -314,7 +366,7 @@ class sslUtilities:
                 logging.CyberCPLogFileWriter.writeToFile(f'Status Code: {str(resp.status_code)} for: {URLFetchPathNONWWW}. Error: {resp.text}')
         except BaseException as msg:
             logging.CyberCPLogFileWriter.writeToFile(
-                f'Status Code: Unkown for: {URLFetchPathNONWWW}. Error: {str(msg)}')
+                f'Status Code: Unknown for: {URLFetchPathNONWWW}. Error: {str(msg)}')
 
 
         try:
