@@ -3,7 +3,6 @@
 #CyberPanel installer script for Ubuntu 18.04 - 20.04 and CentOS 7.X
 DEV="OFF"
 BRANCH="main"
-POSTFIX_VARIABLE="ON"
 POWERDNS_VARIABLE="ON"
 PUREFTPD_VARIABLE="ON"
 PROVIDER="undefined"
@@ -702,18 +701,10 @@ echo -e "\nInstall minimal service for CyberPanel? This will skip PowerDNS, Post
 printf "%s" "Minimal installation [y/N]: "
 read TMP_YN
 if [ `expr "x$TMP_YN" : 'x[Yy]'` -gt 1 ]; then
-		echo -e "\nMinimal installation selected..."
-		POSTFIX_VARIABLE="OFF"
+		echo -e "\nMinimal installation selected..."		
 		POWERDNS_VARIABLE="OFF"
 		PUREFTPD_VARIABLE="OFF"
-else
-		printf "%s" "Install Postfix? [Y/n]: "
-		read TMP_YN
-		if [[ $TMP_YN =~ ^(no|n|N) ]] ; then
-		POSTFIX_VARIABLE="OFF"
-		else
-		POSTFIX_VARIABLE="ON"
-		fi
+else		
 		printf "%s" "Install PowerDNS? [Y/n]: "
 		read TMP_YN
 		if [[ $TMP_YN =~ ^(no|n|N) ]] ; then
@@ -1183,8 +1174,7 @@ else
 		SILENT="OFF"
 	elif [[ $1 == "default" ]] ; then
 	echo -e "\nThis will start default installation...\n"
-	SILENT="ON"
-	POSTFIX_VARIABLE="ON"
+	SILENT="ON"	
 	POWERDNS_VARIABLE="ON"
 	PUREFTPD_VARIABLE="ON"
 	VERSION="OLS"

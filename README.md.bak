@@ -11,7 +11,9 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * FTP Server.
 * Light-weight DNS Server (PowerDNS).
 * phpMyAdmin to manage DBs (MariaDB).
-* Email Support (SnappyMail).
+* ~Email Support (SnappyMail)~.
+* ~Docker Manager.~
+* ~Containerization.~
 * File Manager.
 * PHP Managment.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
@@ -32,14 +34,14 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```bash
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```bash
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/preUpgrade.sh)
 ```
 
 # Add additional logs for CrowdSec
@@ -89,7 +91,7 @@ $ sudo cscli console enroll 1234567890abcdef1234567890
 
 3. Add backup frequency (daily, weekly) and backup retention (0 = unlimited)
 
-4. A cronjob will run every day to copy these backups to remote backup
+4. A cronjob will run every day to copy these backups to remote backup 
 
 You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cyberpanel-mods/blob/main/rclone_sqlbackup_cronjob.sh), edit it and add it to `/var/spool/cron/crontabs/root` to run once everyday to backup all your databases to a remote location(s).
 
@@ -103,9 +105,9 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 
 # How to protect your CyberPanel server:
 
-* [Configure your Firewall](https://community.cyberpanel.net/docs?search=firewall&topic=132)
-* [Secure SSH by disabling root access](https://community.cyberpanel.net/docs?search=ssh&topic=131)
-* [Setup Backups for your client’s data](https://community.cyberpanel.net/docs?category=15&topic=122)
+* [Configure your Firewall](https://community.cyberpanel.net/docs?search=firewall&topic=132) 
+* [Secure SSH by disabling root access](https://community.cyberpanel.net/docs?search=ssh&topic=131) 
+* [Setup Backups for your client’s data](https://community.cyberpanel.net/docs?category=15&topic=122) 
 * [Install Imunify360](https://community.cyberpanel.net/docs?category=&search=imunify&topic=172)
 * [Setup Custom ACL for your users disallowing specific services per account](https://community.cyberpanel.net/docs?category=&search=ACL&tags=&topic=84#custom-acls-3)
 

@@ -37,11 +37,6 @@ def getAdminStatus(request):
         val = request.session['userID']
         currentACL = ACLManager.loadedACL(val)
 
-        if os.path.exists('/home/cyberpanel/postfix'):
-            currentACL['emailAsWhole'] = 1
-        else:
-            currentACL['emailAsWhole'] = 0
-
         if os.path.exists('/home/cyberpanel/pureftpd'):
             currentACL['ftpAsWhole'] = 1
         else:
@@ -100,14 +95,14 @@ def versionManagment(request):
     # Get latest commit
 
     getCommit = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/commit.txt')
     commit = getCommit.json()
     latestCommit = commit['commit']
 
     # Get latest version
 
     getVersion = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/version.txt')
     latest = getVersion.json()
    
     latestVersion = latest['version']
@@ -165,7 +160,7 @@ def upgrade(request):
         except:
             pass
 
-        command = 'wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/plogical/upgrade.py'
+        command = 'wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/plogical/upgrade.py'
 
         cmd = shlex.split(command)
 
@@ -210,7 +205,7 @@ def upgradeStatus(request):
 
                     vers = version.objects.get(pk=1)
                     getVersion = requests.get(
-                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/version.txt')
                     latest = getVersion.json()
                     vers.currentVersion = latest['version']
                     vers.build = latest['build']
@@ -243,7 +238,7 @@ def upgradeVersion(request):
     try:
         vers = version.objects.get(pk=1)
         getVersion = requests.get(
-            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/version.txt')
         latest = getVersion.json()
         vers.currentVersion = latest['version']
         vers.build = latest['build']

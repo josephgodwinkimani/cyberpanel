@@ -690,9 +690,6 @@ password="%s"
         command = "chmod 700 /usr/local/CyberCP/plogical/upgradeCritical.py"
         preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
-        command = "chmod 755 /usr/local/CyberCP/postfixSenderPolicy/client.py"
-        preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
         command = "chmod 640 /usr/local/CyberCP/CyberCP/settings.py"
         preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
@@ -718,41 +715,6 @@ password="%s"
             preFlightsChecks.call(
                 command, self.distro, command, command, 1, 0, os.EX_OSERR
             )
-
-        impFile = [
-            "/etc/pure-ftpd/pure-ftpd.conf",
-            "/etc/pure-ftpd/pureftpd-pgsql.conf",
-            "/etc/pure-ftpd/pureftpd-mysql.conf",
-            "/etc/pure-ftpd/pureftpd-ldap.conf",
-            "/etc/dovecot/dovecot.conf",
-            "/etc/pdns/pdns.conf",
-            "/etc/pure-ftpd/db/mysql.conf",
-            "/etc/powerdns/pdns.conf",
-        ]
-
-        for items in impFile:
-            command = "chmod 600 %s" % (items)
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-        command = "chmod 640 /etc/postfix/*.cf"
-        subprocess.call(command, shell=True)
-
-        command = "chmod 644 /etc/postfix/main.cf"
-        subprocess.call(command, shell=True)
-
-        command = "chmod 640 /etc/dovecot/*.conf"
-        subprocess.call(command, shell=True)
-
-        command = "chmod 644 /etc/dovecot/dovecot.conf"
-        subprocess.call(command, shell=True)
-
-        command = "chmod 640 /etc/dovecot/dovecot-sql.conf.ext"
-        subprocess.call(command, shell=True)
-
-        command = "chmod 644 /etc/postfix/dynamicmaps.cf"
-        subprocess.call(command, shell=True)
 
         fileM = [
             "/usr/local/lsws/FileManager/",
@@ -1342,749 +1304,6 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             )
             return 0
 
-    # Email setup
-
-    def install_postfix_dovecot(self):
-        self.stdOut("Install dovecot - first remove postfix")
-
-        try:
-            if self.distro == centos:
-                command = "yum remove postfix -y"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-            elif self.distro == ubuntu:
-                command = "apt-get -y remove postfix"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-            self.stdOut("Install dovecot - do the install")
-
-            if self.distro == centos:
-                command = "yum install --enablerepo=gf-plus -y postfix3 postfix3-ldap postfix3-mysql postfix3-pcre"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-            elif self.distro == cent8:
-                command = "dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el8.noarch.rpm"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                command = "dnf install --enablerepo=gf-plus postfix3 postfix3-mysql -y"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-            elif self.distro == openeuler:
-                command = "dnf install postfix -y"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-            else:
-                command = "apt-get -y install debconf-utils"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-                file_name = self.cwd + "/pf.unattend.text"
-                pf = open(file_name, "w")
-                pf.write(
-                    "postfix postfix/mailname string " + str(socket.getfqdn() + "\n")
-                )
-                pf.write('postfix postfix/main_mailer_type string "Internet Site"\n')
-                pf.close()
-                command = "debconf-set-selections " + file_name
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                command = "apt-get -y install postfix postfix-mysql"
-                # os.remove(file_name)
-
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 1, os.EX_OSERR
-            )
-
-            ##
-
-            if self.distro == centos:
-                command = (
-                    "yum --enablerepo=gf-plus -y install dovecot23 dovecot23-mysql"
-                )
-            elif self.distro == cent8:
-                command = (
-                    "dnf install --enablerepo=gf-plus dovecot23 dovecot23-mysql -y"
-                )
-            elif self.distro == openeuler:
-                command = "dnf install dovecot -y"
-            else:
-                command = "apt-get -y install dovecot-mysql dovecot-imapd dovecot-pop3d"
-
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 1, os.EX_OSERR
-            )
-
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR] " + str(msg) + " [install_postfix_dovecot]"
-            )
-            return 0
-
-        return 1
-
-    def setup_email_Passwords(self, mysqlPassword, mysql):
-        try:
-
-            logging.InstallLog.writeToFile(
-                "Setting up authentication for Postfix and Dovecot..."
-            )
-
-            os.chdir(self.cwd)
-
-            mysql_virtual_domains = "email-configs-one/mysql-virtual_domains.cf"
-            mysql_virtual_forwardings = "email-configs-one/mysql-virtual_forwardings.cf"
-            mysql_virtual_mailboxes = "email-configs-one/mysql-virtual_mailboxes.cf"
-            mysql_virtual_email2email = "email-configs-one/mysql-virtual_email2email.cf"
-            dovecotmysql = "email-configs-one/dovecot-sql.conf.ext"
-
-            # update password:
-
-            data = open(dovecotmysql, "r").readlines()
-
-            writeDataToFile = open(dovecotmysql, "w")
-
-            if mysql == "Two":
-                dataWritten = (
-                    "connect = host=127.0.0.1 dbname=cyberpanel user=cyberpanel password="
-                    + mysqlPassword
-                    + " port=3307\n"
-                )
-            else:
-                dataWritten = (
-                    "connect = host=localhost dbname=cyberpanel user=cyberpanel password="
-                    + mysqlPassword
-                    + " port=3306\n"
-                )
-
-            for items in data:
-                if items.find("connect") > -1:
-                    writeDataToFile.writelines(dataWritten)
-                else:
-                    writeDataToFile.writelines(items)
-
-            writeDataToFile.close()
-
-            # update password:
-
-            data = open(mysql_virtual_domains, "r").readlines()
-
-            writeDataToFile = open(mysql_virtual_domains, "w")
-
-            dataWritten = "password = " + mysqlPassword + "\n"
-
-            for items in data:
-                if items.find("password") > -1:
-                    writeDataToFile.writelines(dataWritten)
-                else:
-                    writeDataToFile.writelines(items)
-
-            writeDataToFile.close()
-
-            # update password:
-
-            data = open(mysql_virtual_forwardings, "r").readlines()
-
-            writeDataToFile = open(mysql_virtual_forwardings, "w")
-
-            dataWritten = "password = " + mysqlPassword + "\n"
-
-            for items in data:
-                if items.find("password") > -1:
-                    writeDataToFile.writelines(dataWritten)
-                else:
-                    writeDataToFile.writelines(items)
-
-            writeDataToFile.close()
-
-            # update password:
-
-            data = open(mysql_virtual_mailboxes, "r").readlines()
-
-            writeDataToFile = open(mysql_virtual_mailboxes, "w")
-
-            dataWritten = "password = " + mysqlPassword + "\n"
-
-            for items in data:
-                if items.find("password") > -1:
-                    writeDataToFile.writelines(dataWritten)
-                else:
-                    writeDataToFile.writelines(items)
-
-            writeDataToFile.close()
-
-            # update password:
-
-            data = open(mysql_virtual_email2email, "r").readlines()
-
-            writeDataToFile = open(mysql_virtual_email2email, "w")
-
-            dataWritten = "password = " + mysqlPassword + "\n"
-
-            for items in data:
-                if items.find("password") > -1:
-                    writeDataToFile.writelines(dataWritten)
-                else:
-                    writeDataToFile.writelines(items)
-
-            writeDataToFile.close()
-
-            if self.remotemysql == "ON":
-                command = "sed -i 's|host=localhost|host=%s|g' %s" % (
-                    self.mysqlhost,
-                    dovecotmysql,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-                command = "sed -i 's|port=3306|port=%s|g' %s" % (
-                    self.mysqlport,
-                    dovecotmysql,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-                ##
-
-                command = "sed -i 's|localhost|%s:%s|g' %s" % (
-                    self.mysqlhost,
-                    self.mysqlport,
-                    mysql_virtual_domains,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-                command = "sed -i 's|localhost|%s:%s|g' %s" % (
-                    self.mysqlhost,
-                    self.mysqlport,
-                    mysql_virtual_forwardings,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-                command = "sed -i 's|localhost|%s:%s|g' %s" % (
-                    self.mysqlhost,
-                    self.mysqlport,
-                    mysql_virtual_mailboxes,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-                command = "sed -i 's|localhost|%s:%s|g' %s" % (
-                    self.mysqlhost,
-                    self.mysqlport,
-                    mysql_virtual_email2email,
-                )
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 1, os.EX_OSERR
-                )
-
-            logging.InstallLog.writeToFile(
-                "Authentication for Postfix and Dovecot set."
-            )
-
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR]" + str(msg) + " [setup_email_Passwords]"
-            )
-            return 0
-
-        return 1
-
-    def centos_lib_dir_to_ubuntu(self, filename, old, new):
-        try:
-            fd = open(filename, "r")
-            lines = fd.readlines()
-            fd.close()
-            fd = open(filename, "w")
-            centos_prefix = old
-            ubuntu_prefix = new
-            for line in lines:
-                index = line.find(centos_prefix)
-                if index != -1:
-                    line = (
-                        line[:index]
-                        + ubuntu_prefix
-                        + line[index + len(centos_prefix) :]
-                    )
-                fd.write(line)
-            fd.close()
-        except IOError as err:
-            self.stdOut(
-                "[ERROR] Error converting: "
-                + filename
-                + " from centos defaults to ubuntu defaults: "
-                + str(err),
-                1,
-                1,
-                os.EX_OSERR,
-            )
-
-    def setup_postfix_dovecot_config(self, mysql):
-        try:
-            logging.InstallLog.writeToFile("Configuring postfix and dovecot...")
-
-            os.chdir(self.cwd)
-
-            mysql_virtual_domains = "/etc/postfix/mysql-virtual_domains.cf"
-            mysql_virtual_forwardings = "/etc/postfix/mysql-virtual_forwardings.cf"
-            mysql_virtual_mailboxes = "/etc/postfix/mysql-virtual_mailboxes.cf"
-            mysql_virtual_email2email = "/etc/postfix/mysql-virtual_email2email.cf"
-            main = "/etc/postfix/main.cf"
-            master = "/etc/postfix/master.cf"
-            dovecot = "/etc/dovecot/dovecot.conf"
-            dovecotmysql = "/etc/dovecot/dovecot-sql.conf.ext"
-
-            if os.path.exists(mysql_virtual_domains):
-                os.remove(mysql_virtual_domains)
-
-            if os.path.exists(mysql_virtual_forwardings):
-                os.remove(mysql_virtual_forwardings)
-
-            if os.path.exists(mysql_virtual_mailboxes):
-                os.remove(mysql_virtual_mailboxes)
-
-            if os.path.exists(mysql_virtual_email2email):
-                os.remove(mysql_virtual_email2email)
-
-            if os.path.exists(main):
-                os.remove(main)
-
-            if os.path.exists(master):
-                os.remove(master)
-
-            if os.path.exists(dovecot):
-                os.remove(dovecot)
-
-            if os.path.exists(dovecotmysql):
-                os.remove(dovecotmysql)
-
-            # Getting SSL
-
-            command = 'openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout /etc/postfix/key.pem -out /etc/postfix/cert.pem'
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = 'openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=www.example.com" -keyout /etc/dovecot/key.pem -out /etc/dovecot/cert.pem'
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Cleanup config files for ubuntu
-            if self.distro == ubuntu:
-                preFlightsChecks.stdOut("Cleanup postfix/dovecot config files", 1)
-
-                self.centos_lib_dir_to_ubuntu(
-                    "email-configs-one/master.cf", "/usr/libexec/", "/usr/lib/"
-                )
-                self.centos_lib_dir_to_ubuntu(
-                    "email-configs-one/main.cf",
-                    "/usr/libexec/postfix",
-                    "/usr/lib/postfix/sbin",
-                )
-
-            # Copy config files
-
-            shutil.copy(
-                "email-configs-one/mysql-virtual_domains.cf",
-                "/etc/postfix/mysql-virtual_domains.cf",
-            )
-            shutil.copy(
-                "email-configs-one/mysql-virtual_forwardings.cf",
-                "/etc/postfix/mysql-virtual_forwardings.cf",
-            )
-            shutil.copy(
-                "email-configs-one/mysql-virtual_mailboxes.cf",
-                "/etc/postfix/mysql-virtual_mailboxes.cf",
-            )
-            shutil.copy(
-                "email-configs-one/mysql-virtual_email2email.cf",
-                "/etc/postfix/mysql-virtual_email2email.cf",
-            )
-            shutil.copy("email-configs-one/main.cf", main)
-            shutil.copy("email-configs-one/master.cf", master)
-            shutil.copy("email-configs-one/dovecot.conf", dovecot)
-            shutil.copy("email-configs-one/dovecot-sql.conf.ext", dovecotmysql)
-
-            # Set custom settings
-
-            # We are going to leverage postconfig -e to edit the settings for hostname
-            command = "postconf -e 'myhostname = %s'" % (str(socket.getfqdn()))
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # We are explicitly going to use sed to set the hostname default from "myhostname = server.example.com"
-            # to the fqdn from socket if the default is still found
-            command = "sed -i 's|server.example.com|%s|g' %s" % (
-                str(socket.getfqdn()),
-                main,
-            )
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Permissions
-
-            command = "chmod o= /etc/postfix/mysql-virtual_domains.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= /etc/postfix/mysql-virtual_forwardings.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= /etc/postfix/mysql-virtual_mailboxes.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= /etc/postfix/mysql-virtual_email2email.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= " + main
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= " + master
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            #######################################
-
-            command = "chgrp postfix /etc/postfix/mysql-virtual_domains.cf"
-
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chgrp postfix /etc/postfix/mysql-virtual_forwardings.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-            ##
-
-            command = "chgrp postfix /etc/postfix/mysql-virtual_mailboxes.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chgrp postfix /etc/postfix/mysql-virtual_email2email.cf"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chgrp postfix " + main
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chgrp postfix " + master
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # users and groups
-
-            command = "groupadd -g 5000 vmail"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "useradd -g vmail -u 5000 vmail -d /home/vmail -m"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Further configurations
-
-            # hostname = socket.gethostname()
-
-            # Restart postix
-
-            command = "systemctl enable postfix.service"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "systemctl start postfix.service"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Permissions
-
-            command = "chgrp dovecot /etc/dovecot/dovecot-sql.conf.ext"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "chmod o= /etc/dovecot/dovecot-sql.conf.ext"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Restart dovecot
-
-            command = "systemctl enable dovecot.service"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "systemctl start dovecot.service"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ##
-
-            command = "systemctl restart  postfix.service"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # chaging permissions for main.cf
-
-            command = "chmod 755 " + main
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            if self.distro == ubuntu:
-                command = "mkdir -p /etc/pki/dovecot/private/"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                command = "mkdir -p /etc/pki/dovecot/certs/"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                command = "mkdir -p /etc/opendkim/keys/"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                command = "sed -i 's/auth_mechanisms = plain/#auth_mechanisms = plain/g' /etc/dovecot/conf.d/10-auth.conf"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-                # Ubuntu 18.10 ssl_dh for dovecot 2.3.2.1
-
-                if get_Ubuntu_release() == 18.10:
-                    dovecotConf = "/etc/dovecot/dovecot.conf"
-
-                    data = open(dovecotConf, "r").readlines()
-                    writeToFile = open(dovecotConf, "w")
-                    for items in data:
-                        if items.find("ssl_key = <key.pem") > -1:
-                            writeToFile.writelines(items)
-                            writeToFile.writelines(
-                                "ssl_dh = </usr/share/dovecot/dh.pem\n"
-                            )
-                        else:
-                            writeToFile.writelines(items)
-                    writeToFile.close()
-
-                command = "systemctl restart dovecot"
-                preFlightsChecks.call(
-                    command, self.distro, command, command, 1, 0, os.EX_OSERR
-                )
-
-            logging.InstallLog.writeToFile("Postfix and Dovecot configured")
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR] " + str(msg) + " [setup_postfix_dovecot_config]"
-            )
-            return 0
-
-        return 1
-
-    def downoad_and_install_raindloop(self):
-        try:
-            #######
-
-            if not os.path.exists("/usr/local/CyberCP/public"):
-                os.mkdir("/usr/local/CyberCP/public")
-
-            if os.path.exists("/usr/local/CyberCP/public/snappymail"):
-                return 0
-
-            os.chdir("/usr/local/CyberCP/public")
-
-            command = (
-                "wget https://github.com/the-djmaze/snappymail/releases/download/v%s/snappymail-%s.zip"
-                % (preFlightsChecks.SnappyVersion, preFlightsChecks.SnappyVersion)
-            )
-
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 1, os.EX_OSERR
-            )
-
-            #############
-
-            command = (
-                "unzip snappymail-%s.zip -d /usr/local/CyberCP/public/snappymail"
-                % (preFlightsChecks.SnappyVersion)
-            )
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 1, os.EX_OSERR
-            )
-
-            try:
-                os.remove("snappymail-%s.zip" % (preFlightsChecks.SnappyVersion))
-            except:
-                pass
-
-            #######
-
-            os.chdir("/usr/local/CyberCP/public/snappymail")
-
-            command = "find . -type d -exec chmod 755 {} \;"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            #############
-
-            command = "find . -type f -exec chmod 644 {} \;"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            ######
-
-            command = "mkdir -p /usr/local/lscp/cyberpanel/rainloop/data"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            # Enable sub-folders
-
-            command = "mkdir -p /usr/local/lscp/cyberpanel/rainloop/data/_data_/_default_/configs/"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            labsPath = "/usr/local/lscp/cyberpanel/rainloop/data/_data_/_default_/configs/application.ini"
-
-            labsData = """[labs]
-imap_folder_list_limit = 0
-autocreate_system_folders = On
-[logs]
-enable = On
-level = 4
-"""
-
-            writeToFile = open(labsPath, "a")
-            writeToFile.write(labsData)
-            writeToFile.close()
-
-            iPath = os.listdir("/usr/local/CyberCP/public/snappymail/snappymail/v/")
-
-            path = (
-                "/usr/local/CyberCP/public/snappymail/snappymail/v/%s/include.php"
-                % (iPath[0])
-            )
-
-            data = open(path, "r").readlines()
-            writeToFile = open(path, "w")
-
-            for items in data:
-                if items.find("$sCustomDataPath = '';") > -1:
-                    writeToFile.writelines(
-                        "			$sCustomDataPath = '/usr/local/lscp/cyberpanel/rainloop/data';\n"
-                    )
-                else:
-                    writeToFile.writelines(items)
-
-            writeToFile.close()
-
-            includeFileOldPath = "/usr/local/CyberCP/public/snappymail/_include.php"
-            includeFileNewPath = "/usr/local/CyberCP/public/snappymail/include.php"
-
-            if os.path.exists(includeFileOldPath):
-                writeToFile = open(includeFileOldPath, "a")
-                writeToFile.write(
-                    "\ndefine('APP_DATA_FOLDER_PATH', '/usr/local/lscp/cyberpanel/rainloop/data/');\n"
-                )
-                writeToFile.close()
-
-            command = "mv %s %s" % (includeFileOldPath, includeFileNewPath)
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-            command = (
-                "sed -i 's|autocreate_system_folders = Off|autocreate_system_folders = On|g' %s"
-                % (labsPath)
-            )
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
-
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR] " + str(msg) + " [downoad_and_install_snappymail]"
-            )
-            return 0
-
-        return 1
-
-    # Email setup ends!
-
     def reStartLiteSpeed(self):
         command = "%sbin/lswsctrl restart" % (self.server_root_path)
         preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
@@ -2612,8 +1831,6 @@ level = 4
 
             content = """
 0 * * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/plogical/findBWUsage.py >/dev/null 2>&1
-0 * * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/postfixSenderPolicy/client.py hourlyCleanup >/dev/null 2>&1
-0 0 1 * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/postfixSenderPolicy/client.py monthlyCleanup >/dev/null 2>&1
 0 2 * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/plogical/upgradeCritical.py >/dev/null 2>&1
 0 2 * * * /usr/local/CyberCP/bin/python /usr/local/CyberCP/plogical/renew.py >/dev/null 2>&1
 7 0 * * * "/root/.acme.sh"/acme.sh --cron --home "/root/.acme.sh" >> /var/log/letsencrypt.log
@@ -2826,21 +2043,7 @@ InternalHosts	refile:/etc/opendkim/TrustedHosts
             writeToFile = open(openDKIMConfigurePath, "a")
             writeToFile.write(configData)
             writeToFile.close()
-
-            # Configure postfix specific settings
-
-            postfixFilePath = "/etc/postfix/main.cf"
-
-            configData = """
-smtpd_milters = inet:127.0.0.1:8891
-non_smtpd_milters = $smtpd_milters
-milter_default_action = accept
-"""
-
-            writeToFile = open(postfixFilePath, "a")
-            writeToFile.write(configData)
-            writeToFile.close()
-
+            
             if self.distro == ubuntu:
                 data = open(openDKIMConfigurePath, "r").readlines()
                 writeToFile = open(openDKIMConfigurePath, "w")
@@ -2855,7 +2058,7 @@ milter_default_action = accept
                         writeToFile.writelines(items)
                 writeToFile.close()
 
-            # Restarting Postfix and OpenDKIM
+            # Restarting OpenDKIM
 
             command = "systemctl start opendkim"
             preFlightsChecks.call(
@@ -2868,11 +2071,6 @@ milter_default_action = accept
             )
 
             ##
-
-            command = "systemctl start postfix"
-            preFlightsChecks.call(
-                command, self.distro, command, command, 1, 0, os.EX_OSERR
-            )
 
         except BaseException as msg:
             logging.InstallLog.writeToFile(
@@ -2976,34 +2174,6 @@ milter_default_action = accept
         except OSError as msg:
             logging.InstallLog.writeToFile(
                 "[ERROR] " + str(msg) + " [enableDisableDNS]"
-            )
-            return 0
-
-    @staticmethod
-    def enableDisableEmail(state):
-        try:
-            servicePath = "/home/cyberpanel/postfix"
-
-            if state == "off":
-
-                command = "sudo systemctl stop postfix"
-                subprocess.call(shlex.split(command))
-
-                command = "sudo systemctl disable postfix"
-                subprocess.call(shlex.split(command))
-
-                try:
-                    os.remove(servicePath)
-                except:
-                    pass
-
-            else:
-                writeToFile = open(servicePath, "w+")
-                writeToFile.close()
-
-        except OSError as msg:
-            logging.InstallLog.writeToFile(
-                "[ERROR] " + str(msg) + " [enableDisableEmail]"
             )
             return 0
 
@@ -3221,8 +2391,8 @@ vmail
             mainConfFile = "/etc/yum.conf"
             content = (
                 "exclude=MariaDB-client MariaDB-common MariaDB-devel MariaDB-server MariaDB-shared "
-                "pdns pdns-backend-mysql dovecot dovecot-mysql postfix3 postfix3-ldap postfix3-mysql "
-                "postfix3-pcre restic opendkim libopendkim pure-ftpd ftp\n"
+                "pdns pdns-backend-mysql "
+                "restic opendkim libopendkim pure-ftpd ftp\n"
             )
 
             writeToFile = open(mainConfFile, "a")
@@ -3236,7 +2406,6 @@ def main():
         "publicip", help="Please enter public IP for your VPS or dedicated server."
     )
     parser.add_argument("--mysql", help="Specify number of MySQL instances to be used.")
-    parser.add_argument("--postfix", help="Enable or disable Email Service.")
     parser.add_argument("--powerdns", help="Enable or disable DNS Service.")
     parser.add_argument("--ftp", help="Enable or disable ftp Service.")
     parser.add_argument("--ent", help="Install LS Ent or OpenLiteSpeed")
@@ -3394,20 +2563,6 @@ def main():
     checks.install_psmisc()
     checks.fixSudoers()
 
-    if args.postfix is None:
-        checks.install_postfix_dovecot()
-        checks.setup_email_Passwords(
-            installCyberPanel.InstallCyberPanel.mysqlPassword, mysql
-        )
-        checks.setup_postfix_dovecot_config(mysql)
-    else:
-        if args.postfix == "ON":
-            checks.install_postfix_dovecot()
-            checks.setup_email_Passwords(
-                installCyberPanel.InstallCyberPanel.mysqlPassword, mysql
-            )
-            checks.setup_postfix_dovecot_config(mysql)
-
     # https://github.com/tbaldur/cyberpanel-LTS/commit/06c704e9ba9a165c88d2b5ff2f68917a2b6afed8
     checks.install_crowdsec()
     checks.install_unzip()
@@ -3421,24 +2576,16 @@ def main():
     checks.download_install_CyberPanel(
         installCyberPanel.InstallCyberPanel.mysqlPassword, mysql
     )
-    checks.downoad_and_install_raindloop()
     checks.download_install_phpmyadmin()
     checks.setupCLI()
     # https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/cyberpanel_sessions.sh
     checks.setupPHPSessions()
     checks.setup_cron()
     checks.installRestic()
+    
     checks.installAcme()
-
-    # Install and Configure OpenDKIM.
-
-    if args.postfix is None:
-        checks.installOpenDKIM()
-        checks.configureOpenDKIM()
-    else:
-        if args.postfix == "ON":
-            checks.installOpenDKIM()
-            checks.configureOpenDKIM()
+    checks.installOpenDKIM()
+    checks.configureOpenDKIM()
 
     checks.modSecPreReqs()
     checks.installLSCPD()
@@ -3448,12 +2595,6 @@ def main():
 
     if args.redis is not None:
         checks.installRedis()
-
-    if args.postfix is not None:
-        checks.enableDisableEmail(args.postfix.lower())
-    else:
-        preFlightsChecks.stdOut("Postfix will be installed and enabled.")
-        checks.enableDisableEmail("on")
 
     if args.powerdns is not None:
         checks.enableDisableDNS(args.powerdns.lower())

@@ -56,7 +56,6 @@ Admin_Pass="1234567"
 Memcached="Off"
 Redis="Off"
 
-Postfix_Switch="On"
 PowerDNS_Switch="On"
 PureFTPd_Switch="On"
 
@@ -418,11 +417,9 @@ echo -e "\n\e[31m-a\e[39m or \e[31m--addons\e[39m : install addons: memcached, r
 echo -e "\n\e[31m-p\e[39m or \e[31m--password\e[39m : set password of new installation, empty for default 1234567, [r] or [random] for randomly generated 16 digital password, any other value besides [d] and [r(andom)] will be accept as password, default use 1234567."
 echo -e "e.g. \e[31m-p r\e[39m will generate a random password"
 echo -e "     \e[31m-p 123456789\e[39m will set password to 123456789"
-echo -e "\n\e[31m-m\e[39m or \e[31m--minimal\e[39m : set to minimal mode which will not install PowerDNS, Pure-FTPd and Postfix"
-echo -e "\n\e[31m-m postfix/pureftpd/powerdns\e[39m will do minimal install also with compoenent given"
-echo -e "e.g.  \e[31m-m postfix\e[39m will do minimal install also with Postfix"
-echo -e "      \e[31m-m powerdns\e[39m will do minimal install also with PowerDNS"
-echo -e "      \e[31m-m postfix\e[39m powerdns will do minimal install also with Postfix and PowerDNS"
+echo -e "\n\e[31m-m\e[39m or \e[31m--minimal\e[39m : set to minimal mode which will not install PowerDNS, and Pure-FTPd"
+echo -e "\n\e[31m-m pureftpd/powerdns\e[39m will do minimal install also with compoenent given"
+echo -e "e.g.  \e[31m-m powerdns\e[39m will do minimal install also with PowerDNS"
 echo -e "\n\e[31m-b\e[39m or \e[31m--branch\e[39m : install with given branch/version , must be higher than 1.9.4"
 echo -e "e.g.  \e[31m-b 2.0.2\e[39m will install 2.0.2 version"
 echo -e "\n\e[31m--mirror\e[39m : this argument force to use mirror server for majority of repositories, only suggest to use for servers within China"
@@ -443,7 +440,6 @@ else
   elif [[ $1 = "default" ]]; then
     echo -e "\nThis will start default installation...\n"
     Silent="On"
-    Postfix_Switch="On"
     PowerDNS_Switch="On"
     PureFTPd_Switch="On"
     Server_Edition="OLS"
@@ -495,16 +491,11 @@ else
         Branch_Check "${1}"
       ;;
       -m | --minimal)
-      if ! echo "$@" | grep -q -i "postfix\|pureftpd\|powerdns" ; then
-        Postfix_Switch="Off"
+      if ! echo "$@" | grep -q -i "pureftpd\|powerdns" ; then       
         PowerDNS_Switch="Off"
         PureFTPd_Switch="Off"
         echo -e "\nSet to use minimal installation..."
-      else
-          if [[ "${*^^}" = *"POSTFIX"* ]] ; then
-            Postfix_Switch="On"
-            echo -e "\nEnable Postfix..."
-          fi
+      else          
           if [[ "${*^^}" = *"PUREFTPD"* ]] ; then
             PureFTPd_Switch="On"
             echo -e "\nEnable PureFTPd..."
@@ -531,7 +522,7 @@ else
         echo -e "\nForce to use mirror server...\n"
       ;;
       *)
-        if [[ "${1^^}" = *"POSTFIX"* ]] || [[ "${1^^}" = *"PUREFTPD"* ]] || [[ "${1^^}" = *"POWERDNS"* ]] ; then
+        if [[ "${1^^}" = *"PUREFTPD"* ]] || [[ "${1^^}" = *"POWERDNS"* ]] ; then
           :
         #this is ugly workaround , leave it for now , to-do for further improvement.
         else
@@ -634,24 +625,15 @@ case "$Input_Number" in
   ;;
 esac
 
-echo -e "\nInstall Full service for CyberPanel? This will include PowerDNS, Postfix and Pure-FTPd."
+echo -e "\nInstall Full service for CyberPanel? This will include PowerDNS and Pure-FTPd."
 echo -e ""
 printf "%s" "Full installation [Y/n]: "
 read -r Tmp_Input
 if [[ $(expr "x$Tmp_Input" : 'x[Yy]') -gt 1 ]] || [[ $Tmp_Input = "" ]]; then
-  echo -e "\nFull installation selected..."
-  Postfix_Switch="On"
+  echo -e "\nFull installation selected..."  
   PowerDNS_Switch="On"
   PureFTPd_Switch="On"
-else
-  echo -e ""
-  printf "%s" "Install Postfix? [Y/n]: "
-  read -r Tmp_Input
-    if [[ $Tmp_Input =~ ^(no|n|N) ]]; then
-      Postfix_Switch="Off"
-    else
-      Postfix_Switch="On"
-    fi
+else 
   echo -e ""
   printf "%s" "Install PowerDNS? [Y/n]: "
   read -r Tmp_Input
@@ -1422,7 +1404,6 @@ Final_Flags=()
 Final_Flags+=("$Server_IP")
 Final_Flags+=(${Enterprise_Flag:+$Enterprise_Flag})
 Final_Flags+=(${License_Key:+$License_Key})
-Final_Flags+=(--postfix "${Postfix_Switch^^}")
 Final_Flags+=(--powerdns "${PowerDNS_Switch^^}")
 Final_Flags+=(--ftp "${PureFTPd_Switch^^}")
 
@@ -1719,9 +1700,9 @@ echo "                Configure Rclone: rclone config                    "
 #echo "                WebAdmin console username: admin                   "
 #echo "                WebAdmin console password: $Webadmin_Pass          "
 #echo "                                                                   "
-#echo "                Visit: https://$Server_IP:8090/snappymail/?admin     "
-#echo "                snappymail Admin username: admin                     "
-#echo "                snappymail Admin password: $snappymailAdminPass        "
+echo "                Visit: https://$Server_IP:8090/snappymail/?admin     "
+echo "                snappymail Admin username: admin                     "
+echo "                snappymail Admin password: $snappymailAdminPass        "
 echo "                                                                   "
 echo -e "             Run \e[31mcyberpanel help\e[39m to get FAQ info"
 echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version.         "

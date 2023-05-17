@@ -45,11 +45,6 @@ def managePowerDNS(request):
                     data, 'admin')
     return proc.render()
 
-def managePostfix(request):
-    proc = httpProc(request, 'manageServices/managePostfix.html',
-                    {"status": 1}, 'admin')
-    return proc.render()
-
 def managePureFtpd(request):
     proc = httpProc(request, 'manageServices/managePureFtpd.html',
                     {"status": 1}, 'admin')

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# BRANCH_NAME=v$(curl -s https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt | sed -e 's|{"version":"||g' -e 's|","build":|.|g'| sed 's:}*$::')
+# BRANCH_NAME=v$(curl -s https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/version.txt | sed -e 's|{"version":"||g' -e 's|","build":|.|g'| sed 's:}*$::')
 BRANCH_NAME="main"
 
 rm -f /usr/local/cyberpanel_upgrade.sh

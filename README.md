@@ -11,7 +11,9 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * FTP Server.
 * Light-weight DNS Server (PowerDNS).
 * phpMyAdmin to manage DBs (MariaDB).
-* Email Support (SnappyMail).
+* ~Email Support (SnappyMail)~.
+* ~Docker Manager.~
+* ~Containerization.~
 * File Manager.
 * PHP Managment.
 * Firewall (FirewallD & ConfigServer Firewall Integration).
@@ -32,14 +34,14 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 
 ```bash
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/install.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/install.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/install.sh)
 ```
 
 # Upgrading CyberPanel
 
 
 ```bash
-sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)
+sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/slim/preUpgrade.sh)
 ```
 
 # Add additional logs for CrowdSec

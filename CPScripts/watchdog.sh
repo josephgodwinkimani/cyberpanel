@@ -6,8 +6,6 @@ SERVICE_LIST=(
 	"LiteSpeed" "lsws" "lsws;web;litespeed;openlitespeed"
 	"MariaDB" "mariadb" "mariadb;database;mysql"
 	"PowerDNS" "pdns" "powerdns;dns"
-	"Dovecot" "dovecot" "dovecot;imap;pop3"
-	"PostFix" "postfix" "postfix;smtp"
 	"Pure-FTPd" "pure-ftpd" "pureftpd;pure-ftpd;ftp"
 )
 
@@ -152,10 +150,6 @@ while [ true = true ]
 	do
 		if [[ $NAME == "pdns" ]] ; then
 			if [ -f /home/cyberpanel/powerdns ] ; then
-				check_service
-			fi
-		elif [[ $NAME == "postfix" ]] ; then
-			if  [ -f /home/cyberpanel/postfix ] ; then
 				check_service
 			fi
 		elif [[ $name == "pure-ftpd" ]] || [[ $name == "pure-ftpd-mysql" ]] ; then

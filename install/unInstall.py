@@ -35,28 +35,6 @@ class unInstallCyberPanel:
         except BaseException as msg:
             logging.InstallLog.writeToFile(str(msg) + " [removeGunicorn]")
 
-    def removePostfixDovecot(self):
-        try:
-
-            command = 'yum -y remove postfix'
-
-            cmd = shlex.split(command)
-
-            res = subprocess.call(cmd)
-
-            shutil.rmtree("/etc/postfix")
-            shutil.rmtree("etc/dovecot")
-
-
-        except OSError as msg:
-            logging.InstallLog.writeToFile(str(msg) + " [removePostfixDovecot]")
-            return 0
-        except ValueError as msg:
-            logging.InstallLog.writeToFile(str(msg) + " [removePostfixDovecot]")
-            return 0
-
-        return 1
-
     def removeMysql(self):
         try:
 
@@ -177,7 +155,6 @@ def Main():
 
     remove.removeLiteSpeed()
     remove.removeMysql()
-    remove.removePostfixDovecot()
     remove.removePureFTPD()
     remove.removeCyberPanel()
     remove.removeGunicorn()
