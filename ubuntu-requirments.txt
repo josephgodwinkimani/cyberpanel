@@ -36,7 +36,7 @@ httplib2==0.20.4
 idna==3.3
 ipaddress==1.0.23
 IPy==1.1
-Jinja2==3.1.2
+Jinja2==3.1.5
 jmespath==1.0.1
 josepy==1.13.0
 jsonlines==3.1.0
