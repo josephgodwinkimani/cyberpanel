@@ -19,9 +19,9 @@ class Renew:
         try:
             logging.writeToFile('Running SSL Renew Utility')
 
-            ## For websites
+            ## For Non-suspended websites only
 
-            for website in Websites.objects.all():
+            for website in Websites.objects.filter(state=1):
                 logging.writeToFile('Checking SSL for %s.' % (website.domain), 0)
                 filePath = '/etc/letsencrypt/live/%s/fullchain.pem' % (website.domain)
 
@@ -34,25 +34,40 @@ class Renew:
                     now = datetime.now()
                     diff = finalDate - now
 
-                    if int(diff.days) >= 15:
+                    SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+
+                    print(f"Provider: {x509.get_issuer().get_components()[1][1].decode('utf-8')}, Days : {diff.days}")
+
+                    if int(diff.days) >= 15 and SSLProvider!='Denial':
                         logging.writeToFile(
                             'SSL exists for %s and is not ready to renew, skipping..' % (website.domain), 0)
-                    elif x509.get_issuer().get_components()[1][1].decode('utf-8') == 'Denial':
+                        print(
+                            f'SSL exists for %s and is not ready to renew, skipping..' % (website.domain))
+                    elif SSLProvider == 'Denial':
                         logging.writeToFile(
                             'SSL exists for %s and ready to renew..' % (website.domain), 0)
                         logging.writeToFile(
                             'Renewing SSL for %s..' % (website.domain), 0)
 
+                        print(
+                            f'SSL exists for %s and ready to renew..' % (website.domain))
+
                         virtualHostUtilities.issueSSL(website.domain, '/home/%s/public_html' % (website.domain),
                                                       website.adminEmail)
-                    elif x509.get_issuer().get_components()[1][1].decode('utf-8') != "Let's Encrypt":
+                    elif SSLProvider != "Let's Encrypt":
                         logging.writeToFile(
                             'Custom SSL exists for %s and ready to renew..' % (website.domain), 1)
+                        print(
+                            'Custom SSL exists for %s and ready to renew..' % (website.domain))
                     else:
                         logging.writeToFile(
                             'SSL exists for %s and ready to renew..' % (website.domain), 0)
                         logging.writeToFile(
                             'Renewing SSL for %s..' % (website.domain), 0)
+
+                        print(
+                            'SSL exists for %s and ready to renew..' % (website.domain))
+
 
                         virtualHostUtilities.issueSSL(website.domain, '/home/%s/public_html' % (website.domain), website.adminEmail)
                 else:
@@ -77,10 +92,14 @@ class Renew:
                     now = datetime.now()
                     diff = finalDate - now
 
-                    if int(diff.days) >= 15:
+                    SSLProvider = x509.get_issuer().get_components()[1][1]
+
+                    print(f"Provider: {x509.get_issuer().get_components()[1][1].decode('utf-8')}, Days : {diff.days}")
+
+                    if int(diff.days) >= 15 and SSLProvider != 'Denial':
                         logging.writeToFile(
                             'SSL exists for %s and is not ready to renew, skipping..' % (website.domain), 0)
-                    elif x509.get_issuer().get_components()[1][1] == 'Denial':
+                    elif SSLProvider == 'Denial':
                         logging.writeToFile(
                             'SSL exists for %s and ready to renew..' % (website.domain), 0)
                         logging.writeToFile(
@@ -88,6 +107,9 @@ class Renew:
 
                         virtualHostUtilities.issueSSL(website.domain, website.path,
                                                       website.master.adminEmail)
+                    elif SSLProvider != "Let's Encrypt":
+                        logging.writeToFile(
+                            'Custom SSL exists for %s and ready to renew..' % (website.domain), 1)
                     else:
                         logging.writeToFile(
                             'SSL exists for %s and ready to renew..' % (website.domain), 0)
@@ -101,20 +123,29 @@ class Renew:
                         'SSL does not exist for %s. Obtaining now..' % (website.domain), 0)
                     virtualHostUtilities.issueSSL(website.domain, website.path,
                                                   website.master.adminEmail)
-                    self.file = logging.writeToFile('Restarting mail services for them to see new SSL.', 0)
 
-                    from plogical.processUtilities import ProcessUtilities
-                    command = 'postmap -F hash:/etc/postfix/vmail_ssl.map'
-                    ProcessUtilities.normalExecutioner(command)
+            self.file = logging.writeToFile('Restarting mail services for them to see new SSL.', 0)
 
-                    command = 'systemctl restart postfix'
-                    ProcessUtilities.normalExecutioner(command)
+            from plogical.processUtilities import ProcessUtilities
+            command = 'postmap -F hash:/etc/postfix/vmail_ssl.map'
+            ProcessUtilities.normalExecutioner(command)
 
-                    command = 'systemctl restart dovecot'
-                    ProcessUtilities.normalExecutioner(command)
+            command = 'systemctl restart postfix'
+            ProcessUtilities.normalExecutioner(command)
+
+            command = 'systemctl restart dovecot'
+            ProcessUtilities.normalExecutioner(command)
+
+            command = 'systemctl restart lscpd'
+            ProcessUtilities.normalExecutioner(command)
 
         except BaseException as msg:
            logging.writeToFile(str(msg) + '. Renew.SSLObtainer')
+
+    @staticmethod
+    def FixMailSSL():
+        for website in Websites.objects.all():
+            virtualHostUtilities.setupAutoDiscover(1, '/home/cyberpanel/templogs', website.domain, website.admin)
 
 
 if __name__ == "__main__":

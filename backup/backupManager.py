@@ -2,8 +2,12 @@
 import os
 import os.path
 import sys
-import django
+from io import StringIO
 
+import django
+import paramiko
+
+from plogical.applicationInstaller import ApplicationInstaller
 from plogical.httpProc import httpProc
 
 sys.path.append('/usr/local/CyberCP')
@@ -49,7 +53,44 @@ class BackupManager:
     def backupSite(self, request=None, userID=None, data=None):
         currentACL = ACLManager.loadedACL(userID)
         websitesName = ACLManager.findAllSites(currentACL, userID)
+
+        command = 'chmod 755 /home/backup'
+        ProcessUtilities.executioner(command)
+
         proc = httpProc(request, 'backup/backup.html', {'websiteList': websitesName}, 'createBackup')
+        return proc.render()
+
+    def RestoreV2backupSite(self, request=None, userID=None, data=None):
+        if ACLManager.CheckForPremFeature('all'):
+            BackupStat = 1
+        else:
+            BackupStat = 0
+        currentACL = ACLManager.loadedACL(userID)
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+        proc = httpProc(request, 'IncBackups/RestoreV2Backup.html', {'websiteList': websitesName, 'BackupStat': BackupStat}, 'createBackup')
+        return proc.render()
+
+    def CreateV2backupSite(self, request=None, userID=None, data=None):
+        currentACL = ACLManager.loadedACL(userID)
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+        proc = httpProc(request, 'IncBackups/CreateV2Backup.html', {'websiteList': websitesName}, 'createBackup')
+        return proc.render()
+    def DeleteRepoV2(self, request=None, userID=None, data=None):
+        currentACL = ACLManager.loadedACL(userID)
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+        proc = httpProc(request, 'IncBackups/DeleteV2repo.html', {'websiteList': websitesName}, 'createBackup')
+        return proc.render()
+
+    def schedulev2Backups(self, request=None, userID=None, data=None):
+
+        if ACLManager.CheckForPremFeature('all'):
+            BackupStat = 1
+        else:
+            BackupStat = 0
+
+        currentACL = ACLManager.loadedACL(userID)
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+        proc = httpProc(request, 'IncBackups/ScheduleV2Backup.html', {'websiteList': websitesName, "BackupStat": BackupStat}, 'createBackup')
         return proc.render()
 
     def gDrive(self, request=None, userID=None, data=None):
@@ -710,7 +751,7 @@ class BackupManager:
                 return HttpResponse(final_json)
 
         except BaseException as msg:
-            final_dic = {'restoreStatus': 0, 'error_message': str(msg)}
+            final_dic = {'restoreStatus': 0, 'error_message': str(msg), 'abort': 0, 'running': 'Running..', 'status': ''}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
 
@@ -1152,12 +1193,34 @@ class BackupManager:
 
             try:
 
+                #this command is for enable permit root login over SSH:
+                command = "sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin yes/g' /etc/ssh/sshd_config && sudo service ssh restart"
+                ProcessUtilities.executioner(command, None, True)
+
+
+                # this command is for enable permit root login over SSH:
+                command = "sudo sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && sudo systemctl restart sshd"
+                ProcessUtilities.executioner(command, None, True)
+
+                # this command is for get port of SSH:
+                command = """grep -oP '^Port \K\d+' /etc/ssh/sshd_config | head -n 1"""
+                output = ProcessUtilities.outputExecutioner(command)
+                port = output.strip('\n')
+
+
+                ### if value of port return empty then int function fails which means port is not set so defaults to 22
+                try:
+                    portT = int(port)
+                except:
+                    port = '22'
+
+
                 ipFile = os.path.join("/etc", "cyberpanel", "machineIP")
                 f = open(ipFile)
                 ownIP = f.read()
 
                 finalData = json.dumps({'username': "admin", "password": password, "ipAddress": ownIP,
-                                        "accountsToTransfer": accountsToTransfer})
+                                        "accountsToTransfer": accountsToTransfer, 'port': port})
 
                 url = "https://" + ipAddress + ":8090/api/remoteTransfer"
 
@@ -1304,12 +1367,20 @@ class BackupManager:
             command = "sudo cat " + backupLogPath
             status = ProcessUtilities.outputExecutioner(command)
 
+
+            if status.find("Error") > -1:
+                Error_find = "There was an error during the backup process. Please review the log for more information."
+                status = status + Error_find
+
+
+
             if status.find("completed[success]") > -1:
                 command = "rm -rf " + removalPath
                 ProcessUtilities.executioner(command)
                 data_ret = {'remoteTransferStatus': 1, 'error_message': "None", "status": status, "complete": 1}
                 json_data = json.dumps(data_ret)
                 return HttpResponse(json_data)
+
             elif status.find("[5010]") > -1:
                 command = "sudo rm -rf " + removalPath
                 ProcessUtilities.executioner(command)
@@ -1317,6 +1388,7 @@ class BackupManager:
                         "status": "None", "complete": 0}
                 json_data = json.dumps(data)
                 return HttpResponse(json_data)
+
             else:
                 data_ret = {'remoteTransferStatus': 1, 'error_message': "None", "status": status, "complete": 0}
                 json_data = json.dumps(data_ret)
@@ -1671,7 +1743,7 @@ class BackupManager:
 
             selectedJob = data['selectedJob']
             backupFrequency = data['backupFrequency']
-            backupRetention = data['backupRetention']
+
 
             nbj = NormalBackupJobs.objects.get(name=selectedJob)
 
@@ -1680,7 +1752,12 @@ class BackupManager:
 
             config = json.loads(nbj.config)
             config[IncScheduler.frequency] = backupFrequency
-            config[IncScheduler.retention] = backupRetention
+            try:
+                backupRetention = data['backupRetention']
+                config[IncScheduler.retention] = backupRetention
+            except:
+                pass
+
 
             nbj.config = json.dumps(config)
             nbj.save()
@@ -1784,3 +1861,481 @@ class BackupManager:
             data_ret = {'status': 0, 'error_message': str(msg)}
             json_data = json.dumps(data_ret)
             return HttpResponse(json_data)
+
+    def CreateV2BackupStatus(self, userID=None, data=None):
+        try:
+            domain = data['domain']
+            currentACL = ACLManager.loadedACL(userID)
+            admin = Administrator.objects.get(pk=userID)
+
+            if ACLManager.checkOwnership(domain, admin, currentACL) == 1:
+                pass
+            else:
+                return ACLManager.loadError()
+
+            statusFile = f'/home/cyberpanel/{domain}_rustic_backup_log'
+
+            if ACLManager.CheckStatusFilleLoc(statusFile, domain):
+                pass
+            else:
+                data_ret = {'abort': 1, 'installStatus': 0, 'installationProgress': "100",
+                            'currentStatus': 'Invalid status file.'}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+
+            #currentStatus:"cat: /home/cyberpanel/9219: No such file or directory"
+
+            statusData = ProcessUtilities.outputExecutioner("cat " + statusFile).splitlines()
+
+            lastLine = statusData[-1]
+
+            if lastLine.find('[200]') > -1:
+                command = 'rm -f ' + statusFile
+                subprocess.call(shlex.split(command))
+                data_ret = {'abort': 1, 'installStatus': 1, 'installationProgress': "100",
+                            'currentStatus': 'Successfully Created.'}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            elif lastLine.find('[404]') > -1:
+                data_ret = {'abort': 1, 'installStatus': 0, 'installationProgress': "0",
+                            'error_message': ProcessUtilities.outputExecutioner("cat " + statusFile).splitlines()}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            else:
+                progress = lastLine.split(',')
+                currentStatus = progress[0]
+                try:
+                    installationProgress = progress[1]
+                except:
+                    installationProgress = 0
+                data_ret = {'abort': 0, 'installStatus': 0, 'installationProgress': installationProgress,
+                            'currentStatus': currentStatus}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+
+        except BaseException as msg:
+            data_ret = {'abort': 0, 'installStatus': 0, 'installationProgress': "0", 'error_message': str(msg)}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+    def OneClickBackups(self, request=None, userID=None, data=None):
+        user = Administrator.objects.get(pk=userID)
+
+        data = {}
+
+        import requests
+        try:
+            if request.GET.get('status', 'none') == 'success':
+                plan_name = request.GET.get('planName')
+                months = request.GET.get('months')
+                monthly_price = request.GET.get('monthlyPrice')
+                yearly_price = request.GET.get('yearlyPrice')
+                customer = request.GET.get('customer')
+                subscription = request.GET.get('subscription')
+
+                from IncBackups.models import OneClickBackups
+
+                if months == '1':
+                    price = monthly_price
+                else:
+                    price = yearly_price
+
+                try:
+
+                    userName = user.userName.lower()
+
+                    not_allowed_characters = [
+                        ' ', '/', '\\', '@', '!', '#', '$', '%', '^', '&', '*', '(', ')', '+', '=',
+                        '{', '}', '[', ']', ':', ';', '"', "'", '<', '>', ',', '?', '|', '`', '~'
+                    ]
+
+                    for items in not_allowed_characters:
+                        userName = userName.replace(items, '')
+
+                    backup_plan = OneClickBackups(
+                        owner=user,
+                        planName=plan_name,
+                        months=months,
+                        price=price,
+                        customer=customer,
+                        subscription=subscription,
+                        sftpUser=f'{userName}{str(randint(1000, 9999))}',
+                    )
+                    backup_plan.save()
+
+                    ####
+
+                    import requests
+                    import json
+
+
+                    # Define the URL of the endpoint
+                    url = 'http://platform.cyberpersons.com/Billing/CreateSFTPAccount'  # Replace with your actual endpoint URL
+
+                    # Define the payload to send in the POST request
+                    payload = {
+                        'sub': subscription,
+                        'key': ProcessUtilities.outputExecutioner(f'cat /root/.ssh/cyberpanel.pub'),  # Replace with the actual SSH public key
+                        'sftpUser': backup_plan.sftpUser,
+                        'serverIP': ACLManager.fetchIP(), # Replace with the actual server IP,
+                        'planName': plan_name
+                    }
+
+                    # Convert the payload to JSON format
+                    headers = {'Content-Type': 'application/json'}
+                    dataRet = json.dumps(payload)
+
+                    # Make the POST request
+                    response = requests.post(url, headers=headers, data=dataRet)
+
+                    # Handle the response
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        if response_data.get('status') == 1:
+
+                            ocbkup = OneClickBackups.objects.get(owner=user,subscription=subscription)
+                            ocbkup.state = 1
+                            ocbkup.save()
+
+                            finalDic = {}
+
+                            finalDic['IPAddress'] = response_data.get('ipAddress')
+                            finalDic['password'] = 'NOT-NEEDED'
+                            finalDic['backupSSHPort'] = '22'
+                            finalDic['userName'] = backup_plan.sftpUser
+                            finalDic['type'] = 'SFTP'
+                            finalDic['path'] = 'cpbackups'
+                            finalDic['name'] = backup_plan.sftpUser
+
+                            wm = BackupManager()
+                            response_inner = wm.submitDestinationCreation(userID, finalDic)
+
+                            response_data_inner = json.loads(response_inner.content.decode('utf-8'))
+
+                            # Extract the value of 'status'
+                            if response_data_inner.get('status') == 0:
+                                data['status'] = 0
+                                data[
+                                    'message'] = f"[2109] Failed to create sftp account {response_data_inner.get('error_message')}"
+                                print("Failed to create SFTP account:", response_data_inner.get('error_message'))
+                            else:
+                                data['status'] = 1
+
+                        else:
+                            data['status'] = 0
+                            data['message'] = f"[1985] Failed to create sftp account {response_data.get('error_message')}"
+                            print("Failed to create SFTP account:", response_data.get('error_message'))
+                    else:
+                        print("Failed to connect to the server. Status code:", response.status_code)
+                        print("Response:", response.text)
+                        data['status'] = 0
+                        data['message'] = f"[1991] Failed to create sftp account {response.text}"
+
+                    ####
+
+                except BaseException as msg:
+                    data['status'] = 4
+                    data['message'] = str(msg)
+
+            elif request.GET.get('status', 'none') == 'cancelled':
+                data['status'] = 0
+            else:
+                data['status'] = 2
+        except BaseException as msg:
+            data['status'] = 0
+            data['message'] = f"[2038] Unkown error occured in purchase process. Error message: {str(msg)}"
+
+
+        url = 'https://platform.cyberpersons.com/Billing/FetchBackupPlans'
+
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Check if the request was successful
+            data['plans'] = response.json()  # Convert the response to a Python dictionary
+        except requests.exceptions.HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')
+        except Exception as err:
+            print(f'Other error occurred: {err}')
+
+        data['bPlans'] = user.oneclickbackups_set.all()
+
+        proc = httpProc(request, 'backup/oneClickBackups.html', data, 'addDeleteDestinations')
+        return proc.render()
+
+    def ManageOCBackups(self, request=None, userID=None, data=None):
+        userID = request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+        from IncBackups.models import OneClickBackups
+        ocb = OneClickBackups.objects.get(pk = request.GET.get('id'), owner=admin)
+        destinations = [NormalBackupDests.objects.get(name=ocb.sftpUser)]
+        dests = []
+        for dest in destinations:
+            dests.append(dest.name)
+
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+
+        proc = httpProc(request, 'backup/OneClickBackupSchedule.html', {'destination': NormalBackupDests.objects.get(name=ocb.sftpUser).name, 'websites': websitesName},
+                        'scheduleBackups')
+        return proc.render()
+
+    def RestoreOCBackups(self, request=None, userID=None, data=None):
+        userID = request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if currentACL['admin'] == 1:
+            pass
+        else:
+            return ACLManager.loadErrorJson()
+
+        from IncBackups.models import OneClickBackups
+        ocb = OneClickBackups.objects.get(pk = request.GET.get('id'), owner=admin)
+
+        # Load the private key
+
+        nbd = NormalBackupDests.objects.get(name=ocb.sftpUser)
+        ip = json.loads(nbd.config)['ip']
+
+        # Connect to the remote server using the private key
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # Read the private key content
+        private_key_path = '/root/.ssh/cyberpanel'
+        key_content = ProcessUtilities.outputExecutioner(f'cat {private_key_path}').rstrip('\n')
+
+        # Load the private key from the content
+        key_file = StringIO(key_content)
+        key = paramiko.RSAKey.from_private_key(key_file)
+        # Connect to the server using the private key
+        ssh.connect(ip, username=ocb.sftpUser, pkey=key)
+        # Command to list directories under the specified path
+        command = f"ls -d cpbackups/*/"
+
+        # Execute the command
+        stdin, stdout, stderr = ssh.exec_command(command)
+
+        # Read the results
+        directories = stdout.read().decode().splitlines()
+
+        finalDirs = []
+
+        # Print directories
+        for directory in directories:
+            finalDirs.append(directory.split('/')[1])
+
+        proc = httpProc(request, 'backup/restoreOCBackups.html', {'directories': finalDirs},
+                        'scheduleBackups')
+        return proc.render()
+
+    def fetchOCSites(self, request=None, userID=None, data=None):
+        try:
+            userID = request.session['userID']
+            currentACL = ACLManager.loadedACL(userID)
+
+            data = json.loads(request.body)
+            id = data['idValue']
+            folder = data['folder']
+
+            admin = Administrator.objects.get(pk=userID)
+            from IncBackups.models import OneClickBackups
+            ocb = OneClickBackups.objects.get(pk = id, owner=admin)
+
+            # Load the private key
+
+            nbd = NormalBackupDests.objects.get(name=ocb.sftpUser)
+            ip = json.loads(nbd.config)['ip']
+
+            # Connect to the remote server using the private key
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # Read the private key content
+            private_key_path = '/root/.ssh/cyberpanel'
+            key_content = ProcessUtilities.outputExecutioner(f'cat {private_key_path}').rstrip('\n')
+
+            # Load the private key from the content
+            key_file = StringIO(key_content)
+            key = paramiko.RSAKey.from_private_key(key_file)
+            # Connect to the server using the private key
+            ssh.connect(ip, username=ocb.sftpUser, pkey=key)
+            # Command to list directories under the specified path
+            command = f"ls -d cpbackups/{folder}/*"
+
+            # Execute the command
+            stdin, stdout, stderr = ssh.exec_command(command)
+
+            # Read the results
+            directories = stdout.read().decode().splitlines()
+
+            finalDirs = []
+
+            # Print directories
+            for directory in directories:
+                finalDirs.append(directory.split('/')[2])
+
+            data_ret = {'status': 1, 'finalDirs': finalDirs}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+        except BaseException as msg:
+            data_ret = {'status': 0, 'error_message': str(msg)}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+    def StartOCRestore(self, request=None, userID=None, data=None):
+        try:
+            userID = request.session['userID']
+            currentACL = ACLManager.loadedACL(userID)
+
+            if currentACL['admin'] == 1:
+                pass
+            else:
+                return ACLManager.loadErrorJson()
+
+            data = json.loads(request.body)
+            id = data['idValue']
+            folder = data['folder']
+            backupfile = data['backupfile']
+
+
+            extraArgs = {}
+            extraArgs['id'] = id
+            extraArgs['folder'] = folder
+            extraArgs['backupfile'] = backupfile
+            extraArgs['userID'] = userID
+            extraArgs['tempStatusPath'] = "/home/cyberpanel/" + str(randint(1000, 9999))
+
+            statusFile = open(extraArgs['tempStatusPath'], 'w')
+            statusFile.writelines("Restore started..")
+            statusFile.close()
+
+            background = ApplicationInstaller('StartOCRestore', extraArgs)
+            background.start()
+
+            data_ret = {'status': 1, 'installStatus': 1, 'error_message': 'None',
+                        'tempStatusPath': extraArgs['tempStatusPath']}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+        except BaseException as msg:
+            data_ret = {'status': 0, 'error_message': str(msg)}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+    def DeployAccount(self, request=None, userID=None, data=None):
+        user = Administrator.objects.get(pk=userID)
+
+        userID = request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+        import json
+
+        data = json.loads(request.body)
+        id = data['id']
+
+        from IncBackups.models import OneClickBackups
+        ocb = OneClickBackups.objects.get(pk=id, owner=user)
+
+        data = {}
+
+        ####
+
+        import requests
+        import json
+
+        # Define the URL of the endpoint
+        url = 'http://platform.cyberpersons.com/Billing/CreateSFTPAccount'  # Replace with your actual endpoint URL
+
+        # Define the payload to send in the POST request
+        payload = {
+            'sub': ocb.subscription,
+            'key': ProcessUtilities.outputExecutioner(f'cat /root/.ssh/cyberpanel.pub'),
+            # Replace with the actual SSH public key
+            'sftpUser': ocb.sftpUser,
+            'serverIP': ACLManager.fetchIP(),  # Replace with the actual server IP
+            'planName': ocb.planName
+        }
+
+        # Convert the payload to JSON format
+        headers = {'Content-Type': 'application/json'}
+        dataRet = json.dumps(payload)
+
+        # Make the POST request
+        response = requests.post(url, headers=headers, data=dataRet)
+
+        # Handle the response
+        # Handle the response
+        if response.status_code == 200:
+            response_data = response.json()
+            if response_data.get('status') == 1:
+
+                ocb.state = 1
+                ocb.save()
+
+                print("SFTP account created successfully.")
+
+                finalDic = {}
+
+                finalDic['IPAddress'] = response_data.get('ipAddress')
+                finalDic['password'] = 'NOT-NEEDED'
+                finalDic['backupSSHPort'] = '22'
+                finalDic['userName'] = ocb.sftpUser
+                finalDic['type'] = 'SFTP'
+                finalDic['path'] = 'cpbackups'
+                finalDic['name'] = ocb.sftpUser
+
+                wm = BackupManager()
+                response_inner = wm.submitDestinationCreation(userID, finalDic)
+
+                response_data_inner = json.loads(response_inner.content.decode('utf-8'))
+
+                # Extract the value of 'status'
+                if response_data_inner.get('status') == 0:
+                    data_ret = {'status': 1, 'error_message': response_data_inner.get('error_message')}
+                    json_data = json.dumps(data_ret)
+                    return HttpResponse(json_data)
+                else:
+                    data_ret = {'status': 1,}
+                    json_data = json.dumps(data_ret)
+                    return HttpResponse(json_data)
+
+            else:
+
+                if response_data.get('error_message') == "Already deployed.":
+                    ocb.state = 1
+                    ocb.save()
+
+                    print("SFTP account created successfully.")
+
+                    finalDic = {}
+
+                    finalDic['IPAddress'] = response_data.get('ipAddress')
+                    finalDic['password'] = 'NOT-NEEDED'
+                    finalDic['backupSSHPort'] = '22'
+                    finalDic['userName'] = ocb.sftpUser
+                    finalDic['type'] = 'SFTP'
+                    finalDic['path'] = 'cpbackups'
+                    finalDic['name'] = ocb.sftpUser
+
+                    wm = BackupManager()
+                    response_inner = wm.submitDestinationCreation(userID, finalDic)
+
+                    response_data_inner = json.loads(response_inner.content.decode('utf-8'))
+
+                    # Extract the value of 'status'
+                    if response_data_inner.get('status') == 0:
+                        data_ret = {'status': 1, 'error_message': response_data_inner.get('error_message')}
+                        json_data = json.dumps(data_ret)
+                        return HttpResponse(json_data)
+                    else:
+                        data_ret = {'status': 1, }
+                        json_data = json.dumps(data_ret)
+                        return HttpResponse(json_data)
+
+                data_ret = {'status': 0, 'error_message': response_data.get('error_message')}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+        else:
+            data['message'] = f"[1991] Failed to create sftp account {response.text}"
+            data_ret = {'status': 0, 'error_message': response.text}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+

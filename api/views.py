@@ -48,7 +48,6 @@ def verifyConn(request):
                 data_ret = {"verifyConn": 0}
                 json_data = json.dumps(data_ret)
                 return HttpResponse(json_data)
-
     except BaseException as msg:
         data_ret = {'verifyConn': 0, 'error_message': str(msg)}
         json_data = json.dumps(data_ret)
@@ -60,6 +59,9 @@ def createWebsite(request):
     data = json.loads(request.body)
     adminUser = data['adminUser']
     admin = Administrator.objects.get(userName=adminUser)
+
+    if os.path.exists(ProcessUtilities.debugPath):
+        logging.writeToFile(f'Create website payload in API {str(data)}')
 
     if admin.api == 0:
         data_ret = {"existsStatus": 0, 'createWebSiteStatus': 0,
@@ -88,7 +90,6 @@ def getPackagesListAPI(request):
         data_ret = {"status": 0, 'error_message': "Could not authorize access to API"}
         json_data = json.dumps(data_ret)
         return HttpResponse(json_data)
-
 
 @csrf_exempt
 def getUserInfo(request):
@@ -419,11 +420,17 @@ def remoteTransfer(request):
 
             ipAddress = data['ipAddress']
             accountsToTransfer = data['accountsToTransfer']
-
+            port = data['port']
+            logging.writeToFile('port on server B-------------- %s' % str(port))
             if hashPassword.check_password(admin.password, password):
                 dir = str(randint(1000, 9999))
 
-                ##
+                ##save this port into file
+                portpath = "/home/cyberpanel/remote_port"
+                writeToFile = open(portpath, 'w')
+                writeToFile.writelines(port)
+                writeToFile.close()
+
 
                 mailUtilities.checkHome()
                 path = "/home/cyberpanel/accounts-" + str(randint(1000, 9999))
@@ -526,10 +533,10 @@ def FetchRemoteTransferStatus(request):
             dir = "/home/backup/transfer-"+str(data['dir'])+"/backup_log"
 
             try:
-                command = f"cat {dir}"
-                status = ProcessUtilities.outputExecutioner(command)
 
                 if hashPassword.check_password(admin.password, password):
+                    command = f"cat {dir}"
+                    status = ProcessUtilities.outputExecutioner(command)
 
                     final_json = json.dumps({'fetchStatus': 1, 'error_message': "None", "status": status})
                     return HttpResponse(final_json)

@@ -15,8 +15,11 @@ class ProcessUtilities(multi.Thread):
     OLS = 0
     centos = 1
     cent8 = 2
+    cent9 = 3
     ubuntu = 0
     ubuntu20 = 3
+    ubuntu22Check = 0
+    alma9check = 0
     server_address = '/usr/local/lscpd/admin/comm.sock'
     token = "unset"
     portPath = '/usr/local/lscp/conf/bind.conf'
@@ -164,13 +167,25 @@ class ProcessUtilities(multi.Thread):
     @staticmethod
     def decideDistro():
         distroPath = '/etc/lsb-release'
+        distroPathAlma = '/etc/redhat-release'
 
         if os.path.exists(distroPath):
-            if open(distroPath, 'r').read().find('20.04') > -1:
+            
+            ## this is check only
+            if open(distroPath, 'r').read().find('22.04') > -1:
+                ProcessUtilities.ubuntu22Check = 1
+
+            if open(distroPath, 'r').read().find('20.04') > -1 or open(distroPath, 'r').read().find('22.04'):
                 return ProcessUtilities.ubuntu20
             return ProcessUtilities.ubuntu
         else:
-            if open('/etc/redhat-release', 'r').read().find('CentOS Linux release 8') > -1 or open('/etc/redhat-release', 'r').read().find('AlmaLinux release 8') > -1 or open('/etc/redhat-release', 'r').read().find('Rocky Linux release 8') > -1:
+            if open('/etc/redhat-release', 'r').read().find('CentOS Linux release 8') > -1 or open('/etc/redhat-release', 'r').read().find('AlmaLinux release 8') > -1 \
+                    or open('/etc/redhat-release', 'r').read().find('Rocky Linux release 8') > -1 \
+                    or open('/etc/redhat-release', 'r').read().find('Rocky Linux release 9') > -1 or open('/etc/redhat-release', 'r').read().find('AlmaLinux release 9') > -1:
+                ## this is check only
+                if open(distroPathAlma, 'r').read().find('AlmaLinux release 9') > -1 or open(distroPathAlma, 'r').read().find('Rocky Linux release 9') > -1:
+                    ProcessUtilities.alma9check = 1
+
                 return ProcessUtilities.cent8
             return ProcessUtilities.centos
 
@@ -235,11 +250,14 @@ class ProcessUtilities(multi.Thread):
                     command = '%s-d %s %s' % (ProcessUtilities.token, dir, command)
                     sock.sendall(command.encode('utf-8'))
             else:
+                if command.startswith('sudo'):
+                    command = command.replace('sudo', '', 1)  # Replace 'sudo' with an empty string, only once
+
                 if dir == None:
                     command = '%s-u %s %s' % (ProcessUtilities.token, user, command)
                 else:
                     command = '%s-u %s -d %s %s' % (ProcessUtilities.token, user, dir, command)
-                command = command.replace('sudo', '')
+
 
 
                 if os.path.exists(ProcessUtilities.debugPath):
@@ -291,9 +309,16 @@ class ProcessUtilities(multi.Thread):
     @staticmethod
     def outputExecutioner(command, user=None, shell = None, dir = None, retRequired = None):
         try:
+            if os.path.exists('/usr/local/CyberCP/debug'):
+                logging.writeToFile(command)
+
             if getpass.getuser() == 'root':
                 if os.path.exists(ProcessUtilities.debugPath):
                     logging.writeToFile(command)
+
+                if user!=None:
+                    if not command.startswith('sudo'):
+                        command = f'sudo -u {user} {command}'
                 if shell == None or shell == True:
                     p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 else:
@@ -311,6 +336,10 @@ class ProcessUtilities(multi.Thread):
                 ret = ProcessUtilities.sendCommand(command, user)
 
                 exitCode = ret[len(ret) - 1]
+
+                if os.path.exists(ProcessUtilities.debugPath):
+                    logging.writeToFile(f'Status of command in outputExecutioner is {str(exitCode)}')
+
                 exitCode = int(codecs.encode(exitCode.encode(), 'hex'))
 
                 if exitCode == 0:
@@ -358,6 +387,42 @@ class ProcessUtilities(multi.Thread):
             execPath = execPath + ' --%s %s' % (key, value)
 
         return execPath
+
+
+    @staticmethod
+    def fetch_latest_lts_version_for_node():
+        import requests
+        url = "https://api.github.com/repos/nodejs/node/releases"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                releases = response.json()
+                for release in releases:
+                    if release.get('prerelease') == False and 'LTS' in release.get('name'):
+                        lts_version = release.get('tag_name')
+                        return lts_version
+            else:
+                print("Failed to fetch releases. Status code:", response.status_code)
+        except Exception as e:
+            print("An error occurred:", e)
+        return None
+
+    @staticmethod
+    def fetch_latest_prestashop_version():
+        import requests
+        url = "https://api.github.com/repos/PrestaShop/PrestaShop/releases"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                releases = response.json()
+                return releases[0].get('tag_name')
+            else:
+                logging.writeToFile(f"Failed to fetch releases. Status code: {response.status_code}"  )
+                print("[fetch_latest_prestashop_version] Failed to fetch releases. Status code:", response.status_code)
+        except Exception as e:
+            print("An error occurred:", e)
+            logging.writeToFile(f"[fetch_latest_prestashop_version] An error occurred: {str(e)}")
+        return None
 
 
 

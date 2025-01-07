@@ -29,8 +29,7 @@ Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/jo
 Panel_Version=${Temp_Value:12:3}
 Panel_Build=${Temp_Value:25:1}
 
-# Branch_Name="v${Panel_Version}.${Panel_Build}"
-Branch_Name="main"
+Branch_Name="v${Panel_Version}.${Panel_Build}"
 Base_Number="1.9.3"
 
 Git_User=""
@@ -73,7 +72,7 @@ echo -e "\nChecking root privileges..."
   if [[ $(id -u) != 0 ]] >/dev/null; then
     echo -e "\nYou must run as root user to install CyberPanel...\n"
     echo -e "or run the following command: (do NOT miss the quotes)"
-    echo -e "\e[31msudo su -c \"sh <(curl https://cyberpanel.sh || wget -O - https://cyberpanel.sh)\"\e[39m"
+ echo -e "\e[31msudo su -c \"sh <(curl https://github.com/josephgodwinkimani/cyberpanel || wget -O - https://github.com/josephgodwinkimani/cyberpanel)\"\e[39m"
     exit 1
   else
     echo -e "\nYou are running as root...\n"
@@ -94,12 +93,14 @@ fi
 
 if [[ "$*" = *"--mirror"* ]] ; then
   Server_Country="CN"
-  echo -e "Forced to use mirror server due to --mirror argument...\n"
+  echo -e "Sorry no mirror server for you...\n"
+  exit
 fi
 
 if [[ "$Server_Country" = *"CN"* ]] ; then
   Server_Country="CN"
-  echo -e "Setting up to use mirror server...\n"
+  echo -e "Sorry no mirror server for you...\n"
+  exit
 fi
 }
 
@@ -109,16 +110,20 @@ if [[ ! -f /etc/os-release ]] ; then
   exit
 fi
 
-if ! uname -m | grep -q x86_64 ; then
-  echo -e "x86_64 system is required...\n"
+if ! uname -m | grep -qE 'x86_64|aarch64' ; then
+  echo -e "x86_64 or ARM system is required...\n"
   exit
 fi
 
-if grep -q -E "CentOS Linux 7|CentOS Linux 8" /etc/os-release ; then
+if grep -q -E "CentOS Linux 7|CentOS Linux 8|CentOS Stream" /etc/os-release ; then
   Server_OS="CentOS"
+elif grep -q "Red Hat Enterprise Linux" /etc/os-release ; then
+  Server_OS="RedHat"
 elif grep -q -E "CloudLinux 7|CloudLinux 8" /etc/os-release ; then
   Server_OS="CloudLinux"
-elif grep -q "AlmaLinux-8" /etc/os-release ; then
+elif grep -q -E "Rocky Linux" /etc/os-release ; then
+  Server_OS="RockyLinux"
+elif grep -q -E "AlmaLinux-8|AlmaLinux-9" /etc/os-release ; then
   Server_OS="AlmaLinux"
 elif grep -q -E "Ubuntu 18.04|Ubuntu 20.04|Ubuntu 20.10|Ubuntu 22.04" /etc/os-release ; then
   Server_OS="Ubuntu"
@@ -136,7 +141,7 @@ Server_OS_Version=$(grep VERSION_ID /etc/os-release | awk -F[=,] '{print $2}' | 
 
 echo -e "System: $Server_OS $Server_OS_Version detected...\n"
 
-if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] ; then
+if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] || [[ "$Server_OS" = "RockyLinux" ]] || [[ "$Server_OS" = "RedHat" ]]; then
   Server_OS="CentOS"
   #CloudLinux gives version id like 7.8, 7.9, so cut it to show first number only
   #treat CloudLinux, Rocky and Alma as CentOS
@@ -187,7 +192,7 @@ if [[ "$1" = *.*.* ]]; then
   }
   ')
   if [[ $Output = *">="* ]]; then
-    echo -e "\nYou must use version number higher than 1.9.4"
+    echo -e "\nYou must use version number higher than 2.3.1"
     exit
   else
     Branch_Name="v${1//[[:space:]]/}"
@@ -414,15 +419,30 @@ EOF
 
   dnf install epel-release -y
 
-  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git platform-python-devel tar socat bind-utils
+  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
+  dnf install gpgme-devel -y
+  dnf install python3 -y
+
+  elif [[ "$Server_OS_Version" = "9" ]] ; then
+  rm -f /etc/yum.repos.d/CentOS-PowerTools-CyberPanel.repo
+
+  if [[ "$Server_Country" = "CN" ]] ; then
+    dnf --nogpg install -y https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el9.noarch.rpm
+  else
+    dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el9.noarch.rpm
+  fi
+
+  dnf install epel-release -y
+
+  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
   dnf install gpgme-devel -y
   dnf install python3 -y
   fi
-  #all pre-upgrade operation for CentOS 8
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
 
   apt update -y
-  DEBIAN_FRONTEND=noninteractive apt upgrade -y
+  export DEBIAN_FRONTEND=noninteractive ; apt-get -o Dpkg::Options::="--force-confold" upgrade -y
+
   if [[ "$Server_OS_Version" = "22" ]] ; then
     DEBIAN_FRONTEND=noninteracitve apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
 
@@ -432,6 +452,14 @@ elif [[ "$Server_OS" = "Ubuntu" ]] ; then
   DEBIAN_FRONTEND=noninteractive apt install -y python3-pip
   DEBIAN_FRONTEND=noninteractive apt install -y build-essential libssl-dev libffi-dev python3-dev
   DEBIAN_FRONTEND=noninteractive apt install -y python3-venv
+
+  ### fix for pip issue on ubuntu 22
+
+  apt-get remove --purge virtualenv -y
+  pip uninstall -y virtualenv
+  rm -rf /usr/lib/python3/dist-packages/virtualenv*
+  pip3 install --upgrade virtualenv
+
 
   if [[ "$Server_OS_Version" = "18" ]] ; then
     :
@@ -471,7 +499,11 @@ fi
 Download_Requirement() {
 for i in {1..50};
   do
-  wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments.txt"
+  if [[ "$Server_OS_Version" = "22" ]] || [[ "$Server_OS_Version" = "9" ]]; then
+   wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments.txt"
+  else
+   wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments-old.txt"
+  fi
   if grep -q "Django==" /usr/local/requirments.txt ; then
     break
   else
@@ -488,11 +520,19 @@ done
 Pre_Upgrade_Required_Components() {
 
 if [ "$Server_OS" = "Ubuntu" ]; then
-  pip3 install --default-timeout=3600 virtualenv==16.7.9
-    Check_Return
+#  pip3 install --default-timeout=3600 virtualenv==16.7.9
+#    Check_Return
+rm -rf /usr/local/CyberPanel
+pip3 install --upgrade virtualenv
 else
-  pip3.6 install --default-timeout=3600 virtualenv==16.7.9
-    Check_Return
+  rm -rf /usr/local/CyberPanel
+  if [ -e /usr/bin/pip3 ]; then
+    PIP3="/usr/bin/pip3"
+  else
+    PIP3="pip3.6"
+  fi
+  $PIP3 install --default-timeout=3600 virtualenv
+  Check_Return
 fi
 
 if [[ -f /usr/local/CyberPanel/bin/python2 ]]; then
@@ -510,25 +550,26 @@ fi
 
 # shellcheck disable=SC1091
 . /usr/local/CyberPanel/bin/activate
+pip install --upgrade setuptools packaging
 
 Download_Requirement
 
 if [[ "$Server_OS" = "CentOS" ]] ; then
-  pip3.6 install --default-timeout=3600 virtualenv==16.7.9
-    Check_Return
-  pip3.6 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
+#  $PIP3 install --default-timeout=3600 virtualenv==16.7.9
+#    Check_Return
+  $PIP3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
   # shellcheck disable=SC1091
   . /usr/local/CyberPanel/bin/activate
     Check_Return
-  pip3 install --default-timeout=3600 virtualenv==16.7.9
-    Check_Return
+#  pip3 install --default-timeout=3600 virtualenv==16.7.9
+#    Check_Return
   pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 elif [[ "$Server_OS" = "openEuler" ]] ; then
-  pip3 install --default-timeout=3600 virtualenv==16.7.9
-    Check_Return
+#  pip3 install --default-timeout=3600 virtualenv==16.7.9
+#    Check_Return
   pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 fi
@@ -582,7 +623,57 @@ Pre_Upgrade_Branch_Input() {
 
 Main_Upgrade() {
 /usr/local/CyberPanel/bin/python upgrade.py "$Branch_Name"
-  Check_Return
+# Capture the return code of the last command executed
+RETURN_CODE=$?
+
+# Check if the command was successful (return code 0)
+if [ $RETURN_CODE -eq 0 ]; then
+    echo "Upgrade successful."
+else
+
+
+    if [ -e /usr/bin/pip3 ]; then
+    PIP3="/usr/bin/pip3"
+  else
+    PIP3="pip3.6"
+  fi
+
+  rm -rf /usr/local/CyberPanelTemp
+  virtualenv -p /usr/bin/python3 --system-site-packages /usr/local/CyberPanelTemp
+
+# shellcheck disable=SC1091
+. /usr/local/CyberPanelTemp/bin/activate
+
+wget -O /usr/local/requirments-old.txt "${Git_Content_URL}/${Branch_Name}/requirments-old.txt"
+
+    if [[ "$Server_OS" = "CentOS" ]] ; then
+#  $PIP3 install --default-timeout=3600 virtualenv==16.7.9
+#    Check_Return
+  $PIP3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments-old.txt
+    Check_Return
+elif [[ "$Server_OS" = "Ubuntu" ]] ; then
+  # shellcheck disable=SC1091
+  . /usr/local/CyberPanelTemp/bin/activate
+    Check_Return
+  pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments-old.txt
+    Check_Return
+elif [[ "$Server_OS" = "openEuler" ]] ; then
+  pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments-old.txt
+    Check_Return
+fi
+
+/usr/local/CyberPanelTemp/bin/python upgrade.py "$Branch_Name"
+Check_Return
+
+rm -rf /usr/local/CyberPanelTemp
+
+fi
+
+
+rm -rf /usr/local/CyberCP/bin
+rm -rf /usr/local/CyberCP/lib
+rm -rf /usr/local/CyberCP/lib64
+rm -rf /usr/local/CyberCP/pyvenv.cfg
 
 if [[ -f /usr/local/CyberCP/bin/python2 ]]; then
   rm -rf /usr/local/CyberCP/bin
@@ -591,7 +682,7 @@ if [[ -f /usr/local/CyberCP/bin/python2 ]]; then
 elif [[ -d /usr/local/CyberCP/bin/ ]]; then
   echo -e "\nNo need to re-setup virtualenv at /usr/local/CyberCP...\n"
 else
-  virtualenv -p /usr/bin/python3 --system-site-packages /usr/local/CyberCP
+  virtualenv -p /usr/bin/python3 /usr/local/CyberCP
     Check_Return
 fi
 
@@ -603,13 +694,14 @@ if [ "$Server_OS" = "Ubuntu" ]; then
   # shellcheck disable=SC1091
   . /usr/local/CyberCP/bin/activate
     Check_Return
+  pip install --upgrade setuptools packaging
   pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 else
   # shellcheck disable=SC1091
   source /usr/local/CyberCP/bin/activate
     Check_Return
-  pip3.6 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
+  /usr/local/CyberCP/bin/pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 fi
 
@@ -722,7 +814,7 @@ if echo "$Tmp_Output" | grep -q "mail@example.com" ; then
 fi
 
 if [[ ! -f /usr/bin/cyberpanel_utility ]]; then
-  wget -q -O /usr/bin/cyberpanel_utility https://cyberpanel.sh/misc/cyberpanel_utility.sh
+  wget -q -O /usr/bin/cyberpanel_utility https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/refs/heads/main/cyberpanel_utility.sh
   chmod 700 /usr/bin/cyberpanel_utility
 fi
 
@@ -741,12 +833,39 @@ rm -f /usr/local/composer.sh
 rm -f /usr/local/requirments.txt
 
 chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib
-chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64 || true
+chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64
+
+
+
+if [[ "$Server_OS_Version" = "9" ]] || [[ "$Server_OS_Version" = "18" ]] || [[ "$Server_OS_Version" = "8" ]] || [[ "$Server_OS_Version" = "20" ]]; then
+    echo "PYTHONHOME=/usr" > /usr/local/lscp/conf/pythonenv.conf
+  else
+    # Uncomment and use the following lines if necessary for other OS versions
+    # rsync -av --ignore-existing /usr/lib64/python3.9/ /usr/local/CyberCP/lib64/python3.9/
+    # Check_Return
+    :
+fi
 systemctl restart lscpd
 
 }
 
 Post_Install_Display_Final_Info() {
+
+#### this is temp code for csf
+
+#rm -Rfv /usr/local/CyberCP/configservercsf
+#rm -fv /home/cyberpanel/plugins/configservercsf
+#rm -Rfv /usr/local/CyberCP/public/static/configservercsf
+#
+#sed -i "/configservercsf/d" /usr/local/CyberCP/CyberCP/settings.py
+#sed -i "/configservercsf/d" /usr/local/CyberCP/CyberCP/urls.py
+#if [ ! -e /etc/cxs/cxs.pl ]; then
+#    sed -i "/configserver/d" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
+#fi
+#systemctl restart lscpd
+### this is temp code for csf
+
+
 Panel_Port=$(cat /usr/local/lscp/conf/bind.conf)
 if [[ $Panel_Port = "" ]] ; then
   Panel_Port="8090"
@@ -754,7 +873,7 @@ fi
 
 if curl -I -XGET -k "https://127.0.0.1:${Panel_Port#*:}" | grep -q "200 OK" ; then
   echo "###################################################################"
-  echo "     CyberPanel Upgraded. See the logs /var/log/upgradeLogs.txt    "
+  echo "                CyberPanel Upgraded                                "
   echo "###################################################################"
 else
   echo -e "\nSeems something wrong with upgrade, please check...\n"

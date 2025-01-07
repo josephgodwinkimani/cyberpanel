@@ -63,7 +63,9 @@ class CageFS:
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,
                                                       "Checking if LVE Kernel is loaded ..\n", 1)
 
-            if ProcessUtilities.outputExecutioner('uname -a').find('lve') == -1:
+            if ProcessUtilities.outputExecutioner('uname -a').find('lve') > -1 or ProcessUtilities.outputExecutioner('lsmod').find('lve') > -1:
+                pass
+            else:
                 logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,
                                                           "CloudLinux is installed but kernel is not loaded, please reboot your server to load appropriate kernel. [404]\n", 1)
                 return 0
@@ -96,7 +98,16 @@ class CageFS:
             command = 'yum install -y alt-python37-devel'
             ServerStatusUtil.executioner(command, statusFile)
 
+            command = 'yum reinstall -y cloudlinux-venv'
+            ServerStatusUtil.executioner(command, statusFile)
+
             command = 'yum reinstall -y lvemanager lve-utils cagefs'
+            ServerStatusUtil.executioner(command, statusFile)
+
+            command = 'yum reinstall -y cloudlinux-venv'
+            ServerStatusUtil.executioner(command, statusFile)
+
+            command = 'systemctl restart lvemanager'
             ServerStatusUtil.executioner(command, statusFile)
 
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,
@@ -107,6 +118,26 @@ class CageFS:
             writeToFile = open(activatedPath, 'a')
             writeToFile.write('CLInstalled')
             writeToFile.close()
+
+
+
+            #### mount session save paths
+
+            if os.path.exists('/etc/cagefs/cagefs.mp'):
+
+                from managePHP.phpManager import PHPManager
+                php_versions = PHPManager.findPHPVersions()
+
+                for php in php_versions:
+                    PHPVers = PHPManager.getPHPString(php)
+                    line = f'@/var/lib/lsphp/session/lsphp{PHPVers},700\n'
+
+                    WriteToFile = open('/etc/cagefs/cagefs.mp', 'a')
+                    WriteToFile.write(line)
+                    WriteToFile.close()
+
+                command = 'cagefsctl --remount-all'
+                ServerStatusUtil.executioner(command, statusFile)
 
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,
                                                       "Packages successfully installed.[200]\n", 1)
@@ -164,12 +195,24 @@ pattern_to_watch = ^/home/.+?/(public_html|public_ftp|private_html)(/.*)?$
 
             ##
 
+            ### address issue to create imunify dir - https://app.clickup.com/t/86engx249
+
+            command = 'mkdir /usr/local/CyberCP/public/imunify'
+            ProcessUtilities.executioner(command)
+
+            command = 'pkill -f "bash i360deploy.sh"'
+            ServerStatusUtil.executioner(command, statusFile)
+
             if not os.path.exists('i360deploy.sh'):
                 command = 'wget https://repo.imunify360.cloudlinux.com/defence360/i360deploy.sh'
                 ServerStatusUtil.executioner(command, statusFile)
 
-            command = 'bash i360deploy.sh --key %s --beta' % (key)
+            command = 'bash i360deploy.sh --uninstall --yes'
             ServerStatusUtil.executioner(command, statusFile)
+
+            command = 'bash i360deploy.sh --key %s --yes' % (key)
+            ServerStatusUtil.executioner(command, statusFile)
+
 
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,
                                                       "Imunify reinstalled..\n", 1)
@@ -211,11 +254,22 @@ ui_path_owner = lscpd:lscpd
 
             ##
 
+            ### address issue to create imunify dir - https://app.clickup.com/t/86engx249
+
+            command = 'mkdir /usr/local/CyberCP/public/imunifyav'
+            ProcessUtilities.executioner(command)
+
+            command = 'pkill -f "bash imav-deploy.sh"'
+            ServerStatusUtil.executioner(command, statusFile)
+
             if not os.path.exists('imav-deploy.sh'):
                 command = 'wget https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh'
                 ServerStatusUtil.executioner(command, statusFile)
 
-            command = 'bash imav-deploy.sh'
+            command = 'bash imav-deploy.sh --uninstall --yes'
+            ServerStatusUtil.executioner(command, statusFile)
+
+            command = 'bash imav-deploy.sh --yes'
             ServerStatusUtil.executioner(command, statusFile)
 
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath,

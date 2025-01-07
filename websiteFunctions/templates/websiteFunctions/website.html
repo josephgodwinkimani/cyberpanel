@@ -33,7 +33,7 @@
                            class="btn btn-border btn-alt border-azure btn-link font-azure"
                            href="/websites/{{ domain }}/setupStaging" title=""><span>{% trans "Clone/Staging" %}</span></a>
                         <a style="float: right; margin-left: 2%" class="btn btn-border btn-alt border-blue-alt btn-link font-blue-alt"
-                           href="/websites/{{ domain }}/sshAccess" title=""><span>{% trans "Set up SSH Access" %}</span></a>
+                           href="/websites/{{ domain }}/sshAccess" title=""><span>{% trans "Set up SSH/SFTP Access" %}</span></a>
                         <a style="float: right" class="btn btn-border btn-alt border-black btn-link font-black"
                            href="https://go.cyberpanel.net/StessTest" title=""><span>{% trans "Stress Test" %}</span></a>
                     </h3>
@@ -331,7 +331,7 @@
                                         <div class="col-sm-9">
                                             <div class="checkbox">
                                                 <label>
-                                                    <input ng-model="sslCheck" ng-init="sslCheck=true" type="checkbox" value="">
+                                                    <input ng-model="sslCheck" type="checkbox" value="">
                                                     SSL
                                                 </label>
                                             </div>
@@ -340,7 +340,7 @@
                                         <div class="col-sm-9">
                                             <div class="checkbox">
                                                 <label>
-                                                    <input ng-model="dkimCheck" ng-init="dkimCheck=true" type="checkbox" value="">
+                                                    <input ng-model="dkimCheck" type="checkbox" value="">
                                                     DKIM Support
                                                 </label>
                                             </div>
@@ -349,7 +349,7 @@
                                         <div class="col-sm-9">
                                             <div class="checkbox">
                                                 <label>
-                                                    <input ng-model="openBasedir" ng-init="openBasedir=true" type="checkbox" value="">
+                                                    <input ng-model="openBasedir" type="checkbox" value="">
                                                     open_basedir Protection
                                                 </label>
                                             </div>
@@ -532,6 +532,17 @@
                     </h3>
                     <div class="content-box-wrapper">
                         <div class="row mx-10">
+                            <div class="col-md-3 panel-body">
+                                <a href="{% url 'ApacheManager' domain=domain  %}"
+                                   title="{% trans 'Apache Manager' %}">
+                                    <img src="{% static 'images/icons/file.png' %}" width="65" class="mr-10">
+                                </a>
+                                <a href="{% url 'ApacheManager' domain=domain  %}"
+                                   title="{% trans 'Apache Manager' %}">
+                                    <span class="h4">{% trans "Apache Manager" %}</span>
+                                </a>
+                            </div>
+
                             <div class="col-md-3 panel-body">
                                 <a ng-click="fetchConfigurations()" href=""
                                    title="{% trans 'Edit vHost Main Configurations' %}">

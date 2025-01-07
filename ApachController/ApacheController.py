@@ -4,11 +4,61 @@ import subprocess
 import shlex
 import plogical.CyberCPLogFileWriter as logging
 from ApachController.ApacheVhosts import ApacheVhost
+from plogical.processUtilities import ProcessUtilities
 
 
 class ApacheController:
     apacheInstallStatusPath = '/home/cyberpanel/apacheInstallStatus'
-    serverRootPath = '/etc/httpd'
+
+    if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+
+
+        serverRootPath = '/etc/httpd'
+        configBasePath = '/etc/httpd/conf.d/'
+        phpBasepath = '/etc/opt/remi'
+        php54Path = '/opt/remi/php54/root/etc/php-fpm.d/'
+        php55Path = '/opt/remi/php55/root/etc/php-fpm.d/'
+        php56Path = '/etc/opt/remi/php56/php-fpm.d/'
+        php70Path = '/etc/opt/remi/php70/php-fpm.d/'
+        php71Path = '/etc/opt/remi/php71/php-fpm.d/'
+        php72Path = '/etc/opt/remi/php72/php-fpm.d/'
+        php73Path = '/etc/opt/remi/php73/php-fpm.d/'
+
+        php74Path = '/etc/opt/remi/php74/php-fpm.d/'
+        php80Path = '/etc/opt/remi/php80/php-fpm.d/'
+        php81Path = '/etc/opt/remi/php81/php-fpm.d/'
+        php82Path = '/etc/opt/remi/php82/php-fpm.d/'
+        php83Path = '/etc/opt/remi/php83/php-fpm.d/'
+        php84Path = '/etc/opt/remi/php84/php-fpm.d/'
+        php85Path = '/etc/opt/remi/php85/php-fpm.d/'
+
+        serviceName = 'httpd'
+
+    else:
+        serverRootPath = '/etc/apache2'
+        configBasePath = '/etc/apache2/sites-enabled/'
+
+        phpBasepath = '/etc/php'
+
+        php54Path = '/etc/php/5.4/fpm/pool.d/'
+        php55Path = '/etc/php/5.5/fpm/pool.d/'
+        php56Path = '/etc/php/5.6/fpm/pool.d/'
+        php70Path = '/etc/php/7.0/fpm/pool.d/'
+        php71Path = '/etc/php/7.1/fpm/pool.d/'
+        php72Path = '/etc/php/7.2/fpm/pool.d/'
+        php73Path = '/etc/php/7.3/fpm/pool.d/'
+        php74Path = '/etc/php/7.4/fpm/pool.d/'
+
+        php80Path = '/etc/php/8.0/fpm/pool.d/'
+        php81Path = '/etc/php/8.1/fpm/pool.d/'
+        php82Path = '/etc/php/8.2/fpm/pool.d/'
+
+        php83Path = '/etc/php/8.3/fpm/pool.d/'
+        php84Path = '/etc/php/8.4/fpm/pool.d/'
+        php85Path = '/etc/php/8.5/fpm/pool.d/'
+
+        serviceName = 'apache2'
+
     mpmConfigs = """# Select the MPM module which should be used by uncommenting exactly
 # one of the following LoadModule lines:
 
@@ -42,45 +92,47 @@ LoadModule mpm_event_module modules/mod_mpm_event.so
     @staticmethod
     def checkIfApacheInstalled():
         try:
-            if os.path.exists(ApacheController.serverRootPath):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php54Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php55Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php56Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php70Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php71Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php72Path):
-                pass
-            else:
-                return 0
-
-            if os.path.exists(ApacheVhost.php73Path):
+            if os.path.exists(ApacheController.php80Path):
                 return 1
             else:
                 return 0
+
+            # if os.path.exists(ApacheVhost.php54Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php55Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php56Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php70Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php71Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php72Path):
+            #     pass
+            # else:
+            #     return 0
+            #
+            # if os.path.exists(ApacheVhost.php73Path):
+            #     return 1
+            # else:
+            #     return 0
+
+
         except BaseException as msg:
             message = "%s. [%s]" % (str(msg), '[ApacheController.checkIfApacheInstalled]')
             logging.CyberCPLogFileWriter.writeToFile(message)
@@ -102,57 +154,103 @@ LoadModule mpm_event_module modules/mod_mpm_event.so
     def InstallApache():
         try:
 
-            command = "yum install -y httpd httpd-tools mod_ssl php-fpm"
-            if ApacheController.executioner(command) == 0:
+            if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                command = "yum install -y httpd httpd-tools mod_ssl php-fpm"
+            else:
+                command = "apt update -y && sudo apt upgrade -y && apt install apache2 -y"
+
+            if ProcessUtilities.executioner(command, None, True) == 0:
                 return "Failed to install Apache and PHP-FPM."
 
-            command = "yum -y install centos-release-scl yum-utils"
-            if ApacheController.executioner(command) == 0:
-                return "Failed to centos-release-scl and yum-utils"
+            if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
 
-            command = "yum-config-manager --enable rhel-server-rhscl-7-rpms"
-            if ApacheController.executioner(command) == 0:
-                return "Failed to --enable rhel-server-rhscl-7-rpms"
+                # command = "yum -y install centos-release-scl yum-utils"
+                # if ProcessUtilities.executioner(command) == 0:
+                #     return "Failed to centos-release-scl and yum-utils"
+                #
+                # command = "yum-config-manager --enable rhel-server-rhscl-7-rpms"
+                # if ProcessUtilities.executioner(command) == 0:
+                #     return "Failed to --enable rhel-server-rhscl-7-rpms"
+
+                sslPath = "/etc/httpd/conf.d/ssl.conf"
+
+                if os.path.exists(sslPath):
+                    os.remove(sslPath)
+
+                confPath = ApacheVhost.serverRootPath + "/conf/httpd.conf"
+
+                CurrentConf = open(confPath, 'r').read()
+
+                if CurrentConf.find('Listen 8083') == -1:
+
+                    data = open(confPath, 'r').readlines()
+                    writeToFile = open(confPath, 'w')
+
+                    for items in data:
+                        if items.find("Listen") > -1 and items.find("80") > -1 and items.find('#') == -1:
+                            writeToFile.writelines("Listen 8083\nListen 8082\n")
+                        elif items.find("User") > -1 and items.find('#') == -1:
+                            writeToFile.writelines("User nobody\n")
+                        elif items.find("Group") > -1 and items.find('#') == -1:
+                            writeToFile.writelines("Group nobody\n")
+                            writeToFile.writelines('SetEnv LSWS_EDITION Openlitespeed\nSetEnv X-LSCACHE on\n')
+                        elif items[0] == "#":
+                            continue
+                        else:
+                            writeToFile.writelines(items)
+
+                    writeToFile.close()
+
+                    # MPM Module Configurations
+
+                    writeToFile = open(ApacheController.mpmConfigsPath, 'w')
+                    writeToFile.write(ApacheController.mpmConfigs)
+                    writeToFile.close()
 
 
-            ## Minor Configuration changes.
+            else:
 
-            sslPath = "/etc/httpd/conf.d/ssl.conf"
+                confPath = ApacheVhost.serverRootPath + "/apache2.conf"
 
-            if os.path.exists(sslPath):
-                os.remove(sslPath)
+                portsPath = '/etc/apache2/ports.conf'
 
-            confPath = ApacheVhost.serverRootPath + "/conf/httpd.conf"
+                WriteToFile = open(portsPath, 'w')
+                WriteToFile.write('Listen 8083\nListen 8082\n')
+                WriteToFile.close()
 
-            data = open(confPath, 'r').readlines()
-            writeToFile = open(confPath, 'w')
 
-            for items in data:
-                if items.find("Listen") > -1 and items.find("80") > -1 and items.find('#') == -1:
-                    writeToFile.writelines("Listen 8081\nListen 8082\n")
-                elif items.find("User") > -1 and items.find('#') == -1:
-                    writeToFile.writelines("User nobody\n")
-                elif items.find("Group") > -1 and items.find('#') == -1:
-                    writeToFile.writelines("Group nobody\n")
-                    writeToFile.writelines('SetEnv LSWS_EDITION Openlitespeed\nSetEnv X-LSCACHE on\n')
-                elif items[0] == "#":
-                    continue
-                else:
-                    writeToFile.writelines(items)
 
-            writeToFile.close()
+                command = f"sed -i 's/User ${{APACHE_RUN_USER}}/User nobody/g' {confPath}"
+                if ProcessUtilities.executioner(command, None, True) == 0:
+                    return "Apache run user change failed"
 
-            # MPM Module Configurations
+                command = f"sed -i 's/Group ${{APACHE_RUN_GROUP}}/Group nogroup/g' {confPath}"
+                if ProcessUtilities.executioner(command, None, True) == 0:
+                    return "Apache run group change failed"
 
-            writeToFile = open(ApacheController.mpmConfigsPath , 'w')
-            writeToFile.write(ApacheController.mpmConfigs)
-            writeToFile.close()
+                command = 'apt-get install apache2-suexec-pristine -y'
+                if ProcessUtilities.executioner(command, None, True) == 0:
+                    return "Apache run apache2-suexec-pristine"
+
+                command = 'a2enmod suexec proxy ssl proxy_fcgi proxy rewrite headers'
+                if ProcessUtilities.executioner(command, None, True) == 0:
+                    return "Apache run suexec proxy ssl"
+
+
+                WriteToFile = open(confPath, 'a')
+                WriteToFile.writelines('\nSetEnv LSWS_EDITION Openlitespeed\nSetEnv X-LSCACHE on\n')
+                WriteToFile.close()
 
             ###
 
-            command = "systemctl start httpd.service"
+            if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                serviceName = 'httpd'
+            else:
+                serviceName = 'apache2'
+
+            command = f"systemctl start {serviceName}.service"
             ApacheController.executioner(command)
-            command = "systemctl enable httpd.service"
+            command = f"systemctl enable {serviceName}.service"
             ApacheController.executioner(command)
 
             return 1
@@ -164,121 +262,77 @@ LoadModule mpm_event_module modules/mod_mpm_event.so
     def phpVersions():
         # Version 5.4
 
-        command = 'yum install -y http://rpms.remirepo.net/enterprise/remi-release-7.rpm'
-        ApacheController.executioner(command)
+        if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+            if ProcessUtilities.alma9check == 1:
+                command = 'yum install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm'
+            else:
+                command = 'yum install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm'
+            ApacheController.executioner(command)
 
-        command = 'yum-config-manager --enable remi-php'
-        ApacheController.executioner(command)
-
-
-        command = 'yum install -y php54-php-fpm php54-php-gd php54-php-xml php54-php-twig php54-php-zstd php54-php-tidy' \
-                  'php54-php-suhosin php54-php-soap php54-php-snmp php54-php-snappy php54-php-smbclient' \
-                  'php54-php-process php54-php-pimple php54-php-pgsql php54-php-pear.noarch php54-php-pdo' \
-                  'php54-php-mysqlnd php54-php-mssql php54-php-mcrypt php54-php-mbstring php54-php-maxminddb' \
-                  'php54-php-common php54-php-imap php54-php-intl php54-php-tarantool php54-php-pspell php54-php-oci8' \
-                  'php54-php-bcmath php54-php-litespeed php54-php-recode php54-php-odbc'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php54-fpm"
-
-        # Version 5.5
-        command = 'yum install -y php55-php-fpm php55-php-gd php55-php-xml php55-php-twig php55-php-zstd php55-php-tidy' \
-                  'php55-php-suhosin php55-php-soap php55-php-snmp php55-php-snappy php55-php-smbclient ' \
-                  'php55-php-process php55-php-pimple php55-php-pgsql php55-php-pear.noarch php55-php-pdo' \
-                  'php55-php-mysqlnd php55-php-mssql php55-php-mcrypt php55-php-mbstring php55-php-maxminddb' \
-                  'php55-php-common php55-php-imap php55-php-intl php55-php-tarantool php55-php-pspell php55-php-oci8' \
-                  'php55-php-litespeed php55-php-bcmath php55-php-odbc php55-php-recode'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php55-fpm"
-
-        # Version 5.6
-        command = 'yum install -y php56-php-fpm php56-php-gd php56-php-xml php56-php-twig php56-php-zstd php56-php-tidy' \
-                  'php56-php-suhosin php56-php-soap php56-php-snmp php56-php-snappy php56-php-smbclient' \
-                  'php56-php-process php56-php-pimple php56-php-pgsql php56-php-pear.noarch php56-php-pdo ' \
-                  'php56-php-mysqlnd php56-php-mssql php56-php-mcrypt php56-php-mbstring php56-php-maxminddb' \
-                  'php56-php-common php56-php-imap php56-php-intl php56-php-tarantool php56-php-recode' \
-                  'php56-php-odbc php56-php-oci8 php56-php-litespeed php56-php-bcmath php56-php-pspell'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php56-fpm"
-
-        # Version 7.0
-        command = 'yum install -y php70-php-fpm php70-php-gd php70-php-xml php70-php-twig php70-php-zstd php70-php-tidy' \
-                  'php70-php-suhosin php70-php-soap php70-php-snmp php70-php-snappy php70-php-smbclient' \
-                  'php70-php-process php70-php-pimple php70-php-pgsql php70-php-pear.noarch php70-php-pdo ' \
-                  'php70-php-mysqlnd php70-php-mssql php70-php-mcrypt php70-php-mbstring php70-php-maxminddb' \
-                  'php70-php-common php70-php-imap php70-php-intl php70-php-tarantool php70-php-recode' \
-                  'php70-php-odbc php70-php-oci8 php70-php-litespeed php70-php-bcmath php70-php-pspell'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php70-fpm"
-
-        # Version 7.1
-        command = 'yum install -y php71-php-fpm php71-php-gd php71-php-xml php71-php-twig php71-php-zstd php71-php-tidy' \
-                  'php71-php-suhosin php71-php-soap php71-php-snmp php71-php-snappy php71-php-smbclient' \
-                  'php71-php-process php71-php-pimple php71-php-pgsql php71-php-pear.noarch php71-php-pdo ' \
-                  'php71-php-mysqlnd php71-php-mssql php71-php-mcrypt php71-php-mbstring php71-php-maxminddb' \
-                  'php71-php-common php71-php-imap php71-php-intl php71-php-tarantool php71-php-recode' \
-                  'php71-php-odbc php71-php-oci8 php71-php-litespeed php71-php-bcmath php71-php-pspell'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php71-fpm"
-
-        # Version 7.2
-        command = 'yum install -y php72-php-fpm php72-php-gd php72-php-xml php72-php-twig php72-php-zstd php72-php-tidy' \
-                  'php72-php-suhosin php72-php-soap php72-php-snmp php72-php-snappy php72-php-smbclient' \
-                  'php72-php-process php72-php-pimple php72-php-pgsql php72-php-pear.noarch php72-php-pdo ' \
-                  'php72-php-mysqlnd php72-php-mssql php72-php-mcrypt php72-php-mbstring php72-php-maxminddb' \
-                  'php72-php-common php72-php-imap php72-php-intl php72-php-tarantool php72-php-recode' \
-                  'php72-php-odbc php72-php-oci8 php72-php-litespeed php72-php-bcmath php72-php-pspell'
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php72-fpm"
-
-        # Version 7.3
-        command = 'yum install -y php73-php-fpm php73-php-gd php73-php-xml php73-php-twig php73-php-zstd php73-php-tidy' \
-                  'php73-php-suhosin php73-php-soap php73-php-snmp php73-php-snappy php73-php-smbclient' \
-                  'php73-php-process php73-php-pimple php73-php-pgsql php73-php-pear.noarch php73-php-pdo ' \
-                  'php73-php-mysqlnd php73-php-mssql php73-php-mcrypt php73-php-mbstring php73-php-maxminddb' \
-                  'php73-php-common php73-php-imap php73-php-intl php73-php-tarantool php73-php-recode' \
-                  'php73-php-odbc php73-php-oci8 php73-php-litespeed php73-php-bcmath php73-php-pspell'
+            command = "yum install -y php?? php??-php-fpm  php??-php-mysql php??-php-curl php??-php-gd php??-php-mbstring php??-php-xml php??-php-zip php??-php-intl"
+            if ProcessUtilities.executioner(command, None, True) == 0:
+                return "Failed to install php54-fpm"
 
 
-        if ApacheController.executioner(command) == 0:
-            return "Failed to install php73-fpm"
+        else:
 
-        try:
-            wwwConfPath = ApacheVhost.php54Path + "/www.conf"
+            command = 'apt-get install software-properties-common -y'
+            if ProcessUtilities.executioner(command, None, True) == 0:
+                return "Failed to install software-properties-common"
 
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
+            command = 'apt install python-software-properties -y'
+            if ProcessUtilities.executioner(command, None, True) == 0:
+                return "Failed to install python-software-properties"
 
-            wwwConfPath = ApacheVhost.php55Path + "/www.conf"
+            command = 'add-apt-repository ppa:ondrej/php -y'
+            if ProcessUtilities.executioner(command, None, True) == 0:
+                return "Failed to ppa:ondrej/php"
 
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
+            command = "DEBIAN_FRONTEND=noninteractive apt-get install -y php-fpm php?.?-fpm php?.?-fpm php?.?-mysql php?.?-curl php?.?-gd php?.?-mbstring php?.?-xml php?.?-zip php?.?-intl"
 
-            wwwConfPath = ApacheVhost.php56Path + "/www.conf"
+            if ProcessUtilities.executioner(command, None, True) == 0:
+                return "Failed to install Apache and PHP-FPM."
 
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
+        from plogical.upgrade import Upgrade
+        Upgrade.CreateMissingPoolsforFPM()
 
-            wwwConfPath = ApacheVhost.php70Path + "/www.conf"
-
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
-
-            wwwConfPath = ApacheVhost.php71Path + "/www.conf"
-
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
-
-            wwwConfPath = ApacheVhost.php72Path + "/www.conf"
-
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
-
-            wwwConfPath = ApacheVhost.php73Path + "/www.conf"
-
-            if os.path.exists(wwwConfPath):
-                os.remove(wwwConfPath)
-        except:
-            pass
+        # try:
+        #     wwwConfPath = ApacheVhost.php54Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php55Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php56Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php70Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php71Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php72Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        #
+        #     wwwConfPath = ApacheVhost.php73Path + "/www.conf"
+        #
+        #     if os.path.exists(wwwConfPath):
+        #         os.remove(wwwConfPath)
+        # except:
+        #     pass
 
         return 1
 

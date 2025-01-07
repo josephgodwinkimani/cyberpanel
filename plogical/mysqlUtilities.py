@@ -1,4 +1,8 @@
 import os,sys
+import shutil
+import urllib
+from urllib.parse import unquote
+
 sys.path.append('/usr/local/CyberCP')
 import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
@@ -245,7 +249,7 @@ class mysqlUtilities:
             return str(msg)
 
     @staticmethod
-    def createDatabaseBackup(databaseName, tempStoragePath):
+    def createDatabaseBackup(databaseName, tempStoragePath, rustic=0, RusticRepoName = None, externalApp = None):
         try:
             passFile = "/etc/cyberpanel/mysqlPassword"
 
@@ -284,30 +288,87 @@ password=%s
 
                 os.chmod(cnfPath, 0o600)
 
-            command = 'mysqldump --defaults-extra-file=/home/cyberpanel/.my.cnf -u %s --host=%s --port %s %s' % (mysqluser, mysqlhost, mysqlport, databaseName)
-            cmd = shlex.split(command)
+            SHELL = False
 
-            try:
-                errorPath = '/home/cyberpanel/error-logs.txt'
-                errorLog = open(errorPath, 'a')
-                with open(tempStoragePath+"/"+databaseName+'.sql', 'w') as f:
-                    res = subprocess.call(cmd,stdout=f, stderr=errorLog)
-                    if res != 0:
+            if rustic == 0:
+
+                command = 'rm -f ' + tempStoragePath + "/" + databaseName + '.sql'
+                ProcessUtilities.executioner(command)
+
+                command = 'mysqldump --defaults-file=/home/cyberpanel/.my.cnf -u %s --host=%s --port %s %s' % (mysqluser, mysqlhost, mysqlport, databaseName)
+
+                # if os.path.exists(ProcessUtilities.debugPath):
+                #     logging.CyberCPLogFileWriter.writeToFile(command)
+                #
+                #     logging.CyberCPLogFileWriter.writeToFile(f'Get current executing uid {os.getuid()}')
+                #
+                # cmd = shlex.split(command)
+                #
+                # try:
+                #     errorPath = '/home/cyberpanel/error-logs.txt'
+                #     errorLog = open(errorPath, 'a')
+                #     with open(tempStoragePath + "/" + databaseName + '.sql', 'w') as f:
+                #         res = subprocess.call(cmd, stdout=f, stderr=errorLog, shell=SHELL)
+                #         if res != 0:
+                #             logging.CyberCPLogFileWriter.writeToFile(
+                #                 "Database: " + databaseName + "could not be backed! [createDatabaseBackup]")
+                #             return 0
+                # except subprocess.CalledProcessError as msg:
+                #     logging.CyberCPLogFileWriter.writeToFile(
+                #         "Database: " + databaseName + "could not be backed! Error: %s. [createDatabaseBackup]" % (
+                #             str(msg)))
+                #     return 0
+
+                cmd = shlex.split(command)
+
+                with open(tempStoragePath + "/" + databaseName + '.sql', 'w') as f:
+                    # Using subprocess.run to capture stdout and stderr
+                    result = subprocess.run(
+                        cmd,
+                        stdout=f,
+                        stderr=subprocess.PIPE,
+                        shell=SHELL
+                    )
+
+                    # Check if the command was successful
+                    if result.returncode != 0:
                         logging.CyberCPLogFileWriter.writeToFile(
-                            "Database: " + databaseName + "could not be backed! [createDatabaseBackup]")
+                            "Database: " + databaseName + " could not be backed up! [createDatabaseBackup]"
+                        )
+                        # Log stderr
+                        logging.CyberCPLogFileWriter.writeToFile(result.stderr.decode('utf-8'))
                         return 0
 
-            except subprocess.CalledProcessError as msg:
-                logging.CyberCPLogFileWriter.writeToFile(
-                    "Database: " + databaseName + "could not be backed! Error: %s. [createDatabaseBackup]" % (str(msg)))
-                return 0
+            else:
+                SHELL = True
+
+                command = f'mysqldump --defaults-file=/home/cyberpanel/.my.cnf -u {mysqluser} --host={mysqlhost} --port {mysqlport} --add-drop-table --allow-keywords --complete-insert --quote-names --skip-comments {databaseName} 2>/dev/null | sudo -u {externalApp} rustic -r {RusticRepoName} backup --stdin-filename {databaseName}.sql - --password "" --json 2>/dev/null'
+
+                if os.path.exists(ProcessUtilities.debugPath):
+                    logging.CyberCPLogFileWriter.writeToFile(command)
+
+                result = json.loads(
+                    ProcessUtilities.outputExecutioner(command, None, True).rstrip('\n'))
+
+                try:
+                    SnapShotID = result['id']  ## snapshot id that we need to store in db
+                    files_new = result['summary']['files_new']  ## basically new files in backup
+                    total_duration = result['summary']['total_duration']  ## time taken
+
+                    return 1, SnapShotID
+
+                except BaseException as msg:
+                    return 0, str(msg)
+
+
+
             return 1
         except BaseException as msg:
             logging.CyberCPLogFileWriter.writeToFile(str(msg) + "[createDatabaseBackup]")
             return 0
 
     @staticmethod
-    def restoreDatabaseBackup(databaseName, tempStoragePath, dbPassword, passwordCheck = None, additionalName = None):
+    def restoreDatabaseBackup(databaseName, tempStoragePath, dbPassword, passwordCheck = None, additionalName = None, rustic=0, RusticRepoName = None, externalApp = None, snapshotid = None):
         try:
             passFile = "/etc/cyberpanel/mysqlPassword"
 
@@ -347,38 +408,47 @@ password=%s
                 command = 'chown cyberpanel:cyberpanel %s' % (cnfPath)
                 subprocess.call(shlex.split(command))
 
-            command = 'mysql --defaults-extra-file=/home/cyberpanel/.my.cnf -u %s --host=%s --port %s %s' % (mysqluser, mysqlhost, mysqlport, databaseName)
-            if os.path.exists(ProcessUtilities.debugPath):
-                logging.CyberCPLogFileWriter.writeToFile(f'{command} {tempStoragePath}/{databaseName} ' )
-            cmd = shlex.split(command)
+            if rustic == 0:
 
-            if additionalName == None:
-                with open(tempStoragePath + "/" + databaseName + '.sql', 'r') as f:
-                    res = subprocess.call(cmd, stdin=f)
-                if res != 0:
-                    logging.CyberCPLogFileWriter.writeToFile("Could not restore MYSQL database: " + databaseName +"! [restoreDatabaseBackup]")
-                    return 0
+                command = 'mysql --defaults-file=/home/cyberpanel/.my.cnf -u %s --host=%s --port %s %s' % (mysqluser, mysqlhost, mysqlport, databaseName)
+                if os.path.exists(ProcessUtilities.debugPath):
+                    logging.CyberCPLogFileWriter.writeToFile(f'{command} {tempStoragePath}/{databaseName} ' )
+                cmd = shlex.split(command)
+
+                if additionalName == None:
+                    with open(tempStoragePath + "/" + databaseName + '.sql', 'r') as f:
+                        res = subprocess.call(cmd, stdin=f)
+                    if res != 0:
+                        logging.CyberCPLogFileWriter.writeToFile("Could not restore MYSQL database: " + databaseName +"! [restoreDatabaseBackup]")
+                        return 0
+                else:
+                    with open(tempStoragePath + "/" + additionalName + '.sql', 'r') as f:
+                        res = subprocess.call(cmd, stdin=f)
+
+                    if res != 0:
+                        logging.CyberCPLogFileWriter.writeToFile("Could not restore MYSQL database: " + additionalName + "! [restoreDatabaseBackup]")
+                        return 0
+
+                if passwordCheck == None:
+
+                    connection, cursor = mysqlUtilities.setupConnection()
+
+                    if connection == 0:
+                        return 0
+
+                    passwordCMD = "use mysql;SET PASSWORD FOR '" + databaseName + "'@'%s' = '" % (mysqlUtilities.LOCALHOST) + dbPassword + "';FLUSH PRIVILEGES;"
+
+                    cursor.execute(passwordCMD)
+                    connection.close()
+
+                return 1
             else:
-                with open(tempStoragePath + "/" + additionalName + '.sql', 'r') as f:
-                    res = subprocess.call(cmd, stdin=f)
+                command = f'sudo -u {externalApp} rustic -r {RusticRepoName} dump {snapshotid}:{databaseName}.sql --password "" 2>/dev/null | mysql --defaults--file=/home/cyberpanel/.my.cnf -u %s --host=%s --port %s %s' % (
+                mysqluser, mysqlhost, mysqlport, databaseName)
+                if os.path.exists(ProcessUtilities.debugPath):
+                    logging.CyberCPLogFileWriter.writeToFile(f'{command} {tempStoragePath}/{databaseName} ')
+                ProcessUtilities.outputExecutioner(command, None, True)
 
-                if res != 0:
-                    logging.CyberCPLogFileWriter.writeToFile("Could not restore MYSQL database: " + additionalName + "! [restoreDatabaseBackup]")
-                    return 0
-
-            if passwordCheck == None:
-
-                connection, cursor = mysqlUtilities.setupConnection()
-
-                if connection == 0:
-                    return 0
-
-                passwordCMD = "use mysql;SET PASSWORD FOR '" + databaseName + "'@'%s' = '" % (mysqlUtilities.LOCALHOST) + dbPassword + "';FLUSH PRIVILEGES;"
-
-                cursor.execute(passwordCMD)
-                connection.close()
-
-            return 1
         except BaseException as msg:
             logging.CyberCPLogFileWriter.writeToFile(str(msg) + "[restoreDatabaseBackup]")
             return 0
@@ -540,9 +610,13 @@ password=%s
 
             if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
                 command = 'sudo mv /etc/my.cnf /etc/my.cnf.bak'
+                decoded_content = urllib.parse.unquote(data['suggestedContent'])
+                data['suggestedContent'] = decoded_content.replace('/var/lib/mysql/mysql.sock',
+                                                                   '/var/run/mysqld/mysqld.sock')
             else:
                 command = 'sudo mv /etc/mysql/my.cnf /etc/mysql/my.cnf.bak'
-                data['suggestedContent'] = data['suggestedContent'].replace('/var/lib/mysql/mysql.sock', '/var/run/mysqld/mysqld.sock')
+                decoded_content = urllib.parse.unquote(data['suggestedContent'])
+                data['suggestedContent'] = decoded_content.replace('/var/lib/mysql/mysql.sock', '/var/run/mysqld/mysqld.sock')
 
 
             ProcessUtilities.executioner(command)
@@ -629,8 +703,7 @@ password=%s
             checker = 0
 
             for items in result:
-                if items[0] == 'information_schema' or items[0] == 'mysql' or items[0] == 'performance_schema' or items[
-                    0] == 'performance_schema':
+                if items[0] == 'information_schema' or items[0] == 'mysql' or items[0] == 'performance_schema':
                     continue
 
                 dic = {
@@ -1026,14 +1099,141 @@ bind-address=%s
             logging.CyberCPLogFileWriter.writeToFile(str(msg) + "[deleteDatabase]")
             return str(msg)
 
+    @staticmethod
+    def UpgradeMariaDB(versionToInstall, tempStatusPath):
+
+        ### first check if provided version is already installed
+
+        command = 'mysql --version'
+        result = ProcessUtilities.outputExecutioner(command)
+
+        if result.find(versionToInstall) > -1:
+            print(f'MySQL is already {result}. [200]')
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, f'MySQL is already {result}. [200]')
+            return 0
+
+        logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Creating backup of MySQL..,10')
+
+        MySQLBackupDir = '/var/lib/mysql-backupcp'
+
+        from os import getuid
+        if getuid() != 0:
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'This function should run as root. [404]')
+            return 0, 'This function should run as root.'
+
+
+        if not os.path.exists(MySQLBackupDir):
+            command = 'rsync -av /var/lib/mysql/ /var/lib/mysql-backupcp/'
+            ProcessUtilities.executioner(command)
+
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'MySQL backup created..,20')
+
+        if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
+
+            CNFCurrentPath = '/etc/mysql/ '
+            CNFBackupPath = '/etc/cnfbackup/'
+
+            command = f'rsync -av {CNFCurrentPath} {CNFBackupPath}'
+            ProcessUtilities.executioner(command)
+
+            command = 'sudo apt-get remove --purge mariadb-server mariadb-client galera -y && sudo apt autoremove -y'
+            ProcessUtilities.executioner(command, 'root', True)
+
+            command = 'apt-get install apt-transport-https curl -y'
+            ProcessUtilities.executioner(command, 'root', True)
+
+            command = 'mkdir -p /etc/apt/keyrings '
+            ProcessUtilities.executioner(command, 'root', True)
+
+            command = "curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'"
+            ProcessUtilities.executioner(command, 'root', True)
+
+            RepoPath = '/etc/apt/sources.list.d/mariadb.sources'
+            RepoContent = f"""
+# MariaDB {versionToInstall} repository list - created 2023-12-11 07:53 UTC
+# https://mariadb.org/download/
+X-Repolib-Name: MariaDB
+Types: deb
+# deb.mariadb.org is a dynamic mirror if your preferred mirror goes offline. See https://mariadb.org/mirrorbits/ for details.
+# URIs: https://deb.mariadb.org/{versionToInstall}/ubuntu
+URIs: https://mirrors.gigenet.com/mariadb/repo/{versionToInstall}/ubuntu
+Suites: jammy
+Components: main main/debug
+Signed-By: /etc/apt/keyrings/mariadb-keyring.pgp
+"""
+
+            WriteToFile = open(RepoPath, 'w')
+            WriteToFile.write(RepoContent)
+            WriteToFile.close()
+
+            command = 'apt-get update -y'
+            ProcessUtilities.executioner(command, 'root', True)
+
+            command = 'DEBIAN_FRONTEND=noninteractive sudo apt-get install mariadb-server -y'
+            ProcessUtilities.executioner(command, 'root', True)
+
+
+        else:
+            CNFCurrentPath = '/etc/my.cnf.d/ '
+            CNFBackupPath = '/etc/cnfbackup/'
+
+            command = f'rsync -av {CNFCurrentPath} {CNFBackupPath}'
+            ProcessUtilities.executioner(command)
+
+            if os.path.exists('/etc/my.cnf'):
+                shutil.copy('/etc/my.cnf', f'{CNFBackupPath}/my.cnf')
+
+            command = 'yum remove mariadb* -y'
+            ProcessUtilities.executioner(command, 'root', True)
+
+
+            RepoPath = '/etc/yum.repos.d/mariadb.repo'
+            RepoContent = f"""
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/{versionToInstall}/rhel8-amd64
+module_hotfixes=1
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1            
+"""
+
+            WriteToFile = open(RepoPath, 'w')
+            WriteToFile.write(RepoContent)
+            WriteToFile.close()
+
+
+            command = 'dnf update -y'
+            result = ProcessUtilities.outputExecutioner(command, 'root', True)
+
+            print(result)
+
+            command = 'dnf install mariadb-server -y'
+            result = ProcessUtilities.outputExecutioner(command, 'root', True)
+
+            print(result)
+
+            command = 'systemctl start mariadb && systemctl enable mariadb'
+            result = ProcessUtilities.outputExecutioner(command, 'root', True)
+
+            print(result)
+
+
+        logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Completed [200]')
+
+
 def main():
     parser = argparse.ArgumentParser(description='CyberPanel')
     parser.add_argument('function', help='Specific a function to call!')
+    parser.add_argument('--version', help='MySQL version to upgrade to.')
+    parser.add_argument('--tempStatusPath', help='MySQL version to upgrade to.')
 
     args = parser.parse_args()
 
+
     if args.function == "enableRemoteMYSQL":
         mysqlUtilities.enableRemoteMYSQL()
+    elif args.function == "UpgradeMariaDB":
+        mysqlUtilities.UpgradeMariaDB(args.version, args.tempStatusPath)
 
 
 if __name__ == "__main__":

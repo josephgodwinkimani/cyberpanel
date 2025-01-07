@@ -54,6 +54,7 @@ class CyberCPLogFileWriter:
     @staticmethod
     def writeToFile(message, email=None):
         try:
+            print("[" + time.strftime("%m.%d.%Y_%H-%M-%S") + "] "+ message)
             file = open(CyberCPLogFileWriter.fileName,'a')
             file.writelines("[" + time.strftime(
                     "%m.%d.%Y_%H-%M-%S") + "] "+ message + "\n")
@@ -115,6 +116,8 @@ Subject: %s
     @staticmethod
     def statusWriter(tempStatusPath, mesg, append = None):
         try:
+            if os.path.exists('/usr/local/CyberCP/debug'):
+                print(mesg)
             if append == None:
                 statusFile = open(tempStatusPath, 'w')
             else:

@@ -10,7 +10,7 @@
 
     <div class="container">
         <div id="page-title">
-            <h2>{% trans "List Email Accounts" %} - <a  target="_blank" href="https://go.cyberpanel.net/DebugEmail" style="height: 23px;line-height: 21px;" class="btn btn-border btn-alt border-red btn-link font-red" title=""><span>{% trans "Debug Email Issues" %}</span></a>
+            <h2>{% trans "List Email Accounts" %} - <a  target="_blank" href="https://cyberpanel.net/KnowledgeBase/home/email-debugger-cyberpanel/" style="height: 23px;line-height: 21px;" class="btn btn-border btn-alt border-red btn-link font-red" title=""><span>{% trans "Debug Email Issues" %}</span></a>
                 <a class="pull-right btn btn-primary" href="{% url "createEmailAccount" %}">{% trans "Create Email" %}</a>
             </h2>
             <p>{% trans "List Emails Accounts. Change their passwords or delete them." %}</p>
@@ -60,7 +60,7 @@
 
                                 <div ng-hide="mailConfigured==1" class="col-sm-12">
                                     <div class="alert alert-danger">
-                                        <p>{% trans "SSL for email is not configured properly, you may get Self-Signed error on mail clients such as Outlook and Thunderbird. More details " %}<a href="https://cyberpanel.net/docs/6-self-signed-ssl-error-on-outlook-thunderbird/">here</a>. </p>
+                                        <p>{% trans "SSL for email is not configured properly, you may get Self-Signed error on mail clients such as Outlook and Thunderbird. More details " %}<a href="https://community.cyberpanel.net/t/6-self-signed-ssl-error-on-outlook-thunderbird/207">here</a>. </p>
                                     </div>
                                     <a target="_blank" href="">
                                         <button style="margin-bottom: 2%"  ng-click='fixMailSSL()' class="btn btn-primary">Fix Now</button>

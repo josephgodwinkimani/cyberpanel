@@ -589,8 +589,34 @@ app.controller('phpMyAdmin', function ($scope, $http, $window) {
         function ListInitialDatas(response) {
             $scope.cyberPanelLoading = true;
             if (response.data.status === 1) {
-                var rUrl = '/phpmyadmin/phpmyadminsignin.php?username=' + response.data.username + '&token=' + response.data.token;
-                $window.location.href = rUrl;
+                //var rUrl = '/phpmyadmin/phpmyadminsignin.php?username=' + response.data.username + '&token=' + response.data.token;
+                //$window.location.href = rUrl;
+
+                var form = document.createElement('form');
+                form.method = 'post';
+                form.action = '/phpmyadmin/phpmyadminsignin.php';
+
+// Create input elements for username and token
+                var usernameInput = document.createElement('input');
+                usernameInput.type = 'hidden';
+                usernameInput.name = 'username';
+                usernameInput.value = response.data.username;
+
+                var tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = 'token';
+                tokenInput.value = response.data.token;
+
+// Append input elements to the form
+                form.appendChild(usernameInput);
+                form.appendChild(tokenInput);
+
+// Append the form to the body
+                document.body.appendChild(form);
+
+// Submit the form
+                form.submit();
+
             } else {
             }
 
@@ -602,4 +628,371 @@ app.controller('phpMyAdmin', function ($scope, $http, $window) {
 
     }
 
+});
+
+
+app.controller('Mysqlmanager', function ($scope, $http, $compile, $window, $timeout) {
+    $scope.cyberPanelLoading = true;
+    $scope.mysql_status = 'test'
+
+
+    $scope.getstatus = function () {
+
+        $scope.cyberPanelLoading = false;
+
+        url = "/dataBases/getMysqlstatus";
+
+        var data = {};
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+
+        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
+
+
+        function ListInitialDatas(response) {
+            $scope.cyberPanelLoading = true;
+            if (response.data.status === 1) {
+                $scope.uptime = response.data.uptime;
+                $scope.connections = response.data.connections;
+                $scope.Slow_queries = response.data.Slow_queries;
+                $scope.processes = JSON.parse(response.data.processes);
+                $timeout($scope.showStatus, 3000);
+
+                new PNotify({
+                    title: 'Success',
+                    text: 'Successfully Fetched',
+                    type: 'success'
+                });
+            } else {
+                new PNotify({
+                    title: 'Error!',
+                    text: response.data.error_message,
+                    type: 'error'
+                });
+            }
+
+        }
+
+        function cantLoadInitialDatas(response) {
+            $scope.cyberPanelLoading = true;
+            new PNotify({
+                title: 'Error!',
+                text: "cannot load",
+                type: 'error'
+            });
+        }
+
+    }
+
+    $scope.getstatus();
+});
+
+
+app.controller('OptimizeMysql', function ($scope, $http) {
+    $scope.cyberPanelLoading = true;
+
+    $scope.generateRecommendations = function () {
+        $scope.cyberhosting = false;
+        url = "/dataBases/generateRecommendations";
+
+        var data = {
+            detectedRam: $("#detectedRam").text()
+        };
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+        $http.post(url, data, config).then(ListInitialData, cantLoadInitialData);
+
+
+        function ListInitialData(response) {
+            $scope.cyberhosting = true;
+            if (response.data.status === 1) {
+                $scope.suggestedContent = response.data.generatedConf;
+
+            } else {
+                new PNotify({
+                    title: 'Error!',
+                    text: response.data.error_message,
+                    type: 'error'
+                });
+            }
+
+        }
+
+        function cantLoadInitialData(response) {
+            $scope.cyberhosting = true;
+            new PNotify({
+                title: 'Error!',
+                text: 'Could not connect to server, please refresh this page.',
+                type: 'error'
+            });
+        }
+
+    };
+
+
+    $scope.applyMySQLChanges = function () {
+        $scope.cyberhosting = false;
+        url = "/dataBases/applyMySQLChanges";
+
+        var encodedContent = encodeURIComponent($scope.suggestedContent);
+
+        var data = {
+            suggestedContent: encodedContent
+        };
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+        $http.post(url, data, config).then(ListInitialData, cantLoadInitialData);
+
+
+        function ListInitialData(response) {
+            $scope.cyberhosting = true;
+            if (response.data.status === 1) {
+
+                new PNotify({
+                    title: 'Success',
+                    text: 'Changes successfully applied.',
+                    type: 'success'
+                });
+
+
+            } else {
+                new PNotify({
+                    title: 'Error!',
+                    text: response.data.error_message,
+                    type: 'error'
+                });
+            }
+
+        }
+
+        function cantLoadInitialData(response) {
+            $scope.cyberhosting = true;
+            new PNotify({
+                title: 'Error!',
+                text: 'Could not connect to server, please refresh this page.',
+                type: 'error'
+            });
+        }
+
+    };
+
+
+    $scope.restartMySQL = function () {
+        $scope.cyberPanelLoading = false;
+
+        url = "/dataBases/restartMySQL";
+
+        var data = {};
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+
+        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
+
+
+        function ListInitialDatas(response) {
+            $scope.cyberPanelLoading = true;
+            if (response.data.status === 1) {
+                new PNotify({
+                    title: 'Success',
+                    text: 'Successfully Done',
+                    type: 'success'
+                });
+            } else {
+                new PNotify({
+                    title: 'Error!',
+                    text: response.data.error_message,
+                    type: 'error'
+                });
+            }
+
+        }
+
+        function cantLoadInitialData(response) {
+            $scope.cyberhosting = true;
+            new PNotify({
+                title: 'Error!',
+                text: 'Could not connect to server, please refresh this page.',
+                type: 'error'
+            });
+        }
+    }
+})
+
+
+app.controller('mysqlupdate', function ($scope, $http, $timeout) {
+    $scope.cyberPanelLoading = true;
+    $scope.dbLoading = true;
+    $scope.modeSecInstallBox = true;
+    $scope.modsecLoading = true;
+    $scope.failedToStartInallation = true;
+    $scope.couldNotConnect = true;
+    $scope.modSecSuccessfullyInstalled = true;
+    $scope.installationFailed = true;
+
+    $scope.Upgardemysql = function () {
+        $scope.dbLoading = false;
+        $scope.installform = true;
+        $scope.modSecNotifyBox = true;
+        $scope.modeSecInstallBox = false;
+        $scope.modsecLoading = false;
+        $scope.failedToStartInallation = true;
+        $scope.couldNotConnect = true;
+        $scope.modSecSuccessfullyInstalled = true;
+        $scope.installationFailed = true;
+
+
+        url = "/dataBases/upgrademysqlnow";
+
+        var data = {
+            mysqlversion: $scope.version
+        };
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+        $http.post(url, data, config).then(ListInitialData, cantLoadInitialData);
+
+
+        function ListInitialData(response) {
+            $scope.cyberhosting = true;
+            if (response.data.status === 1) {
+                $scope.modSecNotifyBox = true;
+                $scope.modeSecInstallBox = false;
+                $scope.modsecLoading = false;
+                $scope.failedToStartInallation = true;
+                $scope.couldNotConnect = true;
+                $scope.modSecSuccessfullyInstalled = true;
+                $scope.installationFailed = true;
+
+                $scope.statusfile = response.data.tempStatusPath
+
+                $timeout(getRequestStatus, 1000);
+
+            } else {
+                $scope.errorMessage = response.data.error_message;
+
+                $scope.modSecNotifyBox = false;
+                $scope.modeSecInstallBox = true;
+                $scope.modsecLoading = true;
+                $scope.failedToStartInallation = false;
+                $scope.couldNotConnect = true;
+                $scope.modSecSuccessfullyInstalled = true;
+            }
+
+        }
+
+        function cantLoadInitialData(response) {
+            $scope.cyberhosting = true;
+            new PNotify({
+                title: 'Error!',
+                text: 'Could not connect to server, please refresh this page.',
+                type: 'error'
+            });
+        }
+    }
+
+
+    function getRequestStatus() {
+
+        $scope.modSecNotifyBox = true;
+        $scope.modeSecInstallBox = false;
+        $scope.modsecLoading = false;
+        $scope.failedToStartInallation = true;
+        $scope.couldNotConnect = true;
+        $scope.modSecSuccessfullyInstalled = true;
+        $scope.installationFailed = true;
+
+        url = "/dataBases/upgrademysqlstatus";
+
+        var data = {
+            statusfile: $scope.statusfile
+        };
+
+        var config = {
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        };
+
+
+        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
+
+
+        function ListInitialDatas(response) {
+
+
+            if (response.data.abort === 0) {
+
+                $scope.modSecNotifyBox = true;
+                $scope.modeSecInstallBox = false;
+                $scope.modsecLoading = false;
+                $scope.failedToStartInallation = true;
+                $scope.couldNotConnect = true;
+                $scope.modSecSuccessfullyInstalled = true;
+                $scope.installationFailed = true;
+
+                $scope.requestData = response.data.requestStatus;
+                $timeout(getRequestStatus, 1000);
+            } else {
+                // Notifications
+                $timeout.cancel();
+                $scope.modSecNotifyBox = false;
+                $scope.modeSecInstallBox = false;
+                $scope.modsecLoading = true;
+                $scope.failedToStartInallation = true;
+                $scope.couldNotConnect = true;
+
+                $scope.requestData = response.data.requestStatus;
+
+                if (response.data.installed === 0) {
+                    $scope.installationFailed = false;
+                    $scope.errorMessage = response.data.error_message;
+                } else {
+                    $scope.modSecSuccessfullyInstalled = false;
+                    $timeout(function () {
+                        $window.location.reload();
+                    }, 3000);
+                }
+
+            }
+
+        }
+
+        function cantLoadInitialDatas(response) {
+
+            $scope.modSecNotifyBox = false;
+            $scope.modeSecInstallBox = false;
+            $scope.modsecLoading = true;
+            $scope.failedToStartInallation = true;
+            $scope.couldNotConnect = false;
+            $scope.modSecSuccessfullyInstalled = true;
+            $scope.installationFailed = true;
+
+
+        }
+
+    }
 });

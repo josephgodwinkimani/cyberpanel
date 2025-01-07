@@ -3,7 +3,7 @@
 
 export LC_CTYPE=en_US.UTF-8
 SUDO_TEST=$(set)
-BRANCH_NAME="stable"
+BRANCH_NAME="main"
 GIT_URL="github.com/josephgodwinkimani/cyberpanel"
 GIT_CONTENT_URL="raw.githubusercontent.com/josephgodwinkimani/cyberpanel"
 
@@ -13,13 +13,15 @@ check_OS() {
 	  exit
 	fi
 
-	if grep -q -E "CentOS Linux 7|CentOS Linux 8" /etc/os-release ; then
-	  Server_OS="CentOS"
+	if grep -q -E "CentOS Linux 7|CentOS Linux 8|CentOS Stream" /etc/os-release ; then
+          Server_OS="CentOS"
+        elif grep -q "Red Hat Enterprise Linux" /etc/os-release ; then
+          Server_OS="RedHat"
 	elif grep -q "AlmaLinux-8" /etc/os-release ; then
 	  Server_OS="AlmaLinux"
 	elif grep -q -E "CloudLinux 7|CloudLinux 8" /etc/os-release ; then
 	  Server_OS="CloudLinux"
-	elif grep -q -E "Ubuntu 18.04|Ubuntu 20.04|Ubuntu 20.10" /etc/os-release ; then
+	elif grep -q -E "Ubuntu 18.04|Ubuntu 20.04|Ubuntu 20.10|Ubuntu 22.04" /etc/os-release ; then
 	  Server_OS="Ubuntu"
 	elif grep -q -E "Rocky Linux" /etc/os-release ; then
 	  Server_OS="RockyLinux"
@@ -28,8 +30,7 @@ check_OS() {
 	else
 	  echo -e "Unable to detect your system..."
 	  echo -e "\nCyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, AlmaLinux 8, RockyLinux 8, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03...\n"
-  	  Debug_Log2 "CyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, AlmaLinux 8, RockyLinux 8, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03... [404]"
-	  exit
+  	  exit
 	fi
 
 	Server_OS_Version=$(grep VERSION_ID /etc/os-release | awk -F[=,] '{print $2}' | tr -d \" | head -c2 | tr -d . )
@@ -37,7 +38,7 @@ check_OS() {
 
 	echo -e "System: $Server_OS $Server_OS_Version detected...\n"
 
-	if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] || [[ "$Server_OS" = "RockyLinux" ]] ; then
+	if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] || [[ "$Server_OS" = "RockyLinux" ]] || [[ "$Server_OS" = "RedHat" ]]; then
 	  Server_OS="CentOS"
   	  #CloudLinux gives version id like 7.8, 7.9, so cut it to show first number only
   	  #treat CloudLinux, Rocky and Alma as CentOS
@@ -61,7 +62,7 @@ if [[ $TMP_YN == "1" ]] ; then
 	fi
 		rm -f /etc/cyberpanel/watchdog.sh
 		rm -f /usr/local/bin/watchdog
-		wget -O /etc/cyberpanel/watchdog.sh https://$GIT_CONTENT_URL/$BRANCH_NAME/CPScripts/watchdog.sh
+		wget -O /etc/cyberpanel/watchdog.sh https://$GIT_CONTENT_URL/refs/heads/$BRANCH_NAME/CPScripts/watchdog.sh
 		chmod 700 /etc/cyberpanel/watchdog.sh
 		ln -s /etc/cyberpanel/watchdog.sh /usr/local/bin/watchdog
 		echo -e "\nWatchDog has been installed/updated..."
@@ -109,7 +110,7 @@ SUM1=${SUM:0:32}
 #get md5sum of local file
 
 rm -f /usr/local/CyberPanel/cyberpanel_utility.sh
-wget -q -O /usr/local/CyberPanel/cyberpanel_utility.sh https://cyberpanel.sh/misc/cyberpanel_utility.sh
+wget -q -O /usr/local/CyberPanel/cyberpanel_utility.sh https://$GIT_CONTENT_URL/refs/heads/$BRANCH_NAME/cyberpanel_utility.sh
 chmod 600 /usr/local/CyberPanel/cyberpanel_utility.sh
 
 
@@ -161,7 +162,7 @@ fi
 #sleep 10
 echo -e "CyberPanel upgrading..."
 rm -f /usr/local/cyberpanel_upgrade.sh
-wget -O /usr/local/cyberpanel_upgrade.sh -q https://$GIT_CONTENT_URL/${BRANCH_NAME}/cyberpanel_upgrade.sh
+wget -O /usr/local/cyberpanel_upgrade.sh -q https://$GIT_CONTENT_URL/refs/heads/$BRANCH_NAME/cyberpanel_upgrade.sh
 chmod 700 /usr/local/cyberpanel_upgrade.sh
 /usr/local/cyberpanel_upgrade.sh
 rm -f /usr/local/cyberpanel_upgrade.sh
@@ -170,7 +171,7 @@ exit
 
 show_help() {
 echo -e "\nFetching information...\n"
-curl --silent https://cyberpanel.sh/misc/faq.sh | sudo -u nobody bash | less -r
+curl --silent https://$GIT_CONTENT_URL/refs/heads/$BRANCH_NAME/faq.sh | sudo -u nobody bash | less -r
 exit
 }
 
