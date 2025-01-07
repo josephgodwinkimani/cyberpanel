@@ -36,13 +36,12 @@ fi
 # Setup a cron to clear stuff older then session.gc_maxlifetime currently set in the php.ini for each version
 
 # Create cron file if missing.
-# https://community.cyberpanel.net/t/how-to-increase-inodes-limit/37767/45
 if [[ ! -e /usr/local/CyberCP/bin/cleansessions ]]; then
 	touch /usr/local/CyberCP/bin/cleansessions
 	chmod +x /usr/local/CyberCP/bin/cleansessions
 	cat >> /usr/local/CyberCP/bin/cleansessions <<"EOL"
 #!/bin/bash
-for version in $(ls /usr/local/lsws|grep lsphp); do echo ""; echo "PHP $version"; session_time=$(/usr/local/lsws/${version}/bin/php -i |grep -Ei 'session.gc_maxlifetime'| grep -Eo "[[:digit:]]+"|sort -u); find -O3 "/var/lib/lsphp/session/${version}" -ignore_readdir_race -depth -mindepth 1 -name 'sess_*' -type f -cmin +$((session_time / 60)) -delete; done
+for version in $(ls /usr/local/lsws|grep lsphp); do echo ""; echo "PHP $version"; session_time=$(/usr/local/lsws/${version}/bin/php -i |grep -Ei 'session.gc_maxlifetime'| grep -Eo "[[:digit:]]+"|sort -u); find -O3 "/var/lib/lsphp/session/${version}" -ignore_readdir_race -depth -mindepth 1 -name 'sess_*' -type f -cmin 120 -delete; done
 EOL
 
 fi

@@ -2,6 +2,8 @@
 import os.path
 import sys
 import django
+from django.shortcuts import redirect
+
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
 django.setup()
@@ -83,6 +85,58 @@ class DatabaseManager:
         template = 'databases/deleteDatabase.html'
         proc = httpProc(request, template, {'websitesList': websitesName}, 'deleteDatabase')
         return proc.render()
+
+    def MySQLManager(self, request = None, userID = None):
+
+        try:
+
+            from plogical.processUtilities import ProcessUtilities
+            if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
+
+                url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
+                data = {
+                    "name": "Filemanager",
+                    "IP": ACLManager.fetchIP()
+                }
+
+                import requests
+                response = requests.post(url, data=json.dumps(data))
+                Status = response.json()['status']
+
+                if (Status == 1):
+                    template = 'baseTemplate/FileManager.html'
+                else:
+                    return redirect("https://cyberpanel.net/cyberpanel-addons")
+            else:
+                template = 'databases/mysqlmanager.html'
+        except BaseException as msg:
+            template = 'databases/mysqlmanager.html'
+
+        template = 'databases/mysqlmanager.html'
+        proc = httpProc(request, template, None, 'admin')
+        return proc.render()
+    def OptimizeMySQL(self, request = None, userID = None):
+        from cloudAPI.cloudManager import CloudManager
+        cm = CloudManager()
+        result = cm.fetchRam(request)
+
+        data1 = json.loads(result.content)
+
+        data = {}
+        data['ramInGB'] = data1.get('ramInGB')
+        data['conf'] = data1.get('conf')
+
+        template = 'databases/OptimizeMySQL.html'
+        proc = httpProc(request, template, data, 'admin')
+        return proc.render()
+
+    def Upgardemysql(self, request = None, userID = None):
+        data={}
+        data['mysqlversions']=['10.6','10.11']
+        template = 'databases/Updatemysql.html'
+        proc = httpProc(request, template, data, 'admin')
+        return proc.render()
+
 
     def fetchDatabases(self, userID = None, data = None):
         try:
@@ -307,6 +361,8 @@ class DatabaseManager:
 
         except BaseException as msg:
             print("0," + str(msg))
+
+
 
 def main():
 

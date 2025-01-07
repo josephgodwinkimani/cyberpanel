@@ -18,6 +18,7 @@ try:
     from manageServices.models import PDNSStatus, SlaveServers
 except:
     pass
+
 import CloudFlare
 from plogical.processUtilities import ProcessUtilities
 
@@ -114,15 +115,12 @@ class DNS:
             ipData = f.read()
             ipAddress = ipData.split('\n', 1)[0]
 
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.6/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
-
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
 
             import tldextract
 
-            extractDomain = tldextract.extract(domain)
+            no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+
+            extractDomain = no_cache_extract(domain)
             topLevelDomain = extractDomain.domain + '.' + extractDomain.suffix
             subDomain = extractDomain.subdomain
 
@@ -145,7 +143,6 @@ class DNS:
                                                  disabled=0,
                                                  auth=1)
                                 record.save()
-
                         else:
                             zone = Domains(admin=admin, name=topLevelDomain, type="NATIVE")
                     except:
@@ -193,120 +190,138 @@ class DNS:
                                              auth=1)
                             record.save()
 
-                    content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 604800 3600"
+                    content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 1209600 3600"
 
-                    soaRecord = Records(domainOwner=zone,
-                                        domain_id=zone.id,
-                                        name=topLevelDomain,
-                                        type="SOA",
-                                        content=content,
-                                        ttl=3600,
-                                        prio=0,
-                                        disabled=0,
-                                        auth=1)
-                    soaRecord.save()
+                    # soaRecord = Records(domainOwner=zone,
+                    #                     domain_id=zone.id,
+                    #                     name=topLevelDomain,
+                    #                     type="SOA",
+                    #                     content=content,
+                    #                     ttl=3600,
+                    #                     prio=0,
+                    #                     disabled=0,
+                    #                     auth=1)
+                    # soaRecord.save()
+
+                    DNS.createDNSRecord(zone, topLevelDomain, "SOA", content, 0, 3600)
 
                     ## Main A record.
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="A",
-                                     content=ipAddress,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="A",
+                    #                  content=ipAddress,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, topLevelDomain, "A", ipAddress, 0, 3600)
 
                     # CNAME Records.
 
                     cNameValue = "www." + topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=cNameValue,
-                                     type="CNAME",
-                                     content=topLevelDomain,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=cNameValue,
+                    #                  type="CNAME",
+                    #                  content=topLevelDomain,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, cNameValue, "CNAME", topLevelDomain, 0, 3600)
 
                     cNameValue = "ftp." + topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=cNameValue,
-                                     type="CNAME",
-                                     content=topLevelDomain,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=cNameValue,
+                    #                  type="CNAME",
+                    #                  content=topLevelDomain,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, cNameValue, "CNAME", topLevelDomain, 0, 3600)
 
                     ## MX Record.
 
-                    mxValue = "mail." + topLevelDomain
+                    mxValue = topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="MX",
-                                     content=mxValue,
-                                     ttl=3600,
-                                     prio="10",
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="MX",
+                    #                  content=mxValue,
+                    #                  ttl=3600,
+                    #                  prio="10",
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=mxValue,
-                                     type="A",
-                                     content=ipAddress,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    DNS.createDNSRecord(zone, topLevelDomain, "MX", mxValue, 10, 3600)
+
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=mxValue,
+                    #                  type="A",
+                    #                  content=ipAddress,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, mxValue, "A", ipAddress, 0, 3600)
 
                     ## TXT Records for mail
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="TXT",
-                                     content="v=spf1 a mx ip4:" + ipAddress + " ~all",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name="_dmarc." + topLevelDomain,
-                                     type="TXT",
-                                     content="v=DMARC1; p=none",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name="_domainkey." + topLevelDomain,
-                                     type="TXT",
-                                     content="t=y; o=~;",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name="_dmarc." + topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="v=DMARC1; p=none",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, "_dmarc." + topLevelDomain, "TXT", "v=DMARC1; p=none;", 0, 3600)
+
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name="_domainkey." + topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="t=y; o=~;",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, "_domainkey." + topLevelDomain, "TXT", "t=y; o=~;", 0, 3600)
             else:
                 if Domains.objects.filter(name=topLevelDomain).count() == 0:
                     try:
@@ -320,120 +335,138 @@ class DNS:
 
                     zone.save()
 
-                    content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 604800 3600"
+                    content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 1209600 3600"
 
-                    soaRecord = Records(domainOwner=zone,
-                                        domain_id=zone.id,
-                                        name=topLevelDomain,
-                                        type="SOA",
-                                        content=content,
-                                        ttl=3600,
-                                        prio=0,
-                                        disabled=0,
-                                        auth=1)
-                    soaRecord.save()
+                    # soaRecord = Records(domainOwner=zone,
+                    #                     domain_id=zone.id,
+                    #                     name=topLevelDomain,
+                    #                     type="SOA",
+                    #                     content=content,
+                    #                     ttl=3600,
+                    #                     prio=0,
+                    #                     disabled=0,
+                    #                     auth=1)
+                    # soaRecord.save()
+
+                    DNS.createDNSRecord(zone, topLevelDomain, "SOA", content, 0, 3600)
 
                     ## Main A record.
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="A",
-                                     content=ipAddress,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="A",
+                    #                  content=ipAddress,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, topLevelDomain, "A", ipAddress, 0, 3600)
 
                     # CNAME Records.
 
                     cNameValue = "www." + topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=cNameValue,
-                                     type="CNAME",
-                                     content=topLevelDomain,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=cNameValue,
+                    #                  type="CNAME",
+                    #                  content=topLevelDomain,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, cNameValue, "CNAME", topLevelDomain, 0, 3600)
 
                     cNameValue = "ftp." + topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=cNameValue,
-                                     type="CNAME",
-                                     content=topLevelDomain,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=cNameValue,
+                    #                  type="CNAME",
+                    #                  content=topLevelDomain,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, cNameValue, "CNAME", topLevelDomain, 0, 3600)
 
                     ## MX Record.
 
-                    mxValue = "mail." + topLevelDomain
+                    mxValue = topLevelDomain
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="MX",
-                                     content=mxValue,
-                                     ttl=3600,
-                                     prio="10",
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="MX",
+                    #                  content=mxValue,
+                    #                  ttl=3600,
+                    #                  prio="10",
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=mxValue,
-                                     type="A",
-                                     content=ipAddress,
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    DNS.createDNSRecord(zone, mxValue, "MX", mxValue, 10, 3600)
+
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=mxValue,
+                    #                  type="A",
+                    #                  content=ipAddress,
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, mxValue, "A", ipAddress, 0, 3600)
 
                     ## TXT Records for mail
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name=topLevelDomain,
-                                     type="TXT",
-                                     content="v=spf1 a mx ip4:" + ipAddress + " ~all",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name=topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name="_dmarc." + topLevelDomain,
-                                     type="TXT",
-                                     content="v=DMARC1; p=none",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
 
-                    record = Records(domainOwner=zone,
-                                     domain_id=zone.id,
-                                     name="_domainkey." + topLevelDomain,
-                                     type="TXT",
-                                     content="t=y; o=~;",
-                                     ttl=3600,
-                                     prio=0,
-                                     disabled=0,
-                                     auth=1)
-                    record.save()
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name="_dmarc." + topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="v=DMARC1; p=none",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, "_dmarc." + topLevelDomain, "TXT", "v=DMARC1; p=none;", 0, 3600)
+
+                    # record = Records(domainOwner=zone,
+                    #                  domain_id=zone.id,
+                    #                  name="_domainkey." + topLevelDomain,
+                    #                  type="TXT",
+                    #                  content="t=y; o=~;",
+                    #                  ttl=3600,
+                    #                  prio=0,
+                    #                  disabled=0,
+                    #                  auth=1)
+                    # record.save()
+
+                    DNS.createDNSRecord(zone, "_domainkey." + topLevelDomain, "TXT", "t=y; o=~;", 0, 3600)
 
                 ## Creating sub-domain level record.
 
@@ -458,53 +491,61 @@ class DNS:
 
                 ## MX Records
 
-                mxValue = "mail." + actualSubDomain
+                mxValue = actualSubDomain
 
-                record = Records(domainOwner=zone,
-                                 domain_id=zone.id,
-                                 name=actualSubDomain,
-                                 type="MX",
-                                 content=mxValue,
-                                 ttl=3600,
-                                 prio="10",
-                                 disabled=0,
-                                 auth=1)
-                record.save()
+                # record = Records(domainOwner=zone,
+                #                  domain_id=zone.id,
+                #                  name=actualSubDomain,
+                #                  type="MX",
+                #                  content=mxValue,
+                #                  ttl=3600,
+                #                  prio="10",
+                #                  disabled=0,
+                #                  auth=1)
+                # record.save()
+
+                DNS.createDNSRecord(zone, actualSubDomain, "MX", mxValue, 10, 3600)
 
                 ## TXT Records
 
-                record = Records(domainOwner=zone,
-                                 domain_id=zone.id,
-                                 name=actualSubDomain,
-                                 type="TXT",
-                                 content="v=spf1 a mx ip4:" + ipAddress + " ~all",
-                                 ttl=3600,
-                                 prio=0,
-                                 disabled=0,
-                                 auth=1)
-                record.save()
+                # record = Records(domainOwner=zone,
+                #                  domain_id=zone.id,
+                #                  name=actualSubDomain,
+                #                  type="TXT",
+                #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                #                  ttl=3600,
+                #                  prio=0,
+                #                  disabled=0,
+                #                  auth=1)
+                # record.save()
 
-                record = Records(domainOwner=zone,
-                                 domain_id=zone.id,
-                                 name="_dmarc." + actualSubDomain,
-                                 type="TXT",
-                                 content="v=DMARC1; p=none",
-                                 ttl=3600,
-                                 prio=0,
-                                 disabled=0,
-                                 auth=1)
-                record.save()
+                DNS.createDNSRecord(zone, actualSubDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
 
-                record = Records(domainOwner=zone,
-                                 domain_id=zone.id,
-                                 name="_domainkey." + actualSubDomain,
-                                 type="TXT",
-                                 content="t=y; o=~;",
-                                 ttl=3600,
-                                 prio=0,
-                                 disabled=0,
-                                 auth=1)
-                record.save()
+                # record = Records(domainOwner=zone,
+                #                  domain_id=zone.id,
+                #                  name="_dmarc." + actualSubDomain,
+                #                  type="TXT",
+                #                  content="v=DMARC1; p=none",
+                #                  ttl=3600,
+                #                  prio=0,
+                #                  disabled=0,
+                #                  auth=1)
+                # record.save()
+
+                DNS.createDNSRecord(zone, "_dmarc." + actualSubDomain, "TXT", "v=DMARC1; p=none;", 0, 3600)
+
+                # record = Records(domainOwner=zone,
+                #                  domain_id=zone.id,
+                #                  name="_domainkey." + actualSubDomain,
+                #                  type="TXT",
+                #                  content="t=y; o=~;",
+                #                  ttl=3600,
+                #                  prio=0,
+                #                  disabled=0,
+                #                  auth=1)
+                # record.save()
+
+                DNS.createDNSRecord(zone, "_domainkey." + actualSubDomain, "TXT", "t=y; o=~;", 0, 3600)
 
             if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
                 command = 'sudo systemctl restart pdns'
@@ -521,15 +562,11 @@ class DNS:
     def createDKIMRecords(domain):
         try:
 
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.6/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
-
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
-
             import tldextract
 
-            extractDomain = tldextract.extract(domain)
+            no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+
+            extractDomain = no_cache_extract(domain)
             topLevelDomain = extractDomain.domain + '.' + extractDomain.suffix
             subDomain = extractDomain.subdomain
 
@@ -553,6 +590,12 @@ class DNS:
                                  disabled=0,
                                  auth=1)
                 record.save()
+            #### in else we need to update record if new key found
+            else:
+                rcrd = Records.objects.get(domainOwner=zone, name="default._domainkey." + topLevelDomain)
+                rcrd.content =  output[leftIndex:rightIndex]
+                rcrd.save()
+
 
             if len(subDomain) > 0:
                 if Records.objects.filter(domainOwner=zone, name="default._domainkey." + domain).count() == 0:
@@ -566,6 +609,11 @@ class DNS:
                                      disabled=0,
                                      auth=1)
                     record.save()
+                #### in else we need to update record of new key found
+                else:
+                    rcrd = Records.objects.get(domainOwner=zone, name="default._domainkey." + domain)
+                    rcrd.content = output[leftIndex:rightIndex]
+                    rcrd.save()
 
             if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
                 command = ' systemctl restart pdns'
@@ -628,14 +676,45 @@ class DNS:
     def createDNSRecord(zone, name, type, value, priority, ttl):
         try:
 
+            if Records.objects.filter(name=name, type=type, content=value).count() > 0:
+                return
+
             if zone.type == 'MASTER':
-                getSOA = Records.objects.get(domainOwner=zone, type='SOA')
-                soaContent = getSOA.content.split(' ')
-                soaContent[2] = str(int(soaContent[2]) + 1)
-                getSOA.content = " ".join(soaContent)
-                getSOA.save()
+                try:
+                    for getSOA in Records.objects.filter(domainOwner=zone, type='SOA'):
+                    #getSOA = Records.objects.get(domainOwner=zone, type='SOA')
+                        soaContent = getSOA.content.split(' ')
+                        soaContent[2] = str(int(soaContent[2]) + 1)
+                        getSOA.content = " ".join(soaContent)
+                        getSOA.save()
+                except:
+                    pass
+
 
             if type == 'NS':
+                if Records.objects.filter(name=name, type=type, content=value).count() == 0:
+                    record = Records(domainOwner=zone,
+                                     domain_id=zone.id,
+                                     name=name,
+                                     type=type,
+                                     content=value,
+                                     ttl=ttl,
+                                     prio=priority,
+                                     disabled=0,
+                                     auth=1)
+                    record.save()
+
+                    if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
+                        command = 'ls -la /etc/systemd/system/multi-user.target.wants/pdns.service'
+                        result = ProcessUtilities.outputExecutioner(command)
+
+                        if result.find('No such file') == -1:
+                            command = 'sudo systemctl restart pdns'
+                            ProcessUtilities.executioner(command)
+
+                return
+
+            if type == 'SOA':
                 if Records.objects.filter(name=name, type=type, content=value).count() == 0:
                     record = Records(domainOwner=zone,
                                      domain_id=zone.id,
@@ -687,7 +766,7 @@ class DNS:
                                  type=type,
                                  content=value,
                                  ttl=ttl,
-                                 prio=priority,
+                                 prio=str(priority),
                                  disabled=0,
                                  auth=1)
                 record.save()
@@ -794,3 +873,80 @@ class DNS:
         except:
             ## There does not exist a zone for this domain.
             pass
+
+    @staticmethod
+    def ConfigurePowerDNSInAcme():
+        try:
+            from plogical.randomPassword import generate_pass
+            path = '/root/.acme.sh/account.conf'
+
+            APIKey = generate_pass(16)
+
+            CurrentContent = ProcessUtilities.outputExecutioner(f'cat {path}')
+
+            if CurrentContent.find('PDNS_Url') == -1:
+                PDNSContent = f"""
+PDNS_Url='http://localhost:8081'
+PDNS_ServerId='localhost'
+PDNS_Token='{APIKey}'
+"""
+
+                command = f'echo "{PDNSContent}" >> {path}'
+                ProcessUtilities.executioner(command,None, True)
+
+                if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                    PDNSPath = '/etc/pdns/pdns.conf'
+                else:
+                    PDNSPath = '/etc/powerdns/pdns.conf'
+
+
+                PDNSConf = f"""
+# Turn on the webserver API
+webserver=yes
+webserver-address=0.0.0.0
+webserver-port=8081
+
+# Set the API key for accessing the API
+api=yes
+api-key={APIKey}
+
+webserver-allow-from=0.0.0.0/0
+"""
+                command = f'echo "{PDNSConf}" >> {PDNSPath}'
+                ProcessUtilities.executioner(command,None, True)
+
+                command = 'systemctl restart pdns'
+                ProcessUtilities.executioner(command)
+
+
+            return 1, None
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(f'ConfigurePowerDNSInAcme, Error: {str(msg)}')
+            return 0, str(msg)
+
+    @staticmethod
+    def ConfigureCloudflareInAcme(SAVED_CF_Key, SAVED_CF_Email):
+        try:
+
+            ## remove existing keys first
+
+            path = '/root/.acme.sh/account.conf'
+
+            command = f"sed -i '/SAVED_CF_Key/d;/SAVED_CF_Email/d' {path}"
+            ProcessUtilities.executioner(command)
+
+
+            CFContent = f"""
+SAVED_CF_Key='{SAVED_CF_Key}'
+SAVED_CF_Email='{SAVED_CF_Email}'
+"""
+
+            command = f'echo "{CFContent}" >> {path}'
+            ProcessUtilities.executioner(command, None, True)
+
+            return 1, None
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(f'ConfigureCloudflareInAcme, Error: {str(msg)}')
+            return 0, str(msg)

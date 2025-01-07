@@ -70,46 +70,50 @@ class cPanelImporter:
                 if value[2] == 'main':
                     self.MainSite = value
                     self.PHPVersion = value[9]
-                    self.InheritPHP = self.PHPDecider()
+                    self.InheritPHP = self.PHPDecider(None)
+
+                    if os.path.exists(ProcessUtilities.debugPath):
+                        print(f'Main domain: {self.MainSite}, MainSite php version or version to be used for sites with no PHP {self.InheritPHP}')
+
                 else:
                     self.OtherDomainNames.append(key)
                     self.OtherDomains.append(value)
 
+                    if os.path.exists(ProcessUtilities.debugPath):
+                        print(f'Other domains: {key}, Value {str(value)}')
+
         except BaseException as msg:
             print(str(msg))
 
-    def PHPDecider(self):
+    def PHPDecider(self, domainName):
 
-        if self.PHPVersion == 'inherit':
-            self.PHPVersion = 'PHP 7.4'
-        if self.PHPVersion.find('53') > -1:
-            self.PHPVersion = 'PHP 5.3'
-        elif self.PHPVersion.find('54') > -1:
-            self.PHPVersion = 'PHP 5.4'
-        elif self.PHPVersion.find('55') > -1:
-            self.PHPVersion = 'PHP 5.5'
-        elif self.PHPVersion.find('56') > -1:
-            self.PHPVersion = 'PHP 5.6'
-        elif self.PHPVersion.find('70') > -1:
-            self.PHPVersion = 'PHP 7.0'
-        elif self.PHPVersion.find('71') > -1:
-            self.PHPVersion = 'PHP 7.1'
-        elif self.PHPVersion.find('72') > -1:
-            self.PHPVersion = 'PHP 7.2'
-        elif self.PHPVersion.find('73') > -1:
-            self.PHPVersion = 'PHP 7.3'
-        elif self.PHPVersion.find('74') > -1:
-            self.PHPVersion = 'PHP 7.4'
-        elif self.PHPVersion.find('80') > -1:
-            self.PHPVersion = 'PHP 8.0'
-            
-        if self.PHPVersion == '':
-            if self.InheritPHP != '':
-                self.PHPVersion = self.InheritPHP
-            else:
-                self.PHPVersion = 'PHP 7.4'
+        if self.PHPVersion == 'inherit' or not self.PHPVersion:
+            self.PHPVersion = self.InheritPHP or 'PHP 7.4'
+        else:
+            version_number = ''.join(filter(str.isdigit, self.PHPVersion))
+            if len(version_number) == 2:  # Ensure there are exactly two digits
+                self.PHPVersion = f'PHP {version_number[0]}.{version_number[1]}'
 
-        return self.PHPVersion
+            ### if the PHP Version extracted from file is not available then change it to next available
+
+            try:
+
+                from plogical.phpUtilities import phpUtilities
+
+                if domainName !=None:
+                    completePathToConfigFile = f'/usr/local/lsws/conf/vhosts/{domainName}/vhost.conf'
+                else:
+                    completePathToConfigFile = None
+
+                phpVersion = phpUtilities.FindIfSaidPHPIsAvaiableOtherwiseMaketheNextOneAvailableToUse(completePathToConfigFile, self.PHPVersion)
+
+                if phpVersion != self.PHPVersion:
+                    logging.statusWriter(self.logFile, f'PHP version for {self.mainDomain} has been changed from {self.PHPVersion} to {phpVersion}.', 1)
+                    self.PHPVersion = phpVersion
+            except:
+                pass
+
+            return self.PHPVersion
 
     def SetupSSL(self, path, domain):
 
@@ -205,7 +209,7 @@ class cPanelImporter:
             logging.statusWriter(self.logFile, message, 1)
 
             self.PHPVersion = self.MainSite[9]
-            self.PHPDecider()
+            self.PHPDecider(None)
 
             message = 'PHP version of %s is %s.' % (DomainName, self.PHPVersion)
             logging.statusWriter(self.logFile, message, 1)
@@ -250,7 +254,7 @@ class cPanelImporter:
             if result[0] == 1:
                 pass
             else:
-                message = 'Failed to create main site %s from archive file: %s' % (DomainName, self.backupFile)
+                message = f'Failed to create main site %s from archive file: %s. Error {str(result)}' % (DomainName, self.backupFile)
                 logging.statusWriter(self.logFile, message, 1)
                 return 0
 
@@ -299,6 +303,9 @@ class cPanelImporter:
 
             movePath = '%s/homedir/%s' % (
             CompletPathToExtractedArchive, self.homeDir)
+
+            if os.path.exists(ProcessUtilities.debugPath):
+                logging.statusWriter(self.logFile, f'Directory from where docRoot of main site data will be moved {movePath}')
 
             shutil.copytree(movePath, nowPath, symlinks=True)
 
@@ -353,7 +360,7 @@ class cPanelImporter:
                     ## Find PHP Version
 
                     self.PHPVersion = self.OtherDomains[counter][9]
-                    self.PHPDecider()
+                    self.PHPDecider(None)
 
                     message = 'Calling core to create %s.' % (items)
                     logging.statusWriter(self.logFile, message, 1)
@@ -489,7 +496,7 @@ class cPanelImporter:
                     zone.save()
                     pass
 
-                content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 604800 3600"
+                content = "ns1." + topLevelDomain + " hostmaster." + topLevelDomain + " 1 10800 3600 1209600 3600"
 
                 soaRecord = Records(domainOwner=zone,
                                     domain_id=zone.id,
@@ -515,7 +522,7 @@ class cPanelImporter:
                             SOACheck = 1
                             continue
 
-                        if SOACheck == 1 and items.find(')') > -1:
+                        if (SOACheck == 1 and items.find(')') > -1) or (SOACheck == 1 and items.find('NS') > -1 and items.find(zone.name) > -1):
                             SOACheck = 0
                             start = 1
                             continue
@@ -523,6 +530,9 @@ class cPanelImporter:
                             pass
 
                         if start == 1:
+                            if os.path.exists(ProcessUtilities.debugPath):
+                                message = f'Current DNS record we are creating for {zone.name} is {items}'
+                                logging.statusWriter(self.logFile, message, 1)
                             if len(items) > 3:
                                 if items.find("DKIM1") > -1:
                                     continue
@@ -587,6 +597,41 @@ class cPanelImporter:
             ##
             passFile = "/etc/cyberpanel/mysqlPassword"
 
+            try:
+                import json
+                jsonData = json.loads(open(passFile, 'r').read())
+
+                mysqluser = jsonData['mysqluser']
+                mysqlpassword = jsonData['mysqlpassword']
+                mysqlport = jsonData['mysqlport']
+                mysqlhost = jsonData['mysqlhost']
+                password = mysqlpassword
+            except:
+                passFile = "/etc/cyberpanel/mysqlPassword"
+                f = open(passFile)
+                data = f.read()
+                password = data.split('\n', 1)[0]
+                mysqlhost = 'localhost'
+                mysqlport = '3306'
+                mysqluser = 'root'
+
+            cnfPath = '/home/cyberpanel/.my.cnf'
+
+            if not os.path.exists(cnfPath):
+                cnfContent = """[mysqldump]
+user=root
+password=%s
+max_allowed_packet=1024M
+[mysql]
+user=root
+password=%s
+""" % (password, password)
+                writeToFile = open(cnfPath, 'w')
+                writeToFile.write(cnfContent)
+                writeToFile.close()
+
+                os.chmod(cnfPath, 0o600)
+
             f = open(passFile)
             data = f.read()
             password = data.split('\n', 1)[0]
@@ -612,14 +657,40 @@ class cPanelImporter:
                         message = 'Failed while restoring database %s from backup file %s, error message: %s' % (items.replace('.sql', ''), self.backupFile, str(msg))
                         logging.statusWriter(self.logFile, message, 1)
 
-                    command = 'sudo mysql -u root -p' + password + ' ' + items.replace('.sql', '')
+                    command =  f'mysql --defaults-file=/home/cyberpanel/.my.cnf -u {mysqluser} --host={mysqlhost} --port {mysqlport} ' + items.replace('.sql', '')
+
+                    message = f'Full command to restore DB {command}'
+                    logging.statusWriter(self.logFile, message, 1)
 
                     cmd = shlex.split(command)
 
                     DBPath = "%s/%s" % (DatabasesPath, items)
 
+                    # with open(DBPath, 'r') as f:
+                    #     message = f'Full command to restore DB {cmd}'
+                    #     logging.statusWriter(self.logFile, message, 1)
+                    #
+                    #     res = subprocess.call(cmd, stdin=f)
+
                     with open(DBPath, 'r') as f:
-                        res = subprocess.call(cmd, stdin=f)
+
+
+                        try:
+                            # Run the command using subprocess.run, capturing stdout and stderr
+                            result = subprocess.run(cmd, stdin=f, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                                    universal_newlines=True)
+
+                            # Log stdout and stderr
+                            logging.statusWriter(self.logFile, f'STDOUT: {result.stdout}', 1)
+                            logging.statusWriter(self.logFile, f'STDERR: {result.stderr}', 1)
+
+                            # Check if the command failed
+                            if result.returncode != 0:
+                                logging.statusWriter(self.logFile,
+                                                     f'Command failed with return code {result.returncode}', 2)
+                        except Exception as e:
+                            # Log any exception that occurs
+                            logging.statusWriter(self.logFile, f'Exception occurred: {str(e)}', 2)
 
                     website = Websites.objects.get(domain=self.mainDomain)
 
@@ -629,21 +700,33 @@ class cPanelImporter:
 
                     data = open(CommandsPath, 'r').readlines()
 
-                    for inItems in data:
-                        if inItems.find('GRANT ALL PRIVILEGES') > -1 and inItems.find('localhost') > -1 and inItems.find('_test') == -1:
-                            cDBName = inItems.split('`')[1].replace('\\', '')
-                            logging.statusWriter(self.logFile, inItems, 1)
-                            if cDBName == items.replace('.sql', ''):
-                                cDBUser = inItems.replace("`","'").replace("\\","").split("'")[1]
-                                message = 'Database user for %s is %s.' % (cDBName, cDBUser)
-                                logging.statusWriter(self.logFile, message, 1)
-                                if Databases.objects.filter(dbUser=cDBUser).count() > 0:
-                                    continue
-                                break
+                    ### temp disable if user not added, need to remove this try,catch and to ensure user gets added
 
+                    try:
 
-                    db = Databases(website=website, dbName=items.replace('.sql', ''), dbUser=cDBUser)
-                    db.save()
+                        for inItems in data:
+                            if (inItems.find('GRANT ALL PRIVILEGES') > -1 or inItems.find('GRANT USAGE') > -1) and inItems.find('localhost') > -1 and inItems.find('_test') == -1:
+                                cDBName = inItems.split('`')[1].replace('\\', '')
+                                logging.statusWriter(self.logFile, inItems, 1)
+                                if cDBName == items.replace('.sql', ''):
+                                    cDBUser = inItems.replace("`","'").replace("\\","").split("'")[1]
+                                    message = 'Database user for %s is %s.' % (cDBName, cDBUser)
+                                    logging.statusWriter(self.logFile, message, 1)
+                                    if Databases.objects.filter(dbUser=cDBUser).count() > 0:
+                                        continue
+                                    break
+                    except:
+                        pass
+
+                    ### temp disable if user not added, need to remove this try,catch and to ensure user gets added
+
+                    try:
+                        db = Databases(website=website, dbName=items.replace('.sql', ''), dbUser=cDBUser)
+                        db.save()
+                    except:
+                        db = Databases(website=website, dbName=items.replace('.sql', ''), dbUser='root')
+                        db.save()
+                        pass
 
                     message = 'MySQL dump successfully restored for %s.' % (items.replace('.sql', ''))
                     logging.statusWriter(self.logFile, message, 1)
@@ -659,6 +742,9 @@ class cPanelImporter:
                 if items.find("--") > -1 or items.find("'cyberpanel'@") > -1:
                     continue
                 try:
+                    if os.path.exists(ProcessUtilities.debugPath):
+                        message = f'Currently executing MySQL command {items}'
+                        logging.statusWriter(self.logFile, message, 1)
                     cursor.execute(items)
                 except BaseException as msg:
                     message = 'Failed while restoring database %s from backup file %s, error message: %s' % (
@@ -776,9 +862,18 @@ class cPanelImporter:
 
             ####
 
+            if os.path.exists(ProcessUtilities.debugPath):
+                logging.statusWriter(self.logFile, f'Content of user data before starting to restore emails {str(UserData)}')
+
 
             for items in os.listdir(UserData):
+
                 FinalMailDomainPath = '%s/%s' % (UserData, items)
+
+                if os.path.exists(ProcessUtilities.debugPath):
+                    logging.statusWriter(self.logFile,
+                                         f'Final email path for {items} is {str(FinalMailDomainPath)}')
+
                 if os.path.isdir(FinalMailDomainPath):
                     if items[0] == '.':
                         continue
@@ -807,6 +902,10 @@ class cPanelImporter:
 
                                     MailPathInBackup = '%s/%s' % (FinalMailDomainPath, it)
 
+                                    if os.path.exists(ProcessUtilities.debugPath):
+                                        logging.statusWriter(self.logFile,
+                                                             f'Mail path in backup for {items} is {str(MailPathInBackup)}')
+
                                     command = 'mv %s %s/Maildir' % (MailPathInBackup, MailPath)
                                     subprocess.call(command, shell=True)
 
@@ -821,6 +920,10 @@ class cPanelImporter:
                                     ProcessUtilities.normalExecutioner(command)
 
                                     MailPathInBackup = '%s/%s' % (FinalMailDomainPath, it)
+
+                                    if os.path.exists(ProcessUtilities.debugPath):
+                                        logging.statusWriter(self.logFile,
+                                                             f'Mail path in backup for {items} is {str(MailPathInBackup)}')
 
                                     command = 'mv %s %s/Mdbox' % (MailPathInBackup, MailPath)
                                     subprocess.call(command, shell=True)

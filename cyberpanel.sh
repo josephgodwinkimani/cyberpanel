@@ -52,6 +52,7 @@ echo -e "This may take few seconds..."
 Silent="Off"
 Server_Edition="OLS"
 Admin_Pass="1234567"
+Mysql_Pass=""
 
 Memcached="Off"
 Redis="Off"
@@ -61,7 +62,7 @@ PowerDNS_Switch="On"
 PureFTPd_Switch="On"
 
 Server_IP=""
-Server_Country="Unknown"
+Server_Country="Unknow"
 Server_OS=""
 Server_OS_Version=""
 Server_Provider='Undefined'
@@ -72,14 +73,13 @@ Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/jo
 Panel_Version=${Temp_Value:12:3}
 Panel_Build=${Temp_Value:25:1}
 
-# Branch_Name="v${Panel_Version}.${Panel_Build}"
-Branch_Name="main"
+Branch_Name="v${Panel_Version}.${Panel_Build}"
 
-if [[ $Branch_Name = "main" ]] ; then
+if [[ $Branch_Name = v*.*.* ]] ; then
   echo -e  "\nBranch name fetched...$Branch_Name"
 else
   echo -e "\nUnable to fetch Branch name..."
-  echo -e "\nPlease try again in few moments, if this error still happens, please contact support"
+  echo -e "\nPlease try again in few moments, if this error still happens, please contact https://github.com/josephgodwinkimani/cyberpanel"
   exit
 fi
 
@@ -114,7 +114,7 @@ echo -e "\n${1}=${2}\n" >> "/var/log/cyberpanel_debug_$(date +"%Y-%m-%d")_${Rand
 Debug_Log2() {
 Check_Server_IP "$@" >/dev/null 2>&1
 echo -e "\n${1}" >> /var/log/installLogs.txt
-#curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
+curl --max-time 20 -d '{"ipAddress": "'"$Server_IP"'", "InstallCyberPanelStatus": "'"$1"'"}' -H "Content-Type: application/json" -X POST https://cloud.cyberpanel.net/servers/RecvData  >/dev/null 2>&1
 }
 
 Branch_Check() {
@@ -217,7 +217,7 @@ echo -e "\nChecking server location...\n"
 if [[ "$Server_Country" != "CN" ]] ; then
   Server_Country=$(curl --silent --max-time 10 -4 https://cyberpanel.sh/?country)
   if [[ ${#Server_Country} != "2" ]] ; then
-   Server_Country="Unknown"
+   Server_Country="Unknow"
   fi
 fi
 #to avoid repeated check_ip called by debug_log2 to break force mirror for CN servers.
@@ -229,12 +229,16 @@ fi
 
 if [[ "$*" = *"--mirror"* ]] ; then
   Server_Country="CN"
-  echo -e "Force to use mirror server due to --mirror argument...\n"
+  # echo -e "Force to use mirror server due to --mirror argument...\n"
+  echo -e "Sorry no mirror server for you...\n"
+  exit
 fi
 
 if [[ "$Server_Country" = *"CN"* ]] ; then
   Server_Country="CN"
-  echo -e "Setting up to use mirror server...\n"
+  #echo -e "Setting up to use mirror server...\n"
+  echo -e "Sorry no mirror server for you...\n"
+  exit
 fi
 }
 
@@ -249,18 +253,22 @@ if [ -z "$XDG_CURRENT_DESKTOP" ]; then
     echo -e "Desktop OS not detected. Proceeding\n"
 else
     echo "$XDG_CURRENT_DESKTOP defined appears to be a desktop OS. Bailing as CyberPanel is incompatible."
-    echo -e "\nCyberPanel is supported on server OS types only. Such as Ubuntu 18.04 x86_64, Ubuntu 20.04 x86_64, Ubuntu 20.10 x86_64, CentOS 7.x, CentOS 8.x, AlmaLinux 8.x and CloudLinux 7.x...\n"
+    echo -e "\nCyberPanel is supported on server OS types only. Such as Ubuntu 18.04 x86_64, Ubuntu 20.04 x86_64, Ubuntu 20.10 x86_64, Ubuntu 22.04 x86_64, CentOS 8.x, AlmaLinux 8.x and CloudLinux 7.x...\n"
     exit
 fi
 
-if ! uname -m | grep -q x86_64 ; then
-  echo -e "x86_64 system is required...\n"
+if ! uname -m | grep -qE 'x86_64|aarch64' ; then
+  echo -e "x86_64 or ARM system is required...\n"
   exit
 fi
 
-if grep -q -E "CentOS Linux 7|CentOS Linux 8" /etc/os-release ; then
+if grep -q -E "CentOS Linux 7|CentOS Linux 8|CentOS Stream" /etc/os-release ; then
   Server_OS="CentOS"
+elif grep -q "Red Hat Enterprise Linux" /etc/os-release ; then
+  Server_OS="RedHat"
 elif grep -q "AlmaLinux-8" /etc/os-release ; then
+  Server_OS="AlmaLinux"
+elif grep -q "AlmaLinux-9" /etc/os-release ; then
   Server_OS="AlmaLinux"
 elif grep -q -E "CloudLinux 7|CloudLinux 8" /etc/os-release ; then
   Server_OS="CloudLinux"
@@ -272,8 +280,8 @@ elif grep -q -E "openEuler 20.03|openEuler 22.03" /etc/os-release ; then
   Server_OS="openEuler"
 else
   echo -e "Unable to detect your system..."
-  echo -e "\nCyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, AlmaLinux 8, RockyLinux 8, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03...\n"
-  Debug_Log2 "CyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, AlmaLinux 8, RockyLinux 8, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03... [404]"
+  echo -e "\nCyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, CentOS 9, RHEL 8, RHEL 9, AlmaLinux 8, AlmaLinux 9, RockyLinux 8, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03...\n"
+  Debug_Log2 "CyberPanel is supported on x86_64 based Ubuntu 18.04, Ubuntu 20.04, Ubuntu 20.10, Ubuntu 22.04, CentOS 7, CentOS 8, CentOS 9, RHEL 8, RHEL 9, AlmaLinux 8, RockyLinux 8, AlmaLinux 9, CloudLinux 7, CloudLinux 8, openEuler 20.03, openEuler 22.03... [404]"
   exit
 fi
 
@@ -282,7 +290,7 @@ Server_OS_Version=$(grep VERSION_ID /etc/os-release | awk -F[=,] '{print $2}' | 
 
 echo -e "System: $Server_OS $Server_OS_Version detected...\n"
 
-if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] || [[ "$Server_OS" = "RockyLinux" ]] ; then
+if [[ $Server_OS = "CloudLinux" ]] || [[ "$Server_OS" = "AlmaLinux" ]] || [[ "$Server_OS" = "RockyLinux" ]] || [[ "$Server_OS" = "RedHat" ]] ; then
   Server_OS="CentOS"
   #CloudLinux gives version id like 7.8, 7.9, so cut it to show first number only
   #treat CloudLinux, Rocky and Alma as CentOS
@@ -347,6 +355,10 @@ elif [[ -d /usr/local/directadmin ]]; then
 elif [[ -d /etc/httpd/conf/plesk.conf.d/ ]] || [[ -d /etc/apache2/plesk.conf.d/ ]]; then
   echo -e "\nPlesk detected...\n"
   Debug_Log2 "Plesk detected...exit... [404]"
+  exit
+elif [[ -d /usr/local/panel/ ]]; then
+  echo -e "\nOpenPanel detected...\n"
+  Debug_Log2 "OpenPanel detected...exit... [404]"
   exit
 fi
 }
@@ -699,7 +711,11 @@ if [[ $(expr "x$Tmp_Input" : 'x[Yy]') -gt 1 ]]; then
   echo -e ""
   printf "%s" "Remote MySQL Port:  "
   read -r MySQL_Port
+
+  # assert the password here
+  Mysql_Pass=MySQL_Password
 else
+  # we assert Mysql_Pass later
   echo -e "\nLocal MySQL selected..."
 fi
 
@@ -715,7 +731,7 @@ fi
 
 echo -e "\nPlease choose to use default admin password \e[31m1234567\e[39m, randomly generate one \e[31m(recommended)\e[39m or specify the admin password?"
 printf "%s" "Choose [d]fault, [r]andom or [s]et password: [d/r/s] "
-read -r Tmp_Input
+Tmp_Input="r"
 
 if [[ $Tmp_Input =~ ^(d|D| ) ]] || [[ -z $Tmp_Input ]]; then
   Admin_Pass="1234567"
@@ -832,6 +848,40 @@ if [[ $Server_OS = "CentOS" ]] ; then
   rm -f /etc/yum.repos.d/epel.repo
   rm -f /etc/yum.repos.d/epel.repo.rpmsave
 
+  if [[ "$Server_OS_Version" = "9" ]]; then
+
+    # Check if architecture is aarch64
+    if uname -m | grep -q 'aarch64' ; then
+      # Run the following commands if architecture is aarch64
+      /usr/bin/crb enable
+      curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+      dnf install libxcrypt-compat -y
+    fi
+
+    subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms || yum config-manager --set-enabled crb > /dev/null 2>&1
+    yum install -y https://cyberpanel.sh/dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+      Check_Return "yum repo" "no_exit"
+    yum install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
+      Check_Return "yum repo" "no_exit"
+    #!/bin/bash
+
+# Check if architecture is x86_64
+if uname -m | grep -q 'x86_64' ; then
+  # Create the MariaDB repository configuration file for x86_64 architecture
+  cat <<EOF >/etc/yum.repos.d/MariaDB.repo
+# MariaDB 10.11 CentOS repository list - created 2021-08-06 02:01 UTC
+# http://downloads.mariadb.org/mariadb/repositories/
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/10.11/rhel9-amd64/
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+enabled=1
+gpgcheck=1
+EOF
+  echo "MariaDB repository file created for x86_64 architecture."
+fi
+  fi
+
   if [[ "$Server_OS_Version" = "8" ]]; then
     rpm --import https://cyberpanel.sh/www.centos.org/keys/RPM-GPG-KEY-CentOS-Official
     rpm --import https://cyberpanel.sh/dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
@@ -844,6 +894,7 @@ if [[ $Server_OS = "CentOS" ]] ; then
 
     dnf config-manager --set-enabled PowerTools > /dev/null 2>&1
     dnf config-manager --set-enabled powertools > /dev/null 2>&1
+
   
 #    cat <<EOF >/etc/yum.repos.d/CentOS-PowerTools-CyberPanel.repo
 #[powertools-for-cyberpanel]
@@ -912,8 +963,10 @@ fi
 Debug_Log2 "Setting up repositories...,1"
 
 if [[ "$Server_Country" = "CN" ]] ; then
-  Pre_Install_Setup_CN_Repository
-  Debug_Log2 "Setting up repositories for CN server...,1"
+  #Pre_Install_Setup_CN_Repository
+  #Debug_Log2 "Setting up repositories for CN server...,1"
+  echo -e "Sorry no mirror server for you...\n"
+  exit
 fi
 
 if [[ "$Server_Country" = "CN" ]] || [[ "$Server_Provider" = "Alibaba Cloud" ]] || [[ "$Server_Provider" = "Tencent Cloud" ]]; then
@@ -980,7 +1033,12 @@ Debug_Log2 "Setting up repositories for CN server...,1"
 Download_Requirement() {
 for i in {1..50} ;
   do
-  wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments.txt"
+  if [[ "$Server_OS_Version" = "22" ]] || [[ "$Server_OS_Version" = "9" ]]; then
+   wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments.txt"
+  else
+   wget -O /usr/local/requirments.txt "${Git_Content_URL}/${Branch_Name}/requirments-old.txt"
+  fi
+
   if grep -q "Django==" /usr/local/requirments.txt ; then
     break
   else
@@ -1008,6 +1066,13 @@ if [[ "$Server_OS" = "CentOS" ]] || [[ "$Server_OS" = "openEuler" ]] ; then
       Check_Return
     dnf install -y gpgme-devel
       Check_Return
+  elif [[ "$Server_OS_Version" = "9" ]] ; then
+
+    #!/bin/bash
+
+
+    dnf install -y libnsl zip wget strace net-tools curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel MariaDB-server MariaDB-client MariaDB-devel curl-devel git platform-python-devel tar socat python3 zip unzip bind-utils gpgme-devel openssl-devel
+      Check_Return
   elif [[ "$Server_OS_Version" = "20" ]] || [[ "$Server_OS_Version" = "22" ]] ; then
     dnf install -y libnsl zip wget strace net-tools curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git python3-devel tar socat python3 zip unzip bind-utils
       Check_Return
@@ -1023,10 +1088,10 @@ else
   fi
 
   if [[ "$Server_OS_Version" = "22" ]] ; then
-    DEBIAN_FRONTEND=noninteracitve apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
+    DEBIAN_FRONTEND=noninteractive apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
      Check_Return
   else
-    DEBIAN_FRONTEND=noninteracitve apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libmariadbclient-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip
+    DEBIAN_FRONTEND=noninteractive apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libmariadbclient-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip
      Check_Return
   fi
 
@@ -1041,6 +1106,10 @@ else
   DEBIAN_FRONTEND=noninteractive apt install -y python3-venv
     Check_Return
 
+  DEBIAN_FRONTEND=noninteractive apt install -y cron inetutils-ping
+    Check_Return
+# Oracle Ubuntu ARM misses ping and cron 
+
   DEBIAN_FRONTEND=noninteractive apt install -y locales
   locale-gen "en_US.UTF-8"
   update-locale LC_ALL="en_US.UTF-8"
@@ -1052,7 +1121,7 @@ export LC_CTYPE=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 #need to set lang to address some pip module installation issue.
 
-Retry_Command "pip install --default-timeout=3600 virtualenv==16.7.9"
+Retry_Command "pip install --default-timeout=3600 virtualenv"
 
 Download_Requirement
 
@@ -1064,18 +1133,22 @@ virtualenv -p /usr/bin/python3 /usr/local/CyberPanel
   Check_Return
 fi
 
-if [[ "$Server_OS" = "Ubuntu" ]] && [[ "$Server_OS_Version" != "20" ]] ; then
-  # shellcheck disable=SC1091
-  source /usr/local/CyberPanel/bin/activate
-else
+if [ "$Server_OS" = "Ubuntu" ]; then
   # shellcheck disable=SC1091
   . /usr/local/CyberPanel/bin/activate
+else
+  # shellcheck disable=SC1091
+  source /usr/local/CyberPanel/bin/activate
 fi
 
 Debug_Log2 "Installing requirments..,3"
 
 Retry_Command "pip install --default-timeout=3600 -r /usr/local/requirments.txt"
   Check_Return "requirments" "no_exit"
+
+if [[ "$Server_OS" = "Ubuntu" ]] && [[ "$Server_OS_Version" = "22" ]] ; then
+  cp /usr/bin/python3.10 /usr/local/CyberCP/bin/python3
+fi
 
 rm -rf cyberpanel
 echo -e "\nFetching files from ${Git_Clone_URL}...\n"
@@ -1095,16 +1168,6 @@ cp -r cyberpanel /usr/local/cyberpanel
 cd cyberpanel/install || exit
 
 Debug_Log2 "Necessary components installed..,5"
-}
-
-# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
-
-Pre_Install_crowdsec(){
-if [[ "$Server_OS" = "Ubuntu" ]]; then
-curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | sudo bash
-else
-curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh | sudo bash
-fi
 }
 
 Pre_Install_System_Tweak() {
@@ -1339,6 +1402,11 @@ if [[ "$Server_OS" = "CentOS" ]] ; then
   #get this set up beforehand.
   fi
 
+  if [[ "$Server_OS_Version" = "9" ]] ; then
+    sed -i 's|rpm -Uvh http://rpms.litespeedtech.com/centos/litespeed-repo-1.1-1.el8.noarch.rpm|curl -o /etc/yum.repos.d/litespeed.repo https://rpms.litespeedtech.com/centos/litespeed.repo|g' install.py
+    sed -i "s|mirrorlist=http://mirrorlist.ghettoforge.org/el/8/gf/\$basearch/mirrorlist|baseurl=https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/el/9/gf/x86_64/|g" /etc/yum.repos.d/gf.repo
+    sed -i "s|mirrorlist=http://mirrorlist.ghettoforge.org/el/8/plus/\$basearch/mirrorlist|baseurl=https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/el/9/plus/x86_64/|g" /etc/yum.repos.d/gf.repo
+  fi
 fi
 
 sed -i "s|https://www.litespeedtech.com/|https://cyberpanel.sh/www.litespeedtech.com/|g" installCyberPanel.py
@@ -1537,7 +1605,7 @@ fi
 
 Post_Install_Addon_Redis() {
 if [[ "$Server_OS" = "CentOS" ]]; then
-  if [[ "$Server_OS_Version" = "8" ]]; then
+  if [[ "$Server_OS_Version" = "8" || "$Server_OS_Version" = "9" ]]; then
     yum install -y lsphp??-redis redis
   else
     yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
@@ -1662,7 +1730,7 @@ chmod 600 /etc/cyberpanel/webadmin_passwd
 
 Post_Install_Setup_Watchdog() {
 if [[ "$Watchdog" = "On" ]]; then
-  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/main/CPScripts/watchdog.sh"
+  wget -O /etc/cyberpanel/watchdog.sh "${Git_Content_URL}/stable/CPScripts/watchdog.sh"
   chmod 700 /etc/cyberpanel/watchdog.sh
   ln -s /etc/cyberpanel/watchdog.sh /usr/local/bin/watchdog
   #shellcheck disable=SC2009
@@ -1690,7 +1758,7 @@ fi
 
 Post_Install_Setup_Utility() {
 if [[ ! -f /usr/bin/cyberpanel_utility ]]; then
-  wget -q -O /usr/bin/cyberpanel_utility https://cyberpanel.sh/misc/cyberpanel_utility.sh
+  wget -q -O /usr/bin/cyberpanel_utility https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/refs/heads/main/cyberpanel_utility.sh
   chmod 700 /usr/bin/cyberpanel_utility
 fi
 }
@@ -1710,31 +1778,34 @@ echo "                                                                   "
 echo "                Visit: https://$Server_IP:8090                     "
 echo "                Panel username: admin                              "
 if [[ "$Custom_Pass" = "True" ]]; then
-echo "                Panel password: $Admin_Pass                        "
+echo "                Panel password: *****                              "
 else
 echo "                Panel password: $Admin_Pass                        "
 fi
 echo "                Configure Rclone: rclone config                    "
-#echo "                Visit: https://$Server_IP:7080                     "
-#echo "                WebAdmin console username: admin                   "
-#echo "                WebAdmin console password: $Webadmin_Pass          "
-#echo "                                                                   "
+echo "                Visit: https://$Server_IP:7080                     "
+echo "                WebAdmin console username: admin                   "
+echo "                WebAdmin console password: $Webadmin_Pass          "
+echo "                                                                   "
 echo "                Visit: https://$Server_IP:8090/snappymail/?admin     "
 echo "                snappymail Admin username: admin                     "
 echo "                snappymail Admin password: $snappymailAdminPass        "
 echo "                                                                   "
+echo "                Mysql Admin username: root                     "
+echo "                Mysql Admin password: $Mysql_Pass        "
+echo "                                                                   "
 echo -e "             Run \e[31mcyberpanel help\e[39m to get FAQ info"
-echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version.         "
-echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools .             "
-echo "                                                                                            "
+echo -e "             Run \e[31mcyberpanel upgrade\e[39m to upgrade it to latest version."
+echo -e "             Run \e[31mcyberpanel utility\e[39m to access some handy tools ."
+echo "                                                                   "
 echo "              Website   : https://github.com/josephgodwinkimani/cyberpanel                  "
 echo "              CrowdSec  : https://doc.crowdsec.net/docs/intro                               "
 echo "              RClone    : https://rclone.org/docs/                                          "
 echo "              Docs      : https://cyberpanel.net/docs/                                      "
-echo "                                                                                            "
-echo -e "            Enjoy your accelerated Internet by                                           "
-echo -e "                CyberPanel & $Word 				                                              "
-echo "############################################################################################"
+echo "                                                                   "
+echo -e "            Enjoy your accelerated Internet by                  "
+echo -e "                CyberPanel & $Word 				                     "
+echo "###################################################################"
 
 if [[ "$Server_Provider" != "Undefined" ]]; then
   echo -e "\033[0;32m$Server_Provider\033[39m detected..."
@@ -1826,6 +1897,20 @@ fi
 Retry_Command "pip install --default-timeout=3600 -r /usr/local/requirments.txt"
  Check_Return "requirments.txt" "no_exit"
 
+if [[ "$Server_OS" = "Ubuntu" ]] && [[ "$Server_OS_Version" = "22" ]] ; then
+  cp /usr/bin/python3.10 /usr/local/CyberCP/bin/python3
+else
+  if [[ "$Server_OS_Version" = "9" ]] || [[ "$Server_OS_Version" = "8" ]] || [[ "$Server_OS_Version" = "20" ]]; then
+    echo "PYTHONHOME=/usr" > /usr/local/lscp/conf/pythonenv.conf
+  else
+    # Uncomment and use the following lines if necessary for other OS versions
+    # rsync -av --ignore-existing /usr/lib64/python3.9/ /usr/local/CyberCP/lib64/python3.9/
+    # Check_Return
+    :
+  fi
+fi
+
+
 chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib
 chown -R cyberpanel:cyberpanel /usr/local/CyberCP/lib64 || true
 }
@@ -1862,7 +1947,7 @@ sed -i "s|lsws-5.3.5|lsws-$LSWS_Stable_Version|g" /usr/local/CyberCP/serverStatu
 
 
 if [[ ! -f /usr/bin/cyberpanel_utility ]]; then
-  wget -q -O /usr/bin/cyberpanel_utility https://cyberpanel.sh/misc/cyberpanel_utility.sh
+  wget -q -O /usr/bin/cyberpanel_utility https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/refs/heads/main/cyberpanel_utility.sh
   chmod 700 /usr/bin/cyberpanel_utility
 fi
 
@@ -1880,7 +1965,7 @@ echo "echo \$@ > /etc/cyberpanel/adminPass" >> /usr/bin/adminPass
 chmod 700 /usr/bin/adminPass
 
 rm -f /usr/bin/php
-ln -s /usr/local/lsws/lsphp74/bin/php /usr/bin/php
+ln -s /usr/local/lsws/lsphp80/bin/php /usr/bin/php
 
 if [[ "$Server_OS" = "CentOS" ]] ; then
 #all centos 7/8 post change goes here
@@ -1966,6 +2051,10 @@ fi
 # If valid hostname is set that resolves externally we can issue an ssl. This will create the hostname as a website so we can issue the SSL and do our first login without SSL warnings or exceptions needed.
 HostName=$(hostname --fqdn); [ -n "$(dig @1.1.1.1 +short "$HostName")" ]  &&  echo "$HostName resolves to valid IP. Setting up hostname SSL" && cyberpanel createWebsite --package Default --owner admin --domainName $(hostname --fqdn) --email root@localhost --php 7.4 && cyberpanel hostNameSSL --domainName $(hostname --fqdn)
 
+# final assertion after all steps are done
+if [ -z "$Mysql_Pass" ]; then
+  Mysql_Pass=$(cat /etc/cyberpanel/mysqlPassword)
+fi
 
 }
 
@@ -2019,10 +2108,6 @@ Pre_Install_Setup_Repository
 Pre_Install_Setup_Git_URL
 
 Pre_Install_Required_Components
-
-# https://github.com/tbaldur/cyberpanel-LTS/commit/65e3febe12856860b71625b07954ca6fe36c8082
-
-Pre_Install_crowdsec
 
 Pre_Install_System_Tweak
 

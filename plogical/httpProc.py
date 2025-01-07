@@ -2,6 +2,8 @@
 
 from django.shortcuts import render, HttpResponse
 import json
+from plogical.processUtilities import ProcessUtilities
+
 
 class httpProc:
     def __init__(self, request, templateName, data = None, function = None):
@@ -34,12 +36,38 @@ class httpProc:
                 if self.data == None:
                     self.data = {}
 
+                from IncBackups.models import OneClickBackups
+                if OneClickBackups.objects.filter(owner=admin).count() == 0:
+                    self.data['backupDisplay'] = 1
+                else:
+                    self.data['backupDisplay'] = 0
+
+                ### Onboarding checks
+
+                if currentACL['admin']:
+                    try:
+                        admin = Administrator.objects.get(userName='admin')
+                        config = json.loads(admin.config)
+                        self.data['onboarding'] = config['onboarding']
+                    except:
+                        self.data['onboarding'] = 0
+                        self.data['onboardingError'] = """
+Please launch the <a href="/base/onboarding">set-up wizard</a> to get maximum out of your CyberPanel installation.
+"""
+                else:
+
+                    self.data['onboarding'] = 2
+
                 ipFile = "/etc/cyberpanel/machineIP"
                 f = open(ipFile)
                 ipData = f.read()
                 ipAddress = ipData.split('\n', 1)[0]
                 self.data['ipAddress'] = ipAddress
                 self.data['fullName'] = '%s %s' % (admin.firstName, admin.lastName)
+                # self.data['serverCheck'] = 1
+
+                if ProcessUtilities.decideServer() == ProcessUtilities.ent:
+                    self.data['serverCheck'] = 1
 
                 ### Load Custom CSS
                 try:
@@ -54,6 +82,7 @@ class httpProc:
                         self.data['cosmetic'] = cosmetic
                     except:
                         pass
+
 
                 ACLManager.GetServiceStatus(self.data)
 

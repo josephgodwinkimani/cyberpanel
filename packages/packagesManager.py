@@ -20,7 +20,7 @@ class PackagesManager:
 
     def packagesHome(self):
         proc = httpProc(self.request, 'packages/index.html',
-                        None, 'admin')
+                        None, 'createPackage')
         return proc.render()
 
     def createPacakge(self):
@@ -177,6 +177,8 @@ class PackagesManager:
             userID = self.request.session['userID']
             currentACL = ACLManager.loadedACL(userID)
 
+            admin = Administrator.objects.get(pk=userID)
+
             if ACLManager.currentContextPermission(currentACL, 'modifyPackage') == 0:
                 return ACLManager.loadErrorJson('saveStatus', 0)
 
@@ -192,28 +194,44 @@ class PackagesManager:
 
             modifyPack = Package.objects.get(packageName=packageName)
 
-            modifyPack.diskSpace = data['diskSpace']
-            modifyPack.bandwidth = data['bandwidth']
-            modifyPack.ftpAccounts = data['ftpAccounts']
-            modifyPack.dataBases = data['dataBases']
-            modifyPack.emailAccounts = data['emails']
-            modifyPack.allowedDomains = data['allowedDomains']
+            if modifyPack.admin == admin:
 
-            try:
-                modifyPack.allowFullDomain = int(data['allowFullDomain'])
-            except:
-                modifyPack.allowFullDomain = 1
+                modifyPack.diskSpace = data['diskSpace']
+                modifyPack.bandwidth = data['bandwidth']
+                modifyPack.ftpAccounts = data['ftpAccounts']
+                modifyPack.dataBases = data['dataBases']
+                modifyPack.emailAccounts = data['emails']
+                modifyPack.allowedDomains = data['allowedDomains']
 
-            try:
-                modifyPack.enforceDiskLimits = int(data['enforceDiskLimits'])
-            except:
-                modifyPack.enforceDiskLimits = 0
+                try:
+                    modifyPack.allowFullDomain = int(data['allowFullDomain'])
+                except:
+                    modifyPack.allowFullDomain = 1
 
-            modifyPack.save()
+                try:
+                    modifyPack.enforceDiskLimits = int(data['enforceDiskLimits'])
+                except:
+                    modifyPack.enforceDiskLimits = 0
 
-            data_ret = {'status': 1, 'saveStatus': 1, 'error_message': "None"}
-            json_data = json.dumps(data_ret)
-            return HttpResponse(json_data)
+                modifyPack.save()
+
+                ## Fix https://github.com/usmannasir/cyberpanel/issues/998
+
+                # from plogical.IncScheduler import IncScheduler
+                # isPU = IncScheduler('CalculateAndUpdateDiskUsage', {})
+                # isPU.start()
+
+                from plogical.processUtilities import ProcessUtilities
+                command = '/usr/local/CyberCP/bin/python /usr/local/CyberCP/plogical/IncScheduler.py UpdateDiskUsageForce'
+                ProcessUtilities.outputExecutioner(command)
+
+                data_ret = {'status': 1, 'saveStatus': 1, 'error_message': "None"}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            else:
+                data_ret = {'status': 0, 'saveStatus': 0, 'error_message': "You don't own this package."}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
 
         except BaseException as msg:
             data_ret = {'status': 0, 'saveStatus': 0, 'error_message': str(msg)}

@@ -24,13 +24,14 @@ def router(request):
         if admin.api == 0:
             return cm.ajaxPre(0, 'API Access Disabled.')
 
-        if controller == 'statusFunc':
-            pass
-        else:
+        try:
             if cm.verifyLogin(request)[0] == 1:
                 pass
             else:
                 return cm.verifyLogin(request)[1]
+        except BaseException as msg:
+            return cm.ajaxPre(0, f"Something went wrong during token processing. ErrorL {str(msg)}")
+
 
         ## Debug Log
 
@@ -118,6 +119,10 @@ def router(request):
             return cm.ChangeStateThemes()
         elif controller == 'DeleteThemes':
             return cm.DeleteThemes()
+        elif controller == 'ChangeLinuxUserPassword':
+            from websiteFunctions.website import WebsiteManager
+            wm = WebsiteManager()
+            return wm.saveSSHAccessChanges(admin.id, data)
         elif controller == 'GetServerPublicSSHkey':
             return cm.GetServerPublicSSHkey()
         elif controller == 'SubmitPublicKey':

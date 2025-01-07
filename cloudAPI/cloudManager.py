@@ -344,6 +344,16 @@ class CloudManager:
     def statusFunc(self):
         try:
             statusFile = self.data['statusFile']
+
+            if ACLManager.CheckStatusFilleLoc(statusFile):
+                pass
+            else:
+                data_ret = {'abort': 1, 'installStatus': 0, 'installationProgress': "100",
+                            'currentStatus': 'Invalid status file.'}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+
+
             statusData = open(statusFile, 'r').readlines()
             try:
                 lastLine = statusData[-1]
@@ -1070,11 +1080,11 @@ class CloudManager:
 
     def fetchRam(self, request):
         try:
-            request.session['userID'] = self.admin.pk
-            currentACL = ACLManager.loadedACL(self.admin.pk)
-
-            if currentACL['admin'] == 0:
-                return self.ajaxPre(0, 'Only administrators can see MySQL status.')
+            # request.session['userID'] = self.admin.pk
+            # currentACL = ACLManager.loadedACL(self.admin.pk)
+            #
+            # if currentACL['admin'] == 0:
+            #     return self.ajaxPre(0, 'Only administrators can see MySQL status.')
 
             # if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu:
             #    return self.ajaxPre(0, 'This feature is currently only available on CentOS.')
@@ -1974,8 +1984,8 @@ class CloudManager:
             except:
                 path = '/home/%s/public_html' % (self.data['domain'])
 
-            command = 'wp core version --skip-plugins --skip-themes --path=%s' % (path)
-            finalDic['version'] = str(ProcessUtilities.outputExecutioner(command, website.externalApp))
+            command = 'wp core version --skip-plugins --skip-themes --path=%s 2>/dev/null' % (path)
+            finalDic['version'] = str(ProcessUtilities.outputExecutioner(command, website.externalApp, True))
 
             ## LSCache
 
@@ -2633,8 +2643,8 @@ class CloudManager:
 
             path = '/home/%s/public_html' % (self.data['domainName'])
 
-            command = 'wp core version --allow-root --skip-plugins --skip-themes --path=%s' % (path)
-            result = ProcessUtilities.outputExecutioner(command)
+            command = 'wp core version --allow-root --skip-plugins --skip-themes --path=%s 2>/dev/null' % (path)
+            result = ProcessUtilities.outputExecutioner(command, None, True)
 
             if result.find('Error:') > -1:
                 final_dic = {'status': 0, 'fetchStatus': 0,
@@ -2832,6 +2842,9 @@ class CloudManager:
             command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
             ProcessUtilities.executioner(command)
 
+            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python*/site-packages/tldextract/.suffix_cache'
+            ProcessUtilities.executioner(command, None, True)
+
             ##
 
             ipFile = "/etc/cyberpanel/machineIP"
@@ -2846,15 +2859,11 @@ class CloudManager:
 
             zones = cf.zones.get(params = {'per_page':100})
 
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.6/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
-
-            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
-            ProcessUtilities.executioner(command)
 
             for website in Websites.objects.all():
                 import tldextract
-                extractDomain = tldextract.extract(website.domain)
+                no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+                extractDomain = no_cache_extract(website.domain)
                 topLevelDomain = extractDomain.domain + '.' + extractDomain.suffix
 
                 for zone in zones:
@@ -2897,11 +2906,15 @@ class CloudManager:
             command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
             ProcessUtilities.executioner(command)
 
+            command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python*/site-packages/tldextract/.suffix_cache'
+            ProcessUtilities.executioner(command, None, True)
+
             from websiteFunctions.models import ChildDomains
             for website in ChildDomains.objects.all():
 
                 import tldextract
-                extractDomain = tldextract.extract(website.domain)
+                no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+                extractDomain = no_cache_extract(website.domain)
                 topLevelDomain = extractDomain.domain + '.' + extractDomain.suffix
 
                 for zone in zones:

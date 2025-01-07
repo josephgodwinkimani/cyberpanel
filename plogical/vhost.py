@@ -5,7 +5,6 @@ import sys
 import django
 
 from plogical.acl import ACLManager
-
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
 try:
@@ -245,6 +244,7 @@ class vhost:
                     currentConf = currentConf.replace('{open_basedir}', 'php_admin_value open_basedir "/tmp:$VH_ROOT"')
                 else:
                     currentConf = currentConf.replace('{open_basedir}', '')
+
 
 
                 confFile.write(currentConf)
@@ -618,8 +618,23 @@ class vhost:
     def changePHP(vhFile, phpVersion):
 
         from pathlib import Path
-        HomePath = Path("/home/%s" % (vhFile.split('/')[-2]))
-        virtualHostUser = HomePath.owner()
+        domain = vhFile.split('/')[6]
+        print(domain)
+        try:
+            website = Websites.objects.get(domain=domain)
+            externalApp = website.externalApp
+        except:
+            child = ChildDomains.objects.get(domain=domain)
+            externalApp = child.master.externalApp
+        #HomePath = website.externalApp
+        virtualHostUser = externalApp
+
+        logging.CyberCPLogFileWriter.writeToFile(f"PHP version before making sure its available or not: {phpVersion} and vhFile: {vhFile}")
+
+        from plogical.phpUtilities import phpUtilities
+
+        phpVersion = phpUtilities.FindIfSaidPHPIsAvaiableOtherwiseMaketheNextOneAvailableToUse(None, phpVersion)
+
         phpDetachUpdatePath = '/home/%s/.lsphp_restart.txt' % (vhFile.split('/')[-2])
         if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
             try:
@@ -635,6 +650,8 @@ class vhost:
                     writeDataToFile = open(vhFile, "w")
 
                     path = "  path                    /usr/local/lsws/lsphp" + str(php) + "/bin/lsphp\n"
+
+                    logging.CyberCPLogFileWriter.writeToFile(f"PHP String to be written {path}")
 
                     for items in data:
                         if items.find("/usr/local/lsws/lsphp") > -1 and items.find("path") > -1:
@@ -657,7 +674,10 @@ class vhost:
                     logging.CyberCPLogFileWriter.writeToFile('apache vhost 1')
 
                     php = PHPManager.getPHPString(phpVersion)
-                    command = "systemctl restart php%s-php-fpm" % (php)
+
+                    phpService = ApacheVhost.DecideFPMServiceName(phpVersion)
+
+                    command = f"systemctl restart {phpService}"
                     ProcessUtilities.normalExecutioner(command)
 
                 print("1,None")

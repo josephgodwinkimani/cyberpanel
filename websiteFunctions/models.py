@@ -18,6 +18,8 @@ class Websites(models.Model):
     state = models.IntegerField(default=1)
     externalApp = models.CharField(max_length=30, default=None)
     config = models.TextField(default='')
+    BackupLock = models.IntegerField(default=0)
+
 
 class ChildDomains(models.Model):
     master = models.ForeignKey(Websites,on_delete=models.CASCADE)
@@ -25,6 +27,8 @@ class ChildDomains(models.Model):
     path = models.CharField(max_length=200,default=None)
     ssl = models.IntegerField()
     phpSelection = models.CharField(max_length=10,default=None)
+    alais = models.IntegerField(default=0)
+
 
 class Backups(models.Model):
     website = models.ForeignKey(Websites,on_delete=models.CASCADE)
@@ -94,19 +98,15 @@ class NormalBackupSites(models.Model):
     owner = models.ForeignKey(NormalBackupJobs, on_delete=models.CASCADE)
     domain = models.ForeignKey(Websites, on_delete=models.CASCADE)
 
-
 class NormalBackupJobLogs(models.Model):
     owner = models.ForeignKey(NormalBackupJobs, on_delete=models.CASCADE)
     status = models.IntegerField()
     message = models.TextField()
 
-
-
 class wpplugins(models.Model):
     owner = models.ForeignKey(Administrator, on_delete=models.CASCADE)
     Name = models.CharField(max_length=255, default='')
     config = models.TextField()
-
 
 class WPSites(models.Model):
     owner = models.ForeignKey(Websites, on_delete=models.CASCADE)
@@ -129,7 +129,6 @@ class WPSitesBackup(models.Model):
     WebsiteID = models.IntegerField(default=-1)
     config = models.TextField()
 
-
 class RemoteBackupConfig(models.Model):
     owner = models.ForeignKey(Administrator, on_delete=models.CASCADE)
     configtype = models.CharField(max_length=255, default='')
@@ -147,3 +146,58 @@ class RemoteBackupsites(models.Model):
     owner = models.ForeignKey(RemoteBackupSchedule, on_delete=models.CASCADE)
     WPsites = models.IntegerField(null=True)
     database = models.IntegerField(null=True)
+
+import time
+
+class Backupsv2(models.Model):
+    website = models.ForeignKey(Websites, on_delete=models.CASCADE)
+    fileName = models.CharField(max_length=255)
+    status = models.IntegerField(default=0)
+    timeStamp = models.CharField(max_length=255, default=str(time.time()))
+    BasePath = models.TextField(default='')
+
+class BackupsLogsv2(models.Model):
+    owner = models.ForeignKey(Backupsv2, on_delete=models.CASCADE)
+    timeStamp = models.CharField(max_length=255, default=str(time.time()))
+    message = models.TextField(default='')
+
+
+# Takes
+# ComposePath, MySQLPath, MySQLRootPass, MySQLDBName, MySQLDBNUser, MySQLPassword, CPUsMySQL, MemoryMySQL,
+# port, SitePath, CPUsSite, MemorySite, SiteName
+# finalURL, blogTitle, adminUser, adminPassword, adminEmail
+
+### Site Type 0=wp, further tbd later
+
+class DockerSites(models.Model):
+    admin = models.ForeignKey(Websites, on_delete=models.CASCADE)
+    ComposePath = models.TextField()
+    SitePath = models.TextField()
+    MySQLPath = models.TextField()
+    state = models.IntegerField(default=1)
+    SiteType = models.IntegerField(default=0) ## WP, Joomla etc
+    MySQLDBName = models.CharField(max_length=100)
+    MySQLDBNUser = models.CharField(max_length=100)
+    CPUsMySQL = models.CharField(max_length=100)
+    MemoryMySQL = models.CharField(max_length=100)
+    port = models.CharField(max_length=100)
+    CPUsSite = models.CharField(max_length=100)
+    MemorySite = models.CharField(max_length=100)
+    SiteName = models.CharField(unique=True, max_length=255)
+    finalURL = models.TextField()
+    blogTitle = models.TextField()
+    adminUser = models.CharField(max_length=100)
+    adminEmail = models.CharField(max_length=100)
+
+class DockerPackages(models.Model):
+    Name = models.CharField(max_length=100, default='')
+    CPUs = models.IntegerField()
+    Ram = models.IntegerField()
+    Bandwidth = models.TextField()
+    DiskSpace = models.TextField()
+    config = models.TextField()
+
+
+class PackageAssignment(models.Model):
+    user = models.ForeignKey(Administrator, on_delete=models.CASCADE)
+    package = models.ForeignKey(DockerPackages, on_delete=models.CASCADE)

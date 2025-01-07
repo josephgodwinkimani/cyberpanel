@@ -2,7 +2,11 @@
 # coding=utf-8
 import os.path
 import sys
+from random import randint
+
 import django
+from django.shortcuts import redirect
+
 from plogical.httpProc import httpProc
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
@@ -104,6 +108,10 @@ class MailServerManager(multi.Thread):
             domainName = data['domain']
             userName = data['username'].lower()
             password = data['passwordByPass']
+            try:
+                EmailLimits = data['EmailLimits']
+            except:
+                EmailLimits = -1
 
 
             admin = Administrator.objects.get(pk=userID)
@@ -118,6 +126,22 @@ class MailServerManager(multi.Thread):
             result = mailUtilities.createEmailAccount(domainName, userName.lower(), password)
 
             if result[0] == 1:
+
+                if EmailLimits != -1:
+
+                    lt = '30d'
+                    limitString = f'@{domainName} {str(EmailLimits)}/{lt}\n'
+
+                    RandomFile = "/home/cyberpanel/" + str(randint(100000, 999999))
+                    writeToFile = open(RandomFile, 'w')
+                    writeToFile.write(limitString)
+                    writeToFile.close()
+
+                    execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
+                    execPath = execPath + f" SaveEmailLimitsNew --tempConfigPath {RandomFile}"
+                    ProcessUtilities.outputExecutioner(execPath)
+
+
                 data_ret = {'status': 1, 'createEmailStatus': 1, 'error_message': "None"}
                 json_data = json.dumps(data_ret)
                 return HttpResponse(json_data)
@@ -183,7 +207,16 @@ class MailServerManager(multi.Thread):
             checker = 0
             count = 1
             for items in emails:
-                dic = {'id': count, 'email': items.email, 'DiskUsage': '%sMB' % items.DiskUsage}
+                try:
+                    command = f'sudo awk -v email="{items.email}" \'$1 == email {{print $2}}\' /etc/rspamd/badusers.map || echo "0,0"'
+                    result = ProcessUtilities.outputExecutioner(command, None, True).rstrip('\n').split('/')
+                    numberofEmails = int(result[0])
+                    duration = result[1]
+                except:
+                    numberofEmails = 0
+                    duration = '0m'
+
+                dic = {'id': count, 'email': items.email, 'DiskUsage': '%sMB' % items.DiskUsage, 'numberofEmails': numberofEmails, 'duration': duration}
                 count = count + 1
 
                 if checker == 0:
@@ -290,6 +323,7 @@ class MailServerManager(multi.Thread):
         proc = httpProc(self.request, 'mailServer/emailForwarding.html',
                         {'websiteList': websitesName, "status": 1}, 'emailForwarding')
         return proc.render()
+
 
     def fetchCurrentForwardings(self):
         try:
@@ -518,7 +552,6 @@ class MailServerManager(multi.Thread):
             else:
                 return ACLManager.loadErrorJson()
             try:
-
                 emailDomain = Domains.objects.get(domain=selectedDomain)
             except:
                 raise BaseException('No emails exist for this domain.')
@@ -527,7 +560,8 @@ class MailServerManager(multi.Thread):
 
             if os.path.exists(postfixMapPath):
 
-                postfixMapData = open(postfixMapPath, 'r').read()
+                postfixMapData = open(postfixMapPath, 'r', encoding='utf-8').read()
+
 
                 if postfixMapData.find(selectedDomain) == -1:
                     mailConfigured = 0
@@ -543,7 +577,7 @@ class MailServerManager(multi.Thread):
 
             for items in records:
                 dic = {'email': items.email,
-                       'DiskUsage': '%sMB' % items.DiskUsage
+                       'DiskUsage': '%sMB' % items.DiskUsage.rstrip('MB')
                        }
 
                 if checker == 0:
@@ -553,7 +587,7 @@ class MailServerManager(multi.Thread):
                     json_data = json_data + ',' + json.dumps(dic)
 
             json_data = json_data + ']'
-            final_json = json.dumps({'status': 1, 'fetchStatus': 1,'serverHostname': 'mail.%s' % (selectedDomain), 'mailConfigured': mailConfigured, 'error_message': "None", "data": json_data})
+            final_json = json.dumps({'status': 1, 'fetchStatus': 1,'serverHostname': selectedDomain, 'mailConfigured': mailConfigured, 'error_message': "None", "data": json_data})
             return HttpResponse(final_json)
 
         except BaseException as msg:
@@ -660,15 +694,12 @@ class MailServerManager(multi.Thread):
 
             try:
 
-                command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.6/site-packages/tldextract/.suffix_cache'
-                ProcessUtilities.executioner(command)
-
-                command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
-                ProcessUtilities.executioner(command)
 
                 import tldextract
 
-                extractDomain = tldextract.extract(domainName)
+                no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+
+                extractDomain = no_cache_extract(domainName)
                 domainName = extractDomain.domain + '.' + extractDomain.suffix
 
                 path = "/etc/opendkim/keys/" + domainName + "/default.txt"
@@ -731,9 +762,14 @@ class MailServerManager(multi.Thread):
                 command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python3.8/site-packages/tldextract/.suffix_cache'
                 ProcessUtilities.executioner(command)
 
+                command = 'chown cyberpanel:cyberpanel -R /usr/local/CyberCP/lib/python*/site-packages/tldextract/.suffix_cache'
+                ProcessUtilities.executioner(command, None, True)
+
                 import tldextract
 
-                extractDomain = tldextract.extract(domainName)
+                no_cache_extract = tldextract.TLDExtract(cache_dir=None)
+
+                extractDomain = no_cache_extract(domainName)
                 topLevelDomain = extractDomain.domain + '.' + extractDomain.suffix
 
                 zone = dnsDomains.objects.get(name=topLevelDomain)
@@ -1375,6 +1411,39 @@ class MailServerManager(multi.Thread):
 
         return 1
 
+    def installOpenDKIMNew(self):
+        try:
+            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
+                                                      'Installing opendkim..,40')
+
+            if ProcessUtilities.decideDistro() == ProcessUtilities.centos:
+                command = 'yum -y install opendkim'
+            elif ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                command = 'dnf install opendkim -y'
+            else:
+                command = 'DEBIAN_FRONTEND=noninteractive apt-get -y install opendkim'
+
+            os.system(command)
+
+            if ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                command = 'dnf install opendkim-tools -y'
+                ProcessUtilities.executioner(command)
+
+            if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
+                command = 'apt install opendkim-tools -y'
+                ProcessUtilities.executioner(command)
+
+                command = 'mkdir -p /etc/opendkim/keys/'
+                ProcessUtilities.executioner(command)
+
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
+                                                      '%s [installOpenDKIM][404]' % (str(msg)), 10)
+            return 0
+
+        return 1
+
     def configureOpenDKIM(self):
         try:
 
@@ -1435,6 +1504,7 @@ milter_default_action = accept
             return 1
 
         except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(f'Error in configureOpenDKIM {str(msg)}')
             return 0
 
     def fixCyberPanelPermissions(self):
@@ -1576,6 +1646,12 @@ milter_default_action = accept
 
             command = 'chmod 640 /etc/pdns/pdns.conf'
             ProcessUtilities.executioner(command)
+        else:
+            command = 'chown root:pdns /etc/powerdns/pdns.conf'
+            ProcessUtilities.executioner(command)
+
+            command = 'chmod 640 /etc/powerdns/pdns.conf'
+            ProcessUtilities.executioner(command)
 
         command = 'chmod 640 /usr/local/lscp/cyberpanel/logs/access.log'
         ProcessUtilities.executioner(command)
@@ -1641,6 +1717,11 @@ milter_default_action = accept
 
             logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Restoreing OpenDKIM configurations..,70')
 
+            if self.installOpenDKIMNew() == 0:
+                logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
+                                                          'Install OpenDKIM failed. [404].')
+                return 0
+
             if self.configureOpenDKIM() == 0:
                 logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'configureOpenDKIM failed. [404].')
                 return 0
@@ -1696,6 +1777,104 @@ milter_default_action = accept
             return 0, 'No valid SSL on port 993.'
         else:
             return 1, 'All checks are OK.'
+
+
+    ### emails for sites
+
+    def EmailLimits(self):
+
+        userID = self.request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+
+        if not os.path.exists('/home/cyberpanel/postfix'):
+            proc = httpProc(self.request, 'mailServer/emailForwarding.html',
+                            {"status": 0}, 'emailForwarding')
+            return proc.render()
+
+        websitesName = ACLManager.findAllSites(currentACL, userID)
+        websitesName = websitesName + ACLManager.findChildDomains(websitesName)
+
+        try:
+            from plogical.processUtilities import ProcessUtilities
+            if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
+
+                url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
+                data = {
+                    "name": "all",
+                    "IP": ACLManager.fetchIP()
+                }
+
+                import requests
+                response = requests.post(url, data=json.dumps(data))
+                Status = response.json()['status']
+
+                if (Status == 1):
+                    template = 'mailServer/EmailLimits.html'
+                else:
+                    return redirect("https://cyberpanel.net/cyberpanel-addons")
+            else:
+                template = 'baseTemplate/EmailLimits.html'
+        except BaseException as msg:
+            template = 'baseTemplate/EmailLimits.html'
+
+
+        proc = httpProc(self.request, template,
+                        {'websiteList': websitesName, "status": 1}, 'emailForwarding')
+        return proc.render()
+
+    def SaveEmailLimitsNew(self):
+        try:
+            userID = self.request.session['userID']
+            currentACL = ACLManager.loadedACL(userID)
+            if ACLManager.currentContextPermission(currentACL, 'emailForwarding') == 0:
+                return ACLManager.loadErrorJson('createStatus', 0)
+
+            data = json.loads(self.request.body)
+            source = data['source']
+            numberofEmails = data['numberofEmails']
+            duration = data['duration']
+
+            eUser = EUsers.objects.get(email=source)
+
+            admin = Administrator.objects.get(pk=userID)
+            if ACLManager.checkOwnership(eUser.emailOwner.domainOwner.domain, admin, currentACL) == 1:
+                pass
+            else:
+                return ACLManager.loadErrorJson()
+
+            if mailUtilities.checkIfRspamdInstalled() == 0:
+                execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
+                execPath = execPath + " installRspamd"
+                ProcessUtilities.executioner(execPath)
+
+            execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
+            execPath = execPath + " SetupEmailLimits"
+            ProcessUtilities.executioner(execPath)
+
+
+            limitString = f'{source} {str(numberofEmails)}/{duration}\n'
+
+            RandomFile = "/home/cyberpanel/" + str(randint(100000, 999999))
+            writeToFile = open(RandomFile, 'w')
+            writeToFile.write(limitString)
+            writeToFile.close()
+
+            execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
+            execPath = execPath + f" SaveEmailLimitsNew --tempConfigPath {RandomFile}"
+            result = ProcessUtilities.outputExecutioner(execPath)
+
+            if result.find('1,None') > -1:
+                data_ret = {'status': 1}
+            else:
+                data_ret = {'status': 1, 'error_message': "result",}
+
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+        except BaseException as msg:
+            data_ret = {'status': 0, 'createStatus': 0, 'error_message': str(msg)}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
 
 def main():
 

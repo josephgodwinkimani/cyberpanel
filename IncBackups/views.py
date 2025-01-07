@@ -6,8 +6,11 @@ from pathlib import Path
 from random import randint
 
 from django.shortcuts import HttpResponse, redirect
+
+from backup.backupManager import BackupManager
 from loginSystem.models import Administrator
 from loginSystem.views import loadLoginPage
+from plogical.Backupsv2 import CPBackupsV2
 from plogical.CyberCPLogFileWriter import CyberCPLogFileWriter as logging
 from plogical.acl import ACLManager
 from plogical.httpProc import httpProc
@@ -18,6 +21,8 @@ from .IncBackupProvider import IncBackupProvider
 from .IncBackupPath import IncBackupPath
 from .IncBackupsControl import IncJobs
 from .models import IncJob, BackupJob, JobSites
+
+
 
 
 def def_renderer(request, templateName, args, context=None):
@@ -46,6 +51,8 @@ def _get_user_acl(request):
     user_id = request.session['userID']
     current_acl = ACLManager.loadedACL(user_id)
     return user_id, current_acl
+
+
 
 
 def create_backup(request):
@@ -703,4 +710,575 @@ def add_website(request):
         return HttpResponse(final_json)
     except BaseException as msg:
         final_json = json.dumps({'status': 0, 'error_message': str(msg)})
+        return HttpResponse(final_json)
+
+#### Backups v2
+
+def ConfigureV2Backup(request):
+    try:
+        user_id, current_acl = _get_user_acl(request)
+
+        if ACLManager.currentContextPermission(current_acl, 'createBackup') == 0:
+            return ACLManager.loadError()
+
+        if ACLManager.CheckForPremFeature('all'):
+            BackupStat = 1
+        else:
+            BackupStat = 0
+
+        websites = ACLManager.findAllSites(current_acl, user_id)
+        #
+        # destinations = _get_destinations(local=True)
+        proc = httpProc(request, 'IncBackups/ConfigureV2Backup.html', {'websiteList': websites, 'BackupStat': BackupStat})
+        return proc.render()
+
+    except BaseException as msg:
+        logging.writeToFile(str(msg))
+        return redirect(loadLoginPage)
+
+def ConfigureV2BackupSetup(request):
+    try:
+        userID = request.session['userID']
+
+        req_data={}
+        req_data['name'] = 'GDrive'
+        req_data['token'] = request.GET.get('t')
+        req_data['refresh_token'] = request.GET.get('r')
+        req_data['token_uri'] = request.GET.get('to')
+        req_data['scopes'] = request.GET.get('s')
+        req_data['accountname'] = request.GET.get('n')
+        req_data['client_id'] = request.GET.get('client_id')
+        req_data['client_secret'] = request.GET.get('client_secret')
+        website = request.GET.get('d')
+
+        # logging.writeToFile('domainname is ====%s'%(request.GET.get))
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+
+        if ACLManager.checkOwnership(website, admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        cpbuv2 = CPBackupsV2(
+            {'domain': website, 'BasePath': '/home/backup', 'BackupDatabase': 1, 'BackupData': 1,
+             'BackupEmails': 1, 'BackendName': 'testremote'})
+
+        status, message = cpbuv2.SetupRcloneBackend(CPBackupsV2.GDrive, req_data)
+        from plogical.processUtilities import ProcessUtilities
+
+        if os.path.exists(ProcessUtilities.debugPath):
+            logging.writeToFile(f'Response from SetupRcloneBackend is {str(status)} and message {str(message)}')
+
+        if status == 0:
+            data_ret = {'status': 0, 'error_message': message}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+
+        return ConfigureV2Backup(request)
+
+    except BaseException as msg:
+        logging.writeToFile("Error configure"+str(msg))
+        data_ret = {'status': 0, 'error_message': str(msg) + request.get_raw_uri() }
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+def CreateV2Backup(request):
+    try:
+        userID = request.session['userID']
+        bm = BackupManager()
+        return bm.CreateV2backupSite(request, userID)
+    except KeyError:
+        return redirect(loadLoginPage)
+
+
+def DeleteRepoV2(request):
+    try:
+        userID = request.session['userID']
+        bm = BackupManager()
+        return bm.DeleteRepoV2(request, userID)
+    except KeyError:
+        return redirect(loadLoginPage)
+
+def CreateV2BackupButton(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+        Selectedrepo = data['Selectedrepo']
+
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(Selectedwebsite, admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+
+        extra_args = {}
+        extra_args['function'] = 'InitiateBackup'
+        extra_args['website'] = Selectedwebsite
+        extra_args['domain'] = Selectedwebsite
+        extra_args['BasePath'] = '/home/backup'
+        extra_args['BackendName'] = Selectedrepo
+        extra_args['BackupData'] = data['websiteData'] if 'websiteData' in data else False
+        extra_args['BackupEmails'] = data['websiteEmails'] if 'websiteEmails' in data else False
+        extra_args['BackupDatabase'] = data['websiteDatabases'] if 'websiteDatabases' in data else False
+
+        background = CPBackupsV2(extra_args)
+        background.start()
+
+        # background = CPBackupsV2({'domain': Selectedwebsite, 'BasePath': '/home/backup', 'BackupDatabase': 1, 'BackupData': 1,
+        #      'BackupEmails': 1, 'BackendName': Selectedrepo, 'function': 'InitiateBackup', })
+        # background.start()
+
+        time.sleep(2)
+
+        data_ret = {'status': 1, 'installStatus': 1, 'error_message': 'None',}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+    except BaseException as msg:
+        data_ret = {'status': 0, 'installStatus': 0, 'error_message': str(msg)}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+def CreateV2BackupStatus(request):
+    try:
+        userID = request.session['userID']
+        bm = BackupManager()
+        return bm.CreateV2BackupStatus(userID, json.loads(request.body))
+    except KeyError:
+        return redirect(loadLoginPage)
+
+def RestoreV2backupSite(request):
+    try:
+        userID = request.session['userID']
+        bm = BackupManager()
+        return bm.RestoreV2backupSite(request, userID)
+    except KeyError:
+        return redirect(loadLoginPage)
+
+def RestorePathV2(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        SnapShotId = data['snapshotid']
+        Path = data['path']
+        Selectedwebsite = data['selwebsite']
+        Selectedrepo = data['selectedrepo']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        extra_args = {}
+        extra_args['function'] = 'InitiateRestore'
+        extra_args['website'] = Selectedwebsite
+        extra_args['domain'] = Selectedwebsite
+        extra_args['BasePath'] = '/home/backup'
+        extra_args['BackendName'] = Selectedrepo
+        extra_args['path'] = Path
+        extra_args['snapshotid'] = SnapShotId
+        # extra_args['BackupData'] = data['websiteData'] if 'websiteData' in data else False
+        # extra_args['BackupEmails'] = data['websiteEmails'] if 'websiteEmails' in data else False
+        # extra_args['BackupDatabase'] = data['websiteDatabases'] if 'websiteDatabases' in data else False
+
+
+        background = CPBackupsV2(extra_args)
+        background.start()
+
+        # vm = CPBackupsV2({'domain': Selectedwebsite, 'BackendName': Selectedrepo, "function": "", 'BasePath': '/home/backup'})
+        # status = vm.InitiateRestore(SnapShotId, Path)
+
+        data_ret = {'status': 1, 'installStatus': 1, 'error_message': 'None',}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+    except BaseException as msg:
+        data_ret = {'status': 0, 'installStatus': 0, 'error_message': str(msg)}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+def DeleteSnapshotV2Final(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        SnapShotId = data['snapshotid']
+        Selectedwebsite = data['selwebsite']
+        Selectedrepo = data['selectedrepo']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        extra_args = {}
+        extra_args['function'] = 'InitiateRestore'
+        extra_args['website'] = Selectedwebsite
+        extra_args['domain'] = Selectedwebsite
+        extra_args['BasePath'] = '/home/backup'
+        extra_args['BackendName'] = Selectedrepo
+        extra_args['snapshotid'] = SnapShotId
+        # extra_args['BackupData'] = data['websiteData'] if 'websiteData' in data else False
+        # extra_args['BackupEmails'] = data['websiteEmails'] if 'websiteEmails' in data else False
+        # extra_args['BackupDatabase'] = data['websiteDatabases'] if 'websiteDatabases' in data else False
+
+
+        background = CPBackupsV2(extra_args)
+        background.DeleteSnapshots(SnapShotId)
+
+        # vm = CPBackupsV2({'domain': Selectedwebsite, 'BackendName': Selectedrepo, "function": "", 'BasePath': '/home/backup'})
+        # status = vm.InitiateRestore(SnapShotId, Path)
+
+        data_ret = {'status': 1, 'installStatus': 1, 'error_message': 'None',}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+    except BaseException as msg:
+        data_ret = {'status': 0, 'installStatus': 0, 'error_message': str(msg)}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+def selectwebsiteRetorev2(request):
+    import re
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        obj = Websites.objects.get(domain = str(Selectedwebsite))
+        #/home/cyberpanel.net/.config/rclone/rclone.conf
+        path = '/home/%s/.config/rclone/rclone.conf' %(obj.domain)
+
+        command = 'cat %s'%(path)
+        result = pu.outputExecutioner(command)
+
+        if result.find('type') > -1:
+            pattern = r'\[(.*?)\]'
+            matches = re.findall(pattern, result)
+            final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": matches})
+            return HttpResponse(final_json)
+        else:
+            final_json = json.dumps({'status': 0, 'fetchStatus': 0, 'error_message': 'Could not Find repo'})
+            return HttpResponse(final_json)
+
+
+        # final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": 1})
+        # return HttpResponse(final_json)
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+def ConfigureSftpV2Backup(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+        sfptpasswd = data['sfptpasswd']
+        hostName = data['hostName']
+        UserName = data['UserName']
+        Repo_Name = data['Repo_Name']
+        #sshPort = data['sshPort']
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        req_data = {}
+        req_data['name'] = 'SFTP'
+        req_data['host'] = hostName
+        req_data['user'] = UserName
+        req_data['password'] = sfptpasswd
+        req_data['Repo_Name'] = Repo_Name
+
+        try:
+            req_data['sshPort'] = data['sshPort']
+        except:
+            req_data['sshPort'] = '22'
+
+
+        cpbuv2 = CPBackupsV2(
+            {'domain': Selectedwebsite, 'BasePath': '/home/backup', 'BackupDatabase': 1, 'BackupData': 1,
+             'BackupEmails': 1, 'BackendName': 'SFTP', 'function': None})
+
+        status, message = cpbuv2.SetupRcloneBackend(CPBackupsV2.SFTP, req_data)
+
+        from plogical.processUtilities import ProcessUtilities
+
+        if os.path.exists(ProcessUtilities.debugPath):
+            logging.writeToFile(f'Response from SetupRcloneBackend is {str(status)} and message {str(message)}')
+
+        if status == 0:
+            data_ret = {'status': 0, 'error_message': message}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+        # return ConfigureV2Backup(request)
+
+        final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": None})
+        return HttpResponse(final_json)
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+def selectwebsiteCreatev2(request):
+    import re
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+        obj = Websites.objects.get(domain = str(Selectedwebsite))
+        #/home/cyberpanel.net/.config/rclone/rclone.conf
+        path = '/home/%s/.config/rclone/rclone.conf' %(obj.domain)
+
+        command = 'cat %s'%(path)
+        CurrentContent = pu.outputExecutioner(command)
+
+        status, currentSchedules = CPBackupsV2.FetchCurrentSchedules(str(Selectedwebsite))
+
+
+        if CurrentContent.find('No such file or directory') > -1:
+            LocalRclonePath = f'/home/{obj.domain}/.config/rclone'
+            command = f'mkdir -p {LocalRclonePath}'
+            pu.executioner(command, obj.externalApp)
+
+            # content = '''
+            #        [local]
+            #        type = local
+            #        '''
+            # command = f"echo '{content}' > {path}"
+            # pu.executioner(command, obj.externalApp, True)
+
+            command = 'cat %s' % (path)
+            result = pu.outputExecutioner(command)
+
+            if result.find('type') > -1:
+                pattern = r'\[(.*?)\]'
+                matches = re.findall(pattern, result)
+                final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": matches, 'currentSchedules': currentSchedules})
+                return HttpResponse(final_json)
+            else:
+                final_json = json.dumps({'status': 0, 'fetchStatus': 0, 'error_message': 'Could not Find repo'})
+                return HttpResponse(final_json)
+        else:
+            command = 'cat %s' % (path)
+            result = pu.outputExecutioner(command)
+
+            if result.find('type') > -1:
+                pattern = r'\[(.*?)\]'
+                matches = re.findall(pattern, result)
+                final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": matches, 'currentSchedules': currentSchedules})
+                return HttpResponse(final_json)
+            else:
+                final_json = json.dumps({'status': 0, 'fetchStatus': 0, 'error_message': 'Could not Find repo', 'currentSchedules': currentSchedules})
+                return HttpResponse(final_json)
+
+
+        # logging.writeToFile(str(CurrentContent))
+        # final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": None})
+        # return HttpResponse(final_json)
+        #
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+def selectreporestorev2(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedrepo = data['Selectedrepo']
+        Selectedwebsite= data['Selectedwebsite']
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+
+        # f'rustic -r testremote snapshots --password "" --json 2>/dev/null'
+        # final_json = json.dumps({'status': 0, 'fetchStatus': 1, 'error_message': Selectedrepo })
+        # return HttpResponse(final_json)
+
+        vm = CPBackupsV2({'domain': Selectedwebsite, 'BackendName': Selectedrepo, "function":""})
+        status, data = vm.FetchSnapShots()
+
+        if status == 1:
+            final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": data})
+            return HttpResponse(final_json)
+        else:
+            # final_json = json.dumps({'status': 0, 'fetchStatus': 1, 'error_message': ac,})
+            final_json = json.dumps({'status': 0, 'fetchStatus': 1, 'error_message': 'Cannot Find!',})
+            return HttpResponse(final_json)
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+def schedulev2Backups(request):
+    try:
+        userID = request.session['userID']
+        bm = BackupManager()
+        return bm.schedulev2Backups(request, userID)
+    except KeyError:
+        return redirect(loadLoginPage)
+
+def DeleteScheduleV2(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+        repo = data['repo']
+        frequency = data['frequency']
+        websiteData = data['websiteData']
+        websiteDatabases = data['websiteDatabases']
+        websiteEmails = data['websiteEmails']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+
+        status, message = CPBackupsV2.DeleteSchedule(Selectedwebsite, repo, frequency, websiteData, websiteDatabases, websiteEmails)
+
+        final_dic = {'status': 1, 'error_message': message}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+        # final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": None})
+        # return HttpResponse(final_json)
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+def CreateScheduleV2(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+        repo = data['repo']
+        frequency = data['frequency']
+        retention = data['retention']
+        websiteData = data['websiteData'] if 'websiteData' in data else False
+        websiteDatabases = data['websiteDatabases'] if 'websiteDatabases' in data else False
+        websiteEmails = data['websiteEmails'] if 'websiteEmails' in data else False
+
+        #
+        # extra_args['BackupData'] = data['websiteData'] if 'websiteData' in data else False
+        # extra_args['BackupEmails'] = data['websiteEmails'] if 'websiteEmails' in data else False
+        # extra_args['BackupDatabase'] = data['websiteDatabases'] if 'websiteDatabases' in data else False
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+
+        status, message = CPBackupsV2.CreateScheduleV2(Selectedwebsite, repo, frequency, websiteData, websiteDatabases, websiteEmails, retention)
+
+        final_dic = {'status': 1, 'error_message': message}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+        # final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": None})
+        # return HttpResponse(final_json)
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
+        return HttpResponse(final_json)
+
+
+
+def DeleteV2BackupButton(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        Selectedwebsite = data['Selectedwebsite']
+        repo = data['Selectedrepo']
+
+        currentACL = ACLManager.loadedACL(userID)
+        admin = Administrator.objects.get(pk=userID)
+
+        if ACLManager.checkOwnership(str(Selectedwebsite), admin, currentACL) == 1:
+            pass
+        else:
+            return ACLManager.loadError()
+
+
+        obj = Websites.objects.get(domain=Selectedwebsite)
+        usr= obj.externalApp
+
+        status, message = CPBackupsV2.DeleteRepoScheduleV2(Selectedwebsite, repo, usr)
+
+        if status == 1:
+            final_dic = {'status': 1, 'error_message': message}
+            final_json = json.dumps(final_dic)
+            return HttpResponse(final_json)
+        else:
+            final_dic = {'status': 0, 'error_message': message}
+            final_json = json.dumps(final_dic)
+            return HttpResponse(final_json)
+
+        # final_json = json.dumps({'status': 1, 'fetchStatus': 1, 'error_message': "None", "data": None})
+        # return HttpResponse(final_json)
+
+
+    except BaseException as msg:
+        final_dic = {'status': 0, 'fetchStatus': 0, 'error_message': str(msg)}
+        final_json = json.dumps(final_dic)
         return HttpResponse(final_json)

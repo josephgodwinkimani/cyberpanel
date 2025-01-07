@@ -4,6 +4,7 @@ import os.path
 import sys
 import django
 
+from loginSystem.models import Administrator
 from plogical.httpProc import httpProc
 
 sys.path.append('/usr/local/CyberCP')
@@ -891,7 +892,7 @@ class FirewallManager:
 
                 if modSecInstalled:
                     command = "sudo cat " + rulesPath
-                    currentModSecRules = ProcessUtilities.outputExecutioner(command).split('\n')
+                    currentModSecRules = ProcessUtilities.outputExecutioner(command)
 
                     final_dic = {'modSecInstalled': 1,
                                  'currentModSecRules': currentModSecRules}
@@ -907,7 +908,7 @@ class FirewallManager:
                 rulesPath = os.path.join(virtualHostUtilities.Server_root + "/conf/rules.conf")
 
                 command = "sudo cat " + rulesPath
-                currentModSecRules = ProcessUtilities.outputExecutioner(command).split('\n')
+                currentModSecRules = ProcessUtilities.outputExecutioner(command)
 
                 final_dic = {'modSecInstalled': 1,
                              'currentModSecRules': currentModSecRules}
@@ -1312,6 +1313,7 @@ class FirewallManager:
             userID = self.request.session['userID']
             currentACL = ACLManager.loadedACL(userID)
 
+
             if currentACL['admin'] == 1:
                 pass
             else:
@@ -1641,3 +1643,100 @@ class FirewallManager:
 
         except BaseException as msg:
             logging.CyberCPLogFileWriter.statusWriter(ServerStatusUtil.lswsInstallStatusPath, str(msg) + ' [404].', 1)
+
+
+
+    def litespeed_ent_conf(self, request = None, userID = None):
+        proc = httpProc(request, 'firewall/litespeed_ent_conf.html',
+                        None, 'admin')
+        return proc.render()
+
+    def fetchlitespeed_Conf(self, userID = None, data = None):
+        try:
+            currentACL = ACLManager.loadedACL(userID)
+
+            if currentACL['admin'] == 1:
+                pass
+            else:
+                return ACLManager.loadErrorJson('modSecInstalled', 0)
+
+            file_path = "/usr/local/lsws/conf/pre_main_global.conf"
+
+            if not os.path.exists(file_path):
+                command = "touch /usr/local/lsws/conf/pre_main_global.conf"
+                ProcessUtilities.executioner(command)
+
+
+                command = f'cat {file_path}'
+
+                currentModSecRules = ProcessUtilities.outputExecutioner(command)
+                final_dic = {'status': 1,
+                             'currentLitespeed_conf': currentModSecRules}
+
+                final_json = json.dumps(final_dic)
+                return HttpResponse(final_json)
+            else:
+                command = f'cat {file_path}'
+
+                currentModSecRules = ProcessUtilities.outputExecutioner(command)
+                final_dic = {'status': 1,
+                             'currentLitespeed_conf': currentModSecRules}
+
+                final_json = json.dumps(final_dic)
+                return HttpResponse(final_json)
+        except BaseException as msg:
+            final_dic = {'status': 0, 'error_message': str(msg)}
+            final_json = json.dumps(final_dic)
+            return HttpResponse(final_json)
+
+
+    def saveLitespeed_conf(self, userID = None, data = None):
+        try:
+            currentACL = ACLManager.loadedACL(userID)
+
+            if currentACL['admin'] == 1:
+                pass
+            else:
+                return ACLManager.loadErrorJson('modSecInstalled', 0)
+
+            file_path = "/usr/local/lsws/conf/pre_main_global.conf"
+
+            command = f'rm -f {file_path}'
+            ProcessUtilities.executioner(command)
+
+            currentLitespeed_conf = data['modSecRules']
+
+            tempRulesPath = '/home/cyberpanel/pre_main_global.conf'
+
+            WriteToFile = open(tempRulesPath, 'w')
+            WriteToFile.write(currentLitespeed_conf)
+            WriteToFile.close()
+
+            command = f'mv {tempRulesPath} {file_path}'
+            ProcessUtilities.executioner(command)
+
+            command = f'chmod 644 {file_path} && chown lsadm:lsadm {file_path}'
+            ProcessUtilities.executioner(command, None, True)
+
+
+            command = f'cat {file_path}'
+
+            currentModSecRules = ProcessUtilities.outputExecutioner(command)
+            final_dic = {'status': 1,
+                             'currentLitespeed_conf': currentModSecRules}
+
+            final_json = json.dumps(final_dic)
+            return HttpResponse(final_json)
+
+        except BaseException as msg:
+            final_dic = {'status': 0, 'error_message': str(msg)}
+            final_json = json.dumps(final_dic)
+            return HttpResponse(final_json)
+
+
+
+
+
+
+
+

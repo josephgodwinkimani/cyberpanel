@@ -1,6 +1,19 @@
 Nitpick branch
 ------------------------------------------------------------------------------
 
+## Release 2.3 build 9 
+### CyberPanel Version [6f28d39a591b5e08aac6adfcc59b642a58622ea2](https://github.com/usmannasir/cyberpanel/commit/6f28d39a591b5e08aac6adfcc59b642a58622ea2)
+------------------------------------------------------------------------------
+
+**General:**
+* Unattended auto-upgrades are scheduled via the cron job `0 1 * * * /usr/local/CyberCP/autoPreUpgrade.sh >> /var/log/upgradeLogs.txt`. You may disable this job if necessary. It is strongly recommended to back up or create a snapshot of your server prior to executing this cron job in your cron job order.
+* 
+
+**Security:**
+
+**Bug Fixes:**
+
+
 ## Release 2.3 build 2 
 ### CyberPanel Version [7427667c14c2ddbc2fcb7bfa35870155d4a343dc](https://github.com/usmannasir/cyberpanel/commit/85596f08cfb31393d548de76d33859b9517a383a)
 ------------------------------------------------------------------------------
@@ -25,4 +38,3 @@ Nitpick branch
 * [fix unable to fetch repo branch](https://github.com/josephgodwinkimani/cyberpanel/commit/10f558294523be094118ddfe1c350c8ef93c7dc7)
 * [fix 500 error on version management page](https://github.com/josephgodwinkimani/cyberpanel/commit/6a0b58b14fa573a703113b9cdde0d2cfd7a4f203)
 * [fix: upgrade rclone with precompiled binary](https://github.com/josephgodwinkimani/cyberpanel/commit/e506cc197ef29d38d5fa90baf664679ef655b115)
-

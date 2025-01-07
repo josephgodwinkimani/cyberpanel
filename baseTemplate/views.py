@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from random import randint
+
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from plogical.getSystemInformation import SystemInformation
@@ -19,7 +21,7 @@ from plogical.httpProc import httpProc
 # Create your views here.
 
 VERSION = '2.3'
-BUILD = 2
+BUILD = 9
 
 
 @ensure_csrf_cookie
@@ -30,6 +32,56 @@ def renderBase(request):
                 'diskUsage': cpuRamDisk['diskUsage']}
     proc = httpProc(request, template, finaData)
     return proc.render()
+
+
+@ensure_csrf_cookie
+def versionManagement(request):
+    getVersion = requests.get('https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+    latest = getVersion.json()
+    latestVersion = latest['version']
+    latestBuild = latest['build']
+
+    currentVersion = VERSION
+    currentBuild = str(BUILD)
+
+    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=v%s.%s" % (latestVersion, latestBuild)
+    logging.writeToFile(u)
+    r = requests.get(u)
+    latestcomit = r.json()[0]['sha']
+
+    command = "git -C /usr/local/CyberCP/ rev-parse HEAD"
+    output = ProcessUtilities.outputExecutioner(command)
+
+    Currentcomt = output.rstrip("\n")
+    notechk = True
+
+    if Currentcomt == latestcomit:
+        notechk = False
+
+    template = 'baseTemplate/versionManagment.html'
+    finalData = {'build': currentBuild, 'currentVersion': currentVersion, 'latestVersion': latestVersion,
+                 'latestBuild': latestBuild, 'latestcomit': latestcomit, "Currentcomt": Currentcomt,
+                 "Notecheck": notechk}
+
+    proc = httpProc(request, template, finalData, 'versionManagement')
+    return proc.render()
+
+
+@ensure_csrf_cookie
+def upgrade_cyberpanel(request):
+    if request.method == 'POST':
+        try:
+            upgrade_command = 'sh <(curl https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh || wget -O - https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/preUpgrade.sh)'
+            result = subprocess.run(upgrade_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+
+            if result.returncode == 0:
+                response_data = {'success': True, 'message': 'CyberPanel upgrade completed successfully.'}
+            else:
+                response_data = {'success': False,
+                                 'message': 'CyberPanel upgrade failed. Error output: ' + result.stderr}
+        except Exception as e:
+            response_data = {'success': False, 'message': 'An error occurred during the upgrade: ' + str(e)}
 
 
 def getAdminStatus(request):
@@ -97,29 +149,19 @@ def getLoadAverage(request):
 
 @ensure_csrf_cookie
 def versionManagment(request):
-    # Get latest commit
+    ## Get latest version
 
-    getCommit = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/commit.txt')
-    commit = getCommit.json()
-    latestCommit = commit['commit']
-
-    # Get latest version
-
-    getVersion = requests.get(
-        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+    getVersion = requests.get('https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
     latest = getVersion.json()
-   
     latestVersion = latest['version']
     latestBuild = latest['build']
 
-    # Get local version
+    ## Get local version
 
     currentVersion = VERSION
     currentBuild = str(BUILD)
 
-    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=%s" % (
-        latestCommit)
+    u = "https://api.github.com/repos/josephgodwinkimani/cyberpanel/commits?sha=v%s.%s" % (latestVersion, latestBuild)
     logging.CyberCPLogFileWriter.writeToFile(u)
     r = requests.get(u)
     latestcomit = r.json()[0]['sha']
@@ -130,27 +172,13 @@ def versionManagment(request):
     Currentcomt = output.rstrip("\n")
     notechk = True
 
-    # command ="git fetch -C /usr/local/CyberCP/"
-    # output = ProcessUtilities.outputExecutioner(command)
-    #
-    # command ="git -C /usr/local/CyberCP/ log %s..%s --pretty=oneline | wc -l" % ( Currentcomt, latestcomit)
-    # output = ProcessUtilities.outputExecutioner(command)
-    #
-    # numCommits = output.rstrip("\n")
-  
-    # fileObject = open('/usr/local/CyberCP/commit.txt', 'r')
-    # with open(fileObject) as file:
-    #    Currentcomt = print(file.read())
-        # Currentcomt = print(data)
-    
-    # fileObject.close()
-
     if (Currentcomt == latestcomit):
         notechk = False
 
     template = 'baseTemplate/versionManagment.html'
     finalData = {'build': currentBuild, 'currentVersion': currentVersion, 'latestVersion': latestVersion,
-                 'latestBuild': latestBuild, 'latestcomit': latestcomit, "Currentcomt": Currentcomt, "Notecheck": notechk}
+                 'latestBuild': latestBuild, 'latestcomit': latestcomit, "Currentcomt": Currentcomt,
+                 "Notecheck": notechk}
 
     proc = httpProc(request, template, finalData, 'versionManagement')
     return proc.render()
@@ -159,33 +187,28 @@ def versionManagment(request):
 def upgrade(request):
     try:
         admin = request.session['userID']
+        currentACL = ACLManager.loadedACL(admin)
 
-        try:
-            os.remove('upgrade.py')
-        except:
+        data = json.loads(request.body)
+
+        if currentACL['admin'] == 1:
             pass
+        else:
+            return ACLManager.loadErrorJson('fetchStatus', 0)
 
-        command = 'wget https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/plogical/upgrade.py'
+        from plogical.applicationInstaller import ApplicationInstaller
 
-        cmd = shlex.split(command)
-
-        res = subprocess.call(cmd)
-
-        vers = version.objects.get(pk=1)
-
-        from upgrade import Upgrade
-
-        Upgrade.initiateUpgrade(vers.currentVersion, vers.build)
+        extraArgs = {}
+        extraArgs['branchSelect'] = data["branchSelect"]
+        background = ApplicationInstaller('UpgradeCP', extraArgs)
+        background.start()
 
         adminData = {"upgrade": 1}
-
         json_data = json.dumps(adminData)
-
         return HttpResponse(json_data)
 
     except KeyError:
-        adminData = {"upgrade": 1,
-                     "error_message": "Please login or refresh this page."}
+        adminData = {"upgrade": 1, "error_message": "Please login or refresh this page."}
         json_data = json.dumps(adminData)
         return HttpResponse(json_data)
 
@@ -193,13 +216,20 @@ def upgrade(request):
 def upgradeStatus(request):
     try:
         val = request.session['userID']
+        currentACL = ACLManager.loadedACL(val)
+        if currentACL['admin'] == 1:
+            pass
+        else:
+            return ACLManager.loadErrorJson('FilemanagerAdmin', 0)
+
         try:
             if request.method == 'POST':
+                from plogical.upgrade import Upgrade
 
-                path = "/usr/local/lscp/logs/upgradeLog"
+                path = Upgrade.LogPathNew
 
                 try:
-                    upgradeLog = open(path, "r").read()
+                    upgradeLog = ProcessUtilities.outputExecutioner(f'cat {path}')
                 except:
                     final_json = json.dumps({'finished': 0, 'upgradeStatus': 1,
                                              'error_message': "None",
@@ -208,15 +238,8 @@ def upgradeStatus(request):
 
                 if upgradeLog.find("Upgrade Completed") > -1:
 
-                    vers = version.objects.get(pk=1)
-                    getVersion = requests.get(
-                        'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
-                    latest = getVersion.json()
-                    vers.currentVersion = latest['version']
-                    vers.build = latest['build']
-                    vers.save()
-
-                    os.remove(path)
+                    command = f'rm -rf {path}'
+                    ProcessUtilities.executioner(command)
 
                     final_json = json.dumps({'finished': 1, 'upgradeStatus': 1,
                                              'error_message': "None",
@@ -227,23 +250,23 @@ def upgradeStatus(request):
                                              'error_message': "None",
                                              'upgradeLog': upgradeLog})
                     return HttpResponse(final_json)
-
         except BaseException as msg:
             final_dic = {'upgradeStatus': 0, 'error_message': str(msg)}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
     except KeyError:
-        final_dic = {'upgradeStatus': 0,
-                     'error_message': "Not Logged In, please refresh the page or login again."}
+        final_dic = {'upgradeStatus': 0, 'error_message': "Not Logged In, please refresh the page or login again."}
         final_json = json.dumps(final_dic)
         return HttpResponse(final_json)
 
 
 def upgradeVersion(request):
     try:
+
+
+
         vers = version.objects.get(pk=1)
-        getVersion = requests.get(
-            'https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
+        getVersion = requests.get('https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt')
         latest = getVersion.json()
         vers.currentVersion = latest['version']
         vers.build = latest['build']
@@ -256,7 +279,7 @@ def upgradeVersion(request):
 
 @ensure_csrf_cookie
 def design(request):
-    # Load Custom CSS
+    ### Load Custom CSS
     try:
         from baseTemplate.models import CyberPanelCosmetic
         cosmetic = CyberPanelCosmetic.objects.get(pk=1)
@@ -280,15 +303,15 @@ def design(request):
         cosmetic.save()
         finalData['saved'] = 1
 
-    # Fetch sha...
+    ####### Fetch sha...
 
-    sha_url = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-Themes/commits"
+    sha_url = "https://api.github.com/repos/josephgodwinkimani/CyberPanel-Themes/commits"
 
     sha_res = requests.get(sha_url)
 
     sha = sha_res.json()[0]['sha']
 
-    l = "https://api.github.com/repos/josephgodwinkimani/cyberpanel-Themes/git/trees/%s" % sha
+    l = "https://api.github.com/repos/josephgodwinkimani/CyberPanel-Themes/git/trees/%s" % sha
     fres = requests.get(l)
     tott = len(fres.json()['tree'])
     finalData['tree'] = []
@@ -314,10 +337,9 @@ def getthemedata(request):
         else:
             return ACLManager.loadErrorJson('reboot', 0)
 
-        #logging.CyberCPLogFileWriter.writeToFile(str(data) + "  [themedata]")
+        # logging.CyberCPLogFileWriter.writeToFile(str(data) + "  [themedata]")
 
-        url = "https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-Themes/main/%s/design.css" % data[
-            'Themename']
+        url = "https://raw.githubusercontent.com/josephgodwinkimani/CyberPanel-Themes/main/%s/design.css" % data['Themename']
 
         res = requests.get(url)
 
@@ -329,3 +351,72 @@ def getthemedata(request):
         final_dic = {'status': 0, 'error_message': str(msg)}
         final_json = json.dumps(final_dic)
         return HttpResponse(final_json)
+
+
+def onboarding(request):
+    template = 'baseTemplate/onboarding.html'
+
+    proc = httpProc(request, template, None, 'admin')
+    return proc.render()
+
+
+def runonboarding(request):
+    try:
+        userID = request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+
+        if currentACL['admin'] == 1:
+            pass
+        else:
+            return ACLManager.loadErrorJson()
+
+        data = json.loads(request.body)
+        hostname = data['hostname']
+
+        try:
+            rDNSCheck = str(int(data['rDNSCheck']))
+        except:
+            rDNSCheck = 0
+
+        tempStatusPath = "/home/cyberpanel/" + str(randint(1000, 9999))
+
+        WriteToFile = open(tempStatusPath, 'w')
+        WriteToFile.write('Starting')
+        WriteToFile.close()
+
+        command = f'/usr/local/CyberCP/bin/python /usr/local/CyberCP/plogical/virtualHostUtilities.py OnBoardingHostName --virtualHostName {hostname} --path {tempStatusPath} --rdns {rDNSCheck}'
+        ProcessUtilities.popenExecutioner(command)
+
+        dic = {'status': 1, 'tempStatusPath': tempStatusPath}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
+
+
+    except BaseException as msg:
+        dic = {'status': 0, 'error_message': str(msg)}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
+
+def RestartCyberPanel(request):
+    try:
+        userID = request.session['userID']
+        currentACL = ACLManager.loadedACL(userID)
+
+        if currentACL['admin'] == 1:
+            pass
+        else:
+            return ACLManager.loadErrorJson()
+
+
+        command = 'systemctl restart lscpd'
+        ProcessUtilities.popenExecutioner(command)
+
+        dic = {'status': 1}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)
+
+
+    except BaseException as msg:
+        dic = {'status': 0, 'error_message': str(msg)}
+        json_data = json.dumps(dic)
+        return HttpResponse(json_data)

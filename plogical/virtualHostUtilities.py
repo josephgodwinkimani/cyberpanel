@@ -2,10 +2,13 @@
 import os
 import os.path
 import sys
+import time
+
 import django
-#PACKAGE_PARENT = '..'
-#SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-#sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+
+# PACKAGE_PARENT = '..'
+# SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+# sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
@@ -50,6 +53,251 @@ class virtualHostUtilities:
     redisConf = '/usr/local/lsws/conf/dvhost_redis.conf'
     vhostConfPath = '/usr/local/lsws/conf'
 
+
+
+    @staticmethod
+    def OnBoardingHostName(Domain, tempStatusPath, skipRDNSCheck):
+        import json
+        import OpenSSL
+
+        logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Setting up hostname,10')
+        admin = Administrator.objects.get(pk=1)
+        try:
+            config = json.loads(admin.config)
+        except:
+            config = {}
+
+        ### probably need to add temporary dns resolver nameserver here - pending
+
+        try:
+            CurrentHostName = config['hostname']
+        except:
+            CurrentHostName = ''
+
+        if skipRDNSCheck:
+            pass
+        else:
+            if os.path.exists('/home/cyberpanel/postfix'):
+                pass
+            else:
+                message = 'This server does not come with postfix installed. [404]'
+                print(message)
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+                return 0
+
+
+        ####
+
+        PostFixHostname = mailUtilities.FetchPostfixHostname()
+        serverIP = ACLManager.fetchIP()
+        ### if skipRDNSCheck == 1, it means we need to skip checking for rDNS
+        if skipRDNSCheck:
+            ### so if skipRDNSCheck is 1 means we need to skip checking for rDNS so lets set current as rDNS because no checking is required
+            rDNS = [CurrentHostName]
+        else:
+            rDNS = mailUtilities.reverse_dns_lookup(serverIP)
+
+        time.sleep(3)
+
+        if os.path.exists(ProcessUtilities.debugPath):
+            print(f'Postfix Hostname: {PostFixHostname}. Server IP {serverIP}. rDNS: {str(rDNS)}')
+            logging.CyberCPLogFileWriter.writeToFile(f'Postfix Hostname: {PostFixHostname}. Server IP {serverIP}. rDNS: {str(rDNS)}, rDNS check {skipRDNSCheck}')
+
+        ### Case 1 if hostname already exists check if same hostname in postfix and rdns
+        filePath = '/etc/letsencrypt/live/%s/fullchain.pem' % (PostFixHostname)
+
+        if (CurrentHostName == PostFixHostname and CurrentHostName in rDNS) and os.path.exists(filePath):
+
+            # expireData = x509.get_notAfter().decode('ascii')
+            # finalDate = datetime.strptime(expireData, '%Y%m%d%H%M%SZ')
+            # now = datetime.now()
+            # diff = finalDate - now
+            message = 'Hostname is already set, the same hostname is also used with mail service and rDNS. Let see if valid SSL also exists for this hostname..,10'
+            print(message)
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+            logging.CyberCPLogFileWriter.writeToFile(message)
+
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open(filePath, 'r').read())
+            SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+
+            try:
+                child = ChildDomains.objects.get(domain=CurrentHostName)
+                website = child.master
+                path = child.path
+            except:
+                website = Websites.objects.get(domain=CurrentHostName)
+                path = f'/home/{CurrentHostName}/public_html'
+
+            if SSLProvider == 'Denial':
+                message = 'It seems that the hostname used with mail service and rDNS does not have a valid SSL certificate, CyberPanel will try to issue valid SSL and restart related services,20'
+
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+
+                virtualHostUtilities.issueSSL(CurrentHostName, path, website.adminEmail)
+
+                ### once SSL is issued, re-read the SSL file and check if valid ssl got issued.
+
+                x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open(filePath, 'r').read())
+                SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+
+                if SSLProvider == 'Denial':
+                    message = 'Hostname SSL was already issued, and same hostname was used in mail server SSL, rDNS was also configured but we found invalid SSL. However, we tried to issue SSL and it failed. [404]'
+                    logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                    logging.CyberCPLogFileWriter.writeToFile(message)
+                    config['hostname'] = Domain
+                    config['onboarding'] = 3
+                    config['skipRDNSCheck'] = skipRDNSCheck
+                    admin.config = json.dumps(config)
+                    admin.save()
+                    return 0
+            else:
+                message = "It looks like your current hostname is already the mail server hostname and rDNS is also set and there is a valid SSL, nothing needed to do."
+                print(message)
+                config['hostname'] = Domain
+                config['onboarding'] = 1
+                config['skipRDNSCheck'] = skipRDNSCheck
+                admin.config = json.dumps(config)
+                admin.save()
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+
+            command = 'postmap -F hash:/etc/postfix/vmail_ssl.map && systemctl restart postfix && systemctl restart dovecot'
+            ProcessUtilities.executioner(command, 'root', True)
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Completed. [200]')
+        else:
+
+            ### create site if not there
+
+            try:
+
+                website = Websites.objects.get(domain=Domain)
+            except:
+                try:
+                    child = ChildDomains.objects.get(domain=Domain)
+                except:
+                    DataToPass = {}
+
+                    currentTemp = tempStatusPath
+
+                    DataToPass['domainName'] = Domain
+                    DataToPass['adminEmail'] = admin.email
+                    DataToPass['phpSelection'] = "PHP 8.0"
+                    DataToPass['websiteOwner'] = "admin"
+                    DataToPass['package'] = "Default"
+                    DataToPass['ssl'] = 1
+                    DataToPass['dkimCheck'] = 1
+                    DataToPass['openBasedir'] = 0
+                    DataToPass['mailDomain'] = 0
+                    DataToPass['apacheBackend'] = 0
+                    UserID = admin.pk
+
+                    from websiteFunctions.website import WebsiteManager
+                    ab = WebsiteManager()
+                    coreResult = ab.submitWebsiteCreation(admin.id, DataToPass)
+                    coreResult1 = json.loads((coreResult).content)
+                    logging.CyberCPLogFileWriter.writeToFile("Creating website result....%s" % coreResult1)
+                    reutrntempath = coreResult1['tempStatusPath']
+                    while (1):
+                        lastLine = open(reutrntempath, 'r').read()
+                        if os.path.exists(ProcessUtilities.debugPath):
+                            logging.CyberCPLogFileWriter.writeToFile("Info web creating lastline ....... %s" % lastLine)
+                        if lastLine.find('[200]') > -1:
+                            break
+                        elif lastLine.find('[404]') > -1:
+                            statusFile = open(currentTemp, 'w')
+                            statusFile.writelines('Failed to Create Website: error: %s. [404]' % lastLine)
+                            statusFile.close()
+                            return 0
+                        else:
+                            statusFile = open(currentTemp, 'w')
+                            statusFile.writelines('Creating Website....,20')
+                            statusFile.close()
+                            time.sleep(2)
+
+            ### Case 2 where postfix hostname either does not exist or does not match with server hostname or
+            ### hostname does not exists at all
+
+            ### if skipRDNSCheck == 1, it means we need to skip checking for rDNS
+            if skipRDNSCheck:
+                ### so if skipRDNSCheck is 1 means we need to skip checking for rDNS so lets set current domain as rDNS because no checking is required
+                rDNS = [Domain]
+
+            if os.path.exists(ProcessUtilities.debugPath):
+                logging.CyberCPLogFileWriter.writeToFile(
+                    f'Second if: Postfix Hostname: {PostFixHostname}. Server IP {serverIP}. rDNS: {str(rDNS)}, rDNS check {skipRDNSCheck}')
+
+            #first check if hostname is already configured as rDNS, if not return error
+
+
+            if Domain not in rDNS:
+                message = 'Domain that you have provided is not configured as rDNS for your server IP. [404]'
+                print(message)
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+                config['hostname'] = Domain
+                config['onboarding'] = 3
+                config['skipRDNSCheck'] = skipRDNSCheck
+                admin.config = json.dumps(config)
+                admin.save()
+                return 0
+
+            ### now issue hostname ssl
+
+            try:
+                website = Websites.objects.get(domain=Domain)
+                path = "/home/" + Domain + "/public_html"
+            except:
+                website = ChildDomains.objects.get(domain=Domain)
+                path = website.path
+
+            filePath = '/etc/letsencrypt/live/%s/fullchain.pem' % (Domain)
+
+            virtualHostUtilities.issueSSLForHostName(Domain, path, 1)
+
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open(filePath, 'r').read())
+            SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+
+            if SSLProvider == 'Denial':
+                message = 'Failed to issue Hostname SSL, either its DNS record is not propagated or the domain is behind Cloudflare. If DNS is already propagated you might have reached Lets Encrypt limit, please wait before trying again.. [404]'
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+                config['hostname'] = Domain
+                config['onboarding'] = 3
+                config['skipRDNSCheck'] = skipRDNSCheck
+                admin.config = json.dumps(config)
+                admin.save()
+                return 0
+
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Hostname SSL issued,50')
+
+
+            virtualHostUtilities.issueSSLForMailServer(Domain, path)
+
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, open(filePath, 'r').read())
+            SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+
+            if SSLProvider == 'Denial':
+                message = 'Failed to issue Mail server SSL, either its DNS record is not propagated or the domain is behind Cloudflare. [404]'
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, message)
+                logging.CyberCPLogFileWriter.writeToFile(message)
+                config['hostname'] = Domain
+                config['onboarding'] = 3
+                config['skipRDNSCheck'] = skipRDNSCheck
+                admin.config = json.dumps(config)
+                admin.save()
+                return 0
+            else:
+                config['hostname'] = Domain
+                config['onboarding'] = 1
+                config['skipRDNSCheck'] = skipRDNSCheck
+                admin.config = json.dumps(config)
+                admin.save()
+                command = 'systemctl restart postfix && systemctl restart dovecot && postmap -F hash:/etc/postfix/vmail_ssl.map'
+                ProcessUtilities.executioner(command, 'root', True)
+                logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Completed. [200]')
+
     @staticmethod
     def setupAutoDiscover(mailDomain, tempStatusPath, virtualHostName, admin):
 
@@ -59,10 +307,11 @@ class virtualHostUtilities:
             childPath = '/home/%s/%s' % (virtualHostName, childDomain)
 
             result = virtualHostUtilities.createDomain(virtualHostName, childDomain, 'PHP 7.3', childPath, 1, 0, 0,
-                                              admin.userName, 0, "/home/cyberpanel/" + str(randint(1000, 9999)))
+                                                       admin.userName, 0,
+                                                       "/home/cyberpanel/" + str(randint(1000, 9999)))
 
             if result[0] == 0:
-                sslUtilities.issueSSLForDomain(virtualHostName, admin.email, childPath)
+                sslUtilities.issueSSLForDomain(childDomain, admin.email, childPath)
 
             ## update dovecot conf to enable auto-discover
 
@@ -75,11 +324,17 @@ class virtualHostUtilities:
                     content = """\nlocal_name %s {
         ssl_cert = </etc/letsencrypt/live/%s/fullchain.pem
         ssl_key = </etc/letsencrypt/live/%s/privkey.pem
-}\n""" % (childDomain, childDomain, childDomain)
+}
+local_name %s {
+        ssl_cert = </etc/letsencrypt/live/%s/fullchain.pem
+        ssl_key = </etc/letsencrypt/live/%s/privkey.pem
+}
+\n""" % (childDomain, childDomain, childDomain, virtualHostName, virtualHostName, virtualHostName)
 
                     writeToFile = open(dovecotPath, 'a')
                     writeToFile.write(content)
                     writeToFile.close()
+
 
                 command = 'systemctl restart dovecot'
                 ProcessUtilities.executioner(command)
@@ -102,8 +357,7 @@ class virtualHostUtilities:
                     postfixMapFileContent = ''
 
                 if postfixMapFileContent.find('/live/%s/' % (childDomain)) == -1:
-
-                    mapContent = '%s /etc/letsencrypt/live/%s/privkey.pem /etc/letsencrypt/live/%s/fullchain.pem\n' % (
+                    mapContent = f'%s /etc/letsencrypt/live/%s/privkey.pem /etc/letsencrypt/live/%s/fullchain.pem\n{virtualHostName} /etc/letsencrypt/live/{virtualHostName}/privkey.pem /etc/letsencrypt/live/{virtualHostName}/fullchain.pem\n' % (
                         childDomain, childDomain, childDomain)
 
                     writeToFile = open(postfixMapFile, 'a')
@@ -116,6 +370,58 @@ class virtualHostUtilities:
 
                 command = 'systemctl restart postfix'
                 ProcessUtilities.executioner(command)
+
+        ### even if mail domain creation is not set, we will have to set up auto discover for main domain
+
+        dovecotPath = '/etc/dovecot/dovecot.conf'
+
+        if os.path.exists(dovecotPath):
+            dovecotContent = open(dovecotPath, 'r').read()
+
+            if dovecotContent.find('/live/%s/' % (virtualHostName)) == -1:
+                content = """
+local_name %s {
+        ssl_cert = </etc/letsencrypt/live/%s/fullchain.pem
+        ssl_key = </etc/letsencrypt/live/%s/privkey.pem
+}
+""" % (virtualHostName, virtualHostName, virtualHostName)
+
+                writeToFile = open(dovecotPath, 'a')
+                writeToFile.write(content)
+                writeToFile.close()
+
+            command = 'systemctl restart dovecot'
+            ProcessUtilities.executioner(command)
+
+            ### Update postfix configurations
+
+            postFixPath = '/etc/postfix/main.cf'
+
+            postFixContent = open(postFixPath, 'r').read()
+
+            if postFixContent.find('tls_server_sni_maps') == -1:
+                writeToFile = open(postFixPath, 'a')
+                writeToFile.write('\ntls_server_sni_maps = hash:/etc/postfix/vmail_ssl.map\n')
+                writeToFile.close()
+
+            postfixMapFile = '/etc/postfix/vmail_ssl.map'
+            try:
+                postfixMapFileContent = open(postfixMapFile, 'r').read()
+            except:
+                postfixMapFileContent = ''
+
+            if postfixMapFileContent.find('/live/%s/' % (virtualHostName)) == -1:
+                mapContent = f'{virtualHostName} /etc/letsencrypt/live/{virtualHostName}/privkey.pem /etc/letsencrypt/live/{virtualHostName}/fullchain.pem\n'
+                writeToFile = open(postfixMapFile, 'a')
+                writeToFile.write(mapContent)
+                writeToFile.close()
+
+            command = 'postmap -F hash:/etc/postfix/vmail_ssl.map'
+
+            ProcessUtilities.executioner(command)
+
+            command = 'systemctl restart postfix'
+            ProcessUtilities.executioner(command)
 
     @staticmethod
     def createVirtualHost(virtualHostName, administratorEmail, phpVersion, virtualHostUser, ssl,
@@ -132,7 +438,6 @@ class virtualHostUtilities:
             if LimitsCheck:
 
                 if ACLManager.websitesLimitCheck(admin, 1) == 0:
-
                     logging.CyberCPLogFileWriter.statusWriter(tempStatusPath,
                                                               'You\'ve reached maximum websites limit as a reseller. [404]')
                     return 0, 'You\'ve reached maximum websites limit as a reseller.'
@@ -206,6 +511,10 @@ class virtualHostUtilities:
 
                 website.save()
 
+                if admin.defaultSite == 0:
+                    admin.defaultSite = website.id
+                    admin.save()
+
             if ssl == 1:
                 sslPath = "/home/" + virtualHostName + "/public_html"
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Setting up SSL..,70')
@@ -218,11 +527,15 @@ class virtualHostUtilities:
                     if not os.path.exists(virtualHostUtilities.redisConf):
                         installUtilities.installUtilities.reStartLiteSpeed()
 
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'SSL set up done..,70')
+
             if ssl == 0:
                 if not os.path.exists(virtualHostUtilities.redisConf):
                     installUtilities.installUtilities.reStartLiteSpeed()
 
             vhost.finalizeVhostCreation(virtualHostName, virtualHostUser)
+
+            logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'vHost finalized..,70')
 
             ## Check If Apache is requested
 
@@ -244,7 +557,10 @@ class virtualHostUtilities:
                         ApacheVhost.perHostVirtualConfOLS(completePathToConfigFile, administratorEmail)
                         installUtilities.installUtilities.reStartLiteSpeed()
                         php = PHPManager.getPHPString(phpVersion)
-                        command = "systemctl restart php%s-php-fpm" % (php)
+
+                        phpService = ApacheVhost.DecideFPMServiceName(phpVersion)
+
+                        command = f"systemctl restart {phpService}"
                         ProcessUtilities.normalExecutioner(command)
 
             ## Create Configurations ends here
@@ -262,7 +578,8 @@ class virtualHostUtilities:
             CLPath = '/etc/sysconfig/cloudlinux'
 
             if os.path.exists(CLPath):
-                command = '/usr/share/cloudlinux/hooks/post_modify_user.py create --username %s --owner %s' % (virtualHostUser, admin.userName)
+                command = '/usr/share/cloudlinux/hooks/post_modify_user.py create --username %s --owner %s' % (
+                    virtualHostUser, admin.userName)
                 ProcessUtilities.executioner(command)
 
             ### For autodiscover of mail clients.
@@ -270,6 +587,13 @@ class virtualHostUtilities:
             virtualHostUtilities.setupAutoDiscover(mailDomain, tempStatusPath, virtualHostName, admin)
 
             ###
+
+            spaceString = f'{selectedPackage.diskSpace}M {selectedPackage.diskSpace}M'
+
+            if selectedPackage.enforceDiskLimits:
+                command = f'setquota -u {virtualHostUser} {spaceString} 0 0 /'
+                ProcessUtilities.executioner(command)
+
 
             logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Website successfully created. [200]')
 
@@ -310,6 +634,35 @@ class virtualHostUtilities:
             return 0, str(msg)
 
     @staticmethod
+    def issueSSLv2(virtualHost, path, adminEmail):
+        try:
+
+            import plogical.sslv2 as sslv2
+
+            retValues = sslv2.issueSSLForDomain(virtualHost, adminEmail, path)
+
+            if retValues[0] == 0:
+                print("0," + str(retValues[1]))
+                logging.CyberCPLogFileWriter.writeToFile(str(retValues[1]))
+                return 0, str(retValues[1])
+
+            installUtilities.installUtilities.reStartLiteSpeed()
+
+            command = 'systemctl restart postfix'
+            ProcessUtilities.executioner(command)
+
+            command = 'systemctl restart dovecot'
+            ProcessUtilities.executioner(command)
+
+            print(f"1,{str(retValues[1])}")
+            return 1, str(retValues[1])
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(str(msg) + " [issueSSL]")
+            print("0," + str(msg))
+            return 0, str(msg)
+
+    @staticmethod
     def getAccessLogs(fileName, page, externalApp):
         try:
 
@@ -319,7 +672,8 @@ class virtualHostUtilities:
 
             groupName = 'nobody'
 
-            numberOfTotalLines = int(ProcessUtilities.outputExecutioner('wc -l %s' % (fileName), groupName).split(" ")[0])
+            numberOfTotalLines = int(
+                ProcessUtilities.outputExecutioner('wc -l %s' % (fileName), groupName).split(" ")[0])
 
             if numberOfTotalLines < 25:
                 data = ProcessUtilities.outputExecutioner('cat %s' % (fileName), groupName)
@@ -409,6 +763,29 @@ class virtualHostUtilities:
             print("0," + str(msg))
 
     @staticmethod
+    def saveApacheConfigsToFile(fileName, tempPath):
+        try:
+
+            vhost = open(fileName, "w")
+
+            vhost.write(open(tempPath, "r").read())
+
+            vhost.close()
+
+            if os.path.exists(tempPath):
+                os.remove(tempPath)
+
+            command = f"systemctl restart {ApacheVhost.serviceName}"
+            ProcessUtilities.normalExecutioner(command)
+
+            print("1,None")
+
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(
+                str(msg) + "  [saveApacheConfigsToFile]")
+            print("0," + str(msg))
+
+    @staticmethod
     def saveRewriteRules(virtualHost, fileName, tempPath):
         try:
 
@@ -436,7 +813,7 @@ class virtualHostUtilities:
             print("0," + str(msg))
 
     @staticmethod
-    def issueSSLForHostName(virtualHost, path):
+    def issueSSLForHostName(virtualHost, path, skipLSCPDRestart=0):
         try:
 
             destPrivKey = "/usr/local/lscp/conf/key.pem"
@@ -459,10 +836,8 @@ class virtualHostUtilities:
                 print("0," + str(retValues[1]))
                 return 0, retValues[1]
 
-
             command = 'chmod 600 %s' % (destPrivKey)
             ProcessUtilities.normalExecutioner(command)
-
 
             ## removing old certs for lscpd
             if os.path.exists(destPrivKey):
@@ -502,9 +877,13 @@ class virtualHostUtilities:
             command = 'ln -s %s %s' % (pathToStoreSSLPrivKey, destPrivKey)
             ProcessUtilities.executioner(command)
 
-            command = 'systemctl restart lscpd'
-            cmd = shlex.split(command)
-            subprocess.call(cmd)
+
+            if skipLSCPDRestart:
+                pass
+            else:
+                command = 'systemctl restart lscpd'
+                cmd = shlex.split(command)
+                subprocess.call(cmd)
 
             print("1,None")
             return 1, 'None'
@@ -932,7 +1311,7 @@ class virtualHostUtilities:
 
     @staticmethod
     def createDomain(masterDomain, virtualHostName, phpVersion, path, ssl, dkimCheck, openBasedir, owner, apache,
-                     tempStatusPath='/home/cyberpanel/fakePath', LimitsCheck=1):
+                     tempStatusPath='/home/cyberpanel/fakePath', LimitsCheck=1, alias = 0):
         try:
 
             logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Running some checks..,0')
@@ -995,12 +1374,11 @@ class virtualHostUtilities:
 
                 if vhost.checkIfAliasExists(virtualHostName) == 1:
                     logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'This domain exists as Alias. [404]')
-                    return 0, "This domain exists as Alias."
+                    #return 0, "This domain exists as Alias."
 
             logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'DKIM Setup..,30')
 
             postFixPath = '/home/cyberpanel/postfix'
-
 
             if os.path.exists(postFixPath):
                 retValues = mailUtilities.setupDKIM(virtualHostName)
@@ -1025,7 +1403,8 @@ class virtualHostUtilities:
             ## Now restart litespeed after initial configurations are done
 
             if LimitsCheck:
-                website = ChildDomains(master=master, domain=virtualHostName, path=path, phpSelection=phpVersion, ssl=ssl)
+                website = ChildDomains(master=master, domain=virtualHostName, path=path, phpSelection=phpVersion,
+                                       ssl=ssl, alais=alias)
                 website.save()
 
             if ssl == 1:
@@ -1065,7 +1444,10 @@ class virtualHostUtilities:
                         ApacheVhost.perHostVirtualConfOLS(completePathToConfigFile, master.adminEmail)
                         installUtilities.installUtilities.reStartLiteSpeed()
                         php = PHPManager.getPHPString(phpVersion)
-                        command = "systemctl restart php%s-php-fpm" % (php)
+
+                        phpService = ApacheVhost.DecideFPMServiceName(phpVersion)
+
+                        command = f"systemctl restart {phpService}"
                         ProcessUtilities.normalExecutioner(command)
 
             ## DKIM Check
@@ -1154,8 +1536,27 @@ class virtualHostUtilities:
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Restarting servers and phps..,90')
 
                 php = PHPManager.getPHPString(phpVersion)
-                command = "systemctl restart php%s-php-fpm" % (php)
+
+                ##
+
+                phpService = ApacheVhost.DecideFPMServiceName(phpVersion)
+
+                # if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                #     phpService = f'php{php}-php-fpm'
+                # else:
+                #     phpService = f"{phpVersion.replace(' ', '').lower()}-fpm"
+
+                command = f"systemctl stop {phpService}"
                 ProcessUtilities.normalExecutioner(command)
+
+                command = f"systemctl restart {phpService}"
+                ProcessUtilities.normalExecutioner(command)
+
+                command = f"systemctl restart {ApacheVhost.serviceName}"
+                ProcessUtilities.normalExecutioner(command)
+
+                ###
+
                 installUtilities.installUtilities.reStartLiteSpeed()
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Successfully converted.[200]')
             else:
@@ -1169,6 +1570,12 @@ class virtualHostUtilities:
                 else:
                     vhost.perHostVirtualConf(completePathToConfigFile, website.adminEmail, website.externalApp,
                                              phpVersion, virtualHostName, 0)
+
+                    sslFCPath = f'/etc/letsencrypt/live/{virtualHostName}/fullchain.pem'
+
+                    if os.path.exists(sslFCPath):
+                        sslUtilities.sslUtilities.installSSLForDomain(virtualHostName, website.adminEmail)
+
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Restarting server..,90')
                 installUtilities.installUtilities.reStartLiteSpeed()
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Successfully converted. [200]')
@@ -1181,7 +1588,8 @@ class virtualHostUtilities:
     def getDiskUsage(path, totalAllowed):
         try:
 
-            totalUsageInMB = subprocess.check_output('du -hs %s --block-size=1M' % (path), shell=True).decode("utf-8").split()[0]
+            totalUsageInMB = \
+                subprocess.check_output('du -hs %s --block-size=1M' % (path), shell=True).decode("utf-8").split()[0]
 
             percentage = float(100) / float(totalAllowed)
 
@@ -1197,9 +1605,8 @@ class virtualHostUtilities:
 
     @staticmethod
     def getDiskUsageofPath(path):
-
         try:
-             return subprocess.check_output('du -hs %s --block-size=1M' % (path), shell=True).decode("utf-8").split()[0]
+            return subprocess.check_output('du -hs %s --block-size=1M' % (path), shell=True).decode("utf-8").split()[0]
         except BaseException:
             return '0MB'
 
@@ -1246,7 +1653,7 @@ class virtualHostUtilities:
         return DiskUsage, DiskUsagePercentage, bwInMB, bwUsage
 
     @staticmethod
-    def EnableDisablePP(vhostName, username=None, password=None, path=None, wpid=None, externalApp = None):
+    def EnableDisablePP(vhostName, username=None, password=None, path=None, wpid=None, externalApp=None):
         try:
             vhostPassDir = f'/home/{vhostName}'
 
@@ -1256,7 +1663,6 @@ class virtualHostUtilities:
                 group = 'nogroup'
             else:
                 group = 'nobody'
-
 
             confPath = f'{virtualHostUtilities.vhostConfPath}/vhosts/{vhostName}/vhost.conf'
             htpassword = f'{vhostPassDir}/{wpid}'
@@ -1277,7 +1683,7 @@ class virtualHostUtilities:
                     command = f'rm -f {htpassword}'
                     ProcessUtilities.executioner(command, externalApp)
 
-                    #os.remove(htpassword)
+                    # os.remove(htpassword)
                     removeCheck = 0
 
                     data = open(confPath, 'r').readlines()
@@ -1333,7 +1739,7 @@ class virtualHostUtilities:
                     command = f'rm -f {htpassword}'
                     ProcessUtilities.executioner(command, externalApp)
 
-                    #os.remove(htpassword)
+                    # os.remove(htpassword)
                     removeCheck = 0
 
                     if os.path.exists(htaccesspath):
@@ -1367,7 +1773,6 @@ class virtualHostUtilities:
                     hashed = bcrypt.hashpw(password, bcrypt.gensalt())
                     UserPass = f'{username}:{hashed.decode()}:{username}'
 
-
                     writeToFile = open(htpasstemp, 'w')
                     writeToFile.write(UserPass)
                     writeToFile.close()
@@ -1380,7 +1785,6 @@ class virtualHostUtilities:
                     command = f'chmod 640 {htpassword}'
                     ProcessUtilities.executioner(command, externalApp, True)
 
-
                     command = f'sudo -u {externalApp} -g {group} chown {externalApp}:{group} {htpassword}'
                     ProcessUtilities.executioner(command)
 
@@ -1390,8 +1794,7 @@ class virtualHostUtilities:
 
         except BaseException as msg:
             print(f'0,{str(msg)}')
-            return 0,str(msg)
-
+            return 0, str(msg)
 
 
 def main():
@@ -1466,6 +1869,10 @@ def main():
 
     parser.add_argument('--DeleteDocRoot', help='Doc root deletion for child domain.')
 
+    ### for onboarding
+
+    parser.add_argument('--rdns', help='Doc root deletion for child domain.')
+
     args = parser.parse_args()
 
     if args.function == "createVirtualHost":
@@ -1491,7 +1898,8 @@ def main():
 
         virtualHostUtilities.createVirtualHost(args.virtualHostName, args.administratorEmail, args.phpVersion,
                                                args.virtualHostUser, int(args.ssl), dkimCheck, openBasedir,
-                                               args.websiteOwner, args.package, apache, tempStatusPath, int(args.mailDomain))
+                                               args.websiteOwner, args.package, apache, tempStatusPath,
+                                               int(args.mailDomain))
     elif args.function == "setupAutoDiscover":
         admin = Administrator.objects.get(userName=args.websiteOwner)
         virtualHostUtilities.setupAutoDiscover(1, '/home/cyberpanel/templogs', args.virtualHostName, admin)
@@ -1518,11 +1926,18 @@ def main():
         except:
             tempStatusPath = '/home/cyberpanel/fakePath'
 
+        try:
+            aliasDomain = int(args.aliasDomain)
+        except:
+            aliasDomain = 0
+
         virtualHostUtilities.createDomain(args.masterDomain, args.virtualHostName, args.phpVersion, args.path,
                                           int(args.ssl), dkimCheck, openBasedir, args.websiteOwner, apache,
-                                          tempStatusPath)
+                                          tempStatusPath, 1, aliasDomain)
     elif args.function == "issueSSL":
         virtualHostUtilities.issueSSL(args.virtualHostName, args.path, args.administratorEmail)
+    elif args.function == "issueSSLv2":
+        virtualHostUtilities.issueSSLv2(args.virtualHostName, args.path, args.administratorEmail)
     elif args.function == "changePHP":
         vhost.changePHP(args.path, args.phpVersion)
     elif args.function == "getAccessLogs":
@@ -1531,6 +1946,8 @@ def main():
         virtualHostUtilities.getErrorLogs(args.path, int(args.page))
     elif args.function == "saveVHostConfigs":
         virtualHostUtilities.saveVHostConfigs(args.path, args.tempPath)
+    elif args.function == "saveApacheConfigsToFile":
+        virtualHostUtilities.saveApacheConfigsToFile(args.path, args.tempPath)
     elif args.function == "saveRewriteRules":
         virtualHostUtilities.saveRewriteRules(args.virtualHostName, args.path, args.tempPath)
     elif args.function == "saveSSL":
@@ -1562,7 +1979,12 @@ def main():
     elif args.function == 'switchServer':
         virtualHostUtilities.switchServer(args.virtualHostName, args.phpVersion, int(args.server), args.tempStatusPath)
     elif args.function == 'EnableDisablePP':
-        virtualHostUtilities.EnableDisablePP(args.virtualHostName, args.username, args.password, args.path, args.wpid, args.virtualHostUser)
+        virtualHostUtilities.EnableDisablePP(args.virtualHostName, args.username, args.password, args.path, args.wpid,
+                                             args.virtualHostUser)
+    elif args.function == 'OnBoardingHostName':
+        # in virtualHostName pass domain for which hostname should be set up
+        # in path pass temporary path where status of the function will be stored
+        virtualHostUtilities.OnBoardingHostName(args.virtualHostName, args.path, int(args.rdns))
 
 
 if __name__ == "__main__":
