@@ -127,6 +127,7 @@ class preFlightsChecks:
     cyberPanelMirror = "mirror.cyberpanel.net/pip"
     cdn = 'cyberpanel.sh'
     SnappyVersion = '2.38.2'
+    RCloneVersion = '1.68.2'
 
     def __init__(self, rootPath, ip, path, cwd, cyberPanelPath, distro, remotemysql=None, mysqlhost=None, mysqldb=None,
                  mysqluser=None, mysqlpassword=None, mysqlport=None):
@@ -960,21 +961,21 @@ password="%s"
             if os.path.exists("/usr/bin/rclone"):
                 return 0
 
-            if self.distro == centos:  # Install centos7 and clone distros
-                command = "wget https://downloads.rclone.org/v1.68.2/rclone-v1.60.1-linux-amd64.rpm"
+            if self.distro == ubuntu:  # Install ubuntu
+                command = 'wget https://downloads.rclone.org/v%s/rclone-v%s-linux-amd64.deb' % (preFlightsChecks.RCloneVersion, preFlightsChecks.RCloneVersion)
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-                command = "yum localinstall rclone-v1.68.2-linux-amd64.rpm -y"
+                command = "DEBIAN_FRONTEND=noninteractive apt-get -y install ./rclone-v%s-linux-amd64.deb" % preFlightsChecks.RCloneVersion
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-            else:  # Install ubuntu
-                command = "wget https://downloads.rclone.org/v1.68.2/rclone-v1.60.1-linux-amd64.deb"
+            else:  # Install centos7 and clone distros
+                command = "wget https://downloads.rclone.org/v%s/rclone-v%s-linux-amd64.rpm" % (preFlightsChecks.RCloneVersion, preFlightsChecks.RCloneVersion)
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-                command = "apt-get -y install ./rclone-v1.68.2-linux-amd64.deb"
+                command = "yum localinstall rclone-v%s-linux-amd64.rpm -y" % preFlightsChecks.RCloneVersion
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
@@ -987,6 +988,8 @@ password="%s"
             logging.InstallLog.writeToFile(
                 "[ERROR] " + str(msg) + " [download_and_install_rclone]"
             )
+
+        ###
     def download_install_phpmyadmin(self):
         try:
 
@@ -1751,6 +1754,7 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             command = 'systemctl enable firewalld'
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
+            FirewallUtilities.addRule("tcp", "8081") # add the CrowdSec API port
             FirewallUtilities.addRule("tcp", "8090")
             FirewallUtilities.addRule("tcp", "7080")
             FirewallUtilities.addRule("tcp", "80")
@@ -1819,125 +1823,6 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
 
         except BaseException as msg:
             logging.InstallLog.writeToFile('[ERROR] ' + str(msg) + " [install_fail2ban]")
-
-    def install_crowdsec(self):
-        self.stdOut("Install CrowdSec")
-
-        try:
-            # Download and run the CrowdSec installation script
-            command = "curl -s https://install.crowdsec.net | sudo sh"
-            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Install CrowdSec based on the distribution
-            if self.distro == ubuntu:
-                command = "DEBIAN_FRONTEND=noninteractive apt -y install crowdsec"
-            else:  # For Centos7/8
-                command = "yum -y install crowdsec"
-
-            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Enable and start CrowdSec service
-            for action in ["enable", "start"]:
-                command = f"systemctl {action} crowdsec"
-                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Install Firewall Bouncer
-            if self.distro == ubuntu:
-                command = "DEBIAN_FRONTEND=noninteractive apt -y install crowdsec-firewall-bouncer-iptables"
-            else:  # For Centos7/8
-                command = "yum -y install crowdsec-firewall-bouncer-iptables"
-
-            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Enable and start Firewall Bouncer service
-            for action in ["enable", "start"]:
-                command = f"systemctl {action} crowdsec-firewall-bouncer"
-                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Setup collections
-            collections = [
-                "crowdsecurity/iptables",
-                "crowdsecurity/linux",
-                "crowdsecurity/sshd",
-                "crowdsecurity/postfix",
-                "crowdsecurity/mariadb",
-                "crowdsecurity/modsecurity",
-                "crowdsecurity/linux-lpe",
-                "crowdsecurity/litespeed",
-                "crowdsecurity/dovecot",
-                "crowdsecurity/exchange",
-                "crowdsecurity/vsftpd",
-                "fulljackz/pureftpd",
-                "crowdsecurity/wordpress"
-            ]
-
-            for collection in collections:
-                command = f"cscli collections install {collection}"
-                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Setup scenarios
-            scenarios = [
-                "crowdsecurity/litespeed-admin-bf",
-                "crowdsecurity/iptables-scan-multi_ports",
-                "crowdsecurity/CVE-2021-4034",
-                "crowdsecurity/CVE-2022-35914",
-                "crowdsecurity/dovecot-spam",
-                # Add more scenarios as needed...
-            ]
-
-            for scenario in scenarios:
-                command = f"cscli scenarios install {scenario}"
-                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Setup parsers
-            parsers = [
-                "crowdsecurity/litespeed-logs",
-                "crowdsecurity/dovecot-logs",
-                "crowdsecurity/exchange-imap-logs",
-                "crowdsecurity/exchange-pop-logs",
-                "crowdsecurity/exchange-smtp-logs",
-                "crowdsecurity/iptables-logs",
-                "crowdsecurity/mariadb-logs",
-                "crowdsecurity/postfix-logs",
-                "crowdsecurity/sshd-logs"
-            ]
-
-            for parser in parsers:
-                command = f"cscli parsers install {parser}"
-                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Restart CrowdSec service
-            command = "systemctl restart crowdsec"
-            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
-
-            # Add additional logs for CrowdSec configuration
-            acquis_file_path = "/etc/crowdsec/acquis.yaml"
-
-            with open(acquis_file_path + ".tmp", 'w') as temp_file:
-                temp_file.write("""\
-    # Additional log sources for CrowdSec
-    source: file
-    filenames:
-        - /home/cyberpanel/error-logs.txt
-        - /usr/local/lsws/logs/error.log
-        - /var/log/maillog
-        - /var/log/messages
-        - /var/log/mysql/error.log
-    labels:
-        type: syslog
-    # Uncomment to acquire logs from journalctl files.
-    # source: journalctl
-    # journalctl_filter:
-    #   - "_SYSTEMD_UNIT=ssh.service"
-    # labels:
-    #   type: journald
-    """)
-
-            # Move temporary file to actual configuration file path
-            os.rename(acquis_file_path + ".tmp", acquis_file_path)
-
-        except BaseException as msg:
-            logging.InstallLog.writeToFile(f"[ERROR] {msg} [install_crowdsec]")
 
     ## from here
 
@@ -2260,6 +2145,161 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             )
         except:
             return 0
+
+    def install_crowdsec(self):
+        self.stdOut('Install CrowdSec')
+
+        try:
+            # Download and run the CrowdSec installation script
+
+            # First, download the installation script to a temporary file.
+            command = 'curl -s -o install_crowdsec.sh https://install.crowdsec.net'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Execute the downloaded script
+            command = 'sudo bash install_crowdsec.sh'
+            subprocess.call(shlex.split(command))
+
+            # Install CrowdSec based on the distribution
+            if self.distro == ubuntu:
+                command = 'DEBIAN_FRONTEND=noninteractive apt -y install crowdsec'
+            else:  # For Centos7/8
+                command = 'yum -y install crowdsec'
+
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Enable and start CrowdSec service
+            command = 'systemctl enable crowdsec'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            command = 'systemctl start crowdsec'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Install Firewall Bouncer
+            if self.distro == ubuntu:
+                command = 'DEBIAN_FRONTEND=noninteractive apt -y install crowdsec-firewall-bouncer-iptables'
+            else:  # For Centos7/8
+                command = 'yum -y install crowdsec-firewall-bouncer-iptables'
+
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Enable and start Firewall Bouncer service
+            command = 'systemctl enable crowdsec-firewall-bouncer'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            command = 'systemctl start crowdsec-firewall-bouncer'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Setup collections
+            collections = [
+                'crowdsecurity/iptables',
+                'crowdsecurity/linux',
+                'crowdsecurity/sshd',
+                'crowdsecurity/postfix',
+                'crowdsecurity/mariadb',
+                'crowdsecurity/modsecurity',
+                'crowdsecurity/linux-lpe',
+                'crowdsecurity/litespeed',
+                'crowdsecurity/dovecot',
+                'crowdsecurity/exchange',
+                'crowdsecurity/vsftpd',
+                'fulljackz/pureftpd',
+                'crowdsecurity/wordpress'
+            ]
+
+            for collection in collections:
+                command = f"cscli collections install {collection}"
+                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Setup scenarios
+            scenarios = [
+                'crowdsecurity/litespeed-admin-bf',
+                'crowdsecurity/iptables-scan-multi_ports',
+                'crowdsecurity/CVE-2021-4034',
+                'crowdsecurity/CVE-2022-35914',
+                'crowdsecurity/dovecot-spam',
+                # Add more scenarios as needed...
+            ]
+
+            for scenario in scenarios:
+                command = f"cscli scenarios install {scenario}"
+                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Setup parsers
+            parsers = [
+                'crowdsecurity/litespeed-logs',
+                'crowdsecurity/dovecot-logs',
+                'crowdsecurity/exchange-imap-logs',
+                'crowdsecurity/exchange-pop-logs',
+                'crowdsecurity/exchange-smtp-logs',
+                'crowdsecurity/iptables-logs',
+                'crowdsecurity/mariadb-logs',
+                'crowdsecurity/postfix-logs',
+                'crowdsecurity/sshd-logs'
+            ]
+
+            for parser in parsers:
+                command = f"cscli parsers install {parser}"
+                preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Restart CrowdSec service
+            command = 'systemctl restart crowdsec'
+            preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
+
+            # Add additional logs for CrowdSec configuration
+            acquis_file_path = '/etc/crowdsec/acquis.yaml'
+
+            with open(acquis_file_path + ".tmp", 'w') as temp_file:
+                temp_file.write("""\
+    # Additional log sources for CrowdSec
+    source: file
+    filenames:
+        - /home/cyberpanel/error-logs.txt
+        - /usr/local/lsws/logs/error.log
+        - /var/log/maillog
+        - /var/log/messages
+        - /var/log/mysql/error.log
+    labels:
+        type: syslog
+    # Uncomment to acquire logs from journalctl files.
+    # source: journalctl
+    # journalctl_filter:
+    #   - "_SYSTEMD_UNIT=ssh.service"
+    # labels:
+    #   type: journald
+    """)
+
+            # Move temporary file to actual configuration file path
+            os.rename(acquis_file_path + '.tmp', acquis_file_path)
+
+            # Update API server listen URI in config.yaml directly
+            config_file_path = '/etc/crowdsec/config.yaml'
+
+            with open(config_file_path) as file:
+                lines = file.readlines()
+
+            with open(config_file_path, 'w') as file:
+                for line in lines:
+                    if line.startswith('    listen_uri:'):
+                        file.write('    listen_uri: 127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                    else:
+                        file.write(line)
+
+            # Configure the local_api_credentials file to the same port
+            local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
+
+            with open(local_api_credentials_file_path) as file:
+                lines = file.readlines()
+
+            with open(local_api_credentials_file_path, 'w') as file:
+                for line in lines:
+                    if line.startswith('    url:'):
+                        file.write('    url: http://127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                    else:
+                        file.write(line)
+
+        except BaseException as msg:
+            logging.InstallLog.writeToFile(f"[ERROR] {msg} [install_crowdsec]")
 
     def setup_cron(self):
 
@@ -2946,7 +2986,6 @@ def main():
 
     checks.installFirewalld()
     checks.install_fail2ban()
-    checks.install_crowdsec()
     checks.install_default_keys()
 
     checks.download_install_CyberPanel(installCyberPanel.InstallCyberPanel.mysqlPassword, mysql)
@@ -2955,6 +2994,7 @@ def main():
     checks.setupCLI()
     # https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel-mods/main/cyberpanel_sessions.sh
     checks.setupPHPSessions()
+    checks.install_crowdsec()
     checks.setup_cron()
     checks.installRestic()
     checks.installAcme()
