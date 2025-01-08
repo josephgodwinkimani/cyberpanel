@@ -966,7 +966,7 @@ password="%s"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-                command = "DEBIAN_FRONTEND=noninteractive apt-get -y install ./rclone-v%s-linux-amd64.deb" % (preFlightsChecks.RCloneVersion, preFlightsChecks.RCloneVersion)
+                command = "DEBIAN_FRONTEND=noninteractive apt-get -y install ./rclone-v%s-linux-amd64.deb" % preFlightsChecks.RCloneVersion
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
@@ -975,7 +975,7 @@ password="%s"
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
-                command = "yum localinstall rclone-v%s-linux-amd64.rpm -y" % (preFlightsChecks.RCloneVersion, preFlightsChecks.RCloneVersion)
+                command = "yum localinstall rclone-v%s-linux-amd64.rpm -y" % preFlightsChecks.RCloneVersion
                 preFlightsChecks.call(
                     command, self.distro, command, command, 1, 0, os.EX_OSERR
                 )
@@ -1754,6 +1754,7 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             command = 'systemctl enable firewalld'
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
+            FirewallUtilities.addRule("tcp", "8081") # add the CrowdSec API port
             FirewallUtilities.addRule("tcp", "8090")
             FirewallUtilities.addRule("tcp", "7080")
             FirewallUtilities.addRule("tcp", "80")
@@ -2270,6 +2271,32 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
 
             # Move temporary file to actual configuration file path
             os.rename(acquis_file_path + '.tmp', acquis_file_path)
+
+            # Update API server listen URI in config.yaml directly
+            config_file_path = '/etc/crowdsec/config.yaml'
+
+            with open(config_file_path) as file:
+                lines = file.readlines()
+
+            with open(config_file_path, 'w') as file:
+                for line in lines:
+                    if line.startswith('    listen_uri:'):
+                        file.write('    listen_uri: 127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                    else:
+                        file.write(line)
+
+            # Configure the local_api_credentials file to the same port
+            local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
+
+            with open(local_api_credentials_file_path) as file:
+                lines = file.readlines()
+
+            with open(local_api_credentials_file_path, 'w') as file:
+                for line in lines:
+                    if line.startswith('    url:'):
+                        file.write('    url: http://127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                    else:
+                        file.write(line)
 
         except BaseException as msg:
             logging.InstallLog.writeToFile(f"[ERROR] {msg} [install_crowdsec]")
