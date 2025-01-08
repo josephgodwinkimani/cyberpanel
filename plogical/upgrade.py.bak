@@ -2406,40 +2406,65 @@ milter_default_action = accept
     @staticmethod
     def upgrade_crowdsec():
         try:
+            # Check if CrowdSec is installed
             if not os.path.exists("/etc/crowdsec"):
                 Upgrade.stdOut("Upgrade CrowdSec")
-                # Upgrade centos7/centos8
-                if Upgrade.FindOperatingSytem() == CENTOS7 or Upgrade.FindOperatingSytem() == CENTOS8:
+
+                # Determine the operating system and set the upgrade command
+                os_type = Upgrade.FindOperatingSytem()
+                if os_type in (CENTOS7, CENTOS8):
                     command = "yum -y upgrade crowdsec"
+                else:  # Assume Ubuntu for any other case
+                    command = "DEBIAN_FRONTEND=noninteractive apt -y upgrade crowdsec"
+
+                # Execute the upgrade command
+                Upgrade.executioner(command, 0)
+
+                # List of collections to upgrade
+                collections = [
+                    "crowdsecurity/iptables",
+                    "crowdsecurity/linux",
+                    "crowdsecurity/sshd",
+                    "crowdsecurity/postfix",
+                    "crowdsecurity/mariadb",
+                    "crowdsecurity/modsecurity",
+                    "crowdsecurity/linux-lpe",
+                    "crowdsecurity/litespeed",
+                    "crowdsecurity/dovecot",
+                    "crowdsecurity/exchange",
+                    "crowdsecurity/vsftpd",
+                    "fulljackz/pureftpd",
+                    "crowdsecurity/wordpress"
+                ]
+
+                # Upgrade each collection
+                for collection in collections:
+                    command = f"cscli collections upgrade {collection}"
                     Upgrade.executioner(command, 0)
-                else:  # Upgrade ubuntu
-                    command = "apt -y upgrade crowdsec"
-                    Upgrade.executioner(command, 0)
-                # Upgrade collections
-                command = "cscli collections upgrade crowdsecurity/iptables"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/linux"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/sshd"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/postfix"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/mariadb"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/modsecurity"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/linux-lpe"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/litespeed"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/dovecot"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/vsftpd"
-                Upgrade.executioner(command, 0)
-                command = "cscli collections upgrade crowdsecurity/wordpress"
-                Upgrade.executioner(command, 0)
+
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [upgrade_crowdsec]")
+
+    @staticmethod
+    def upgrade_fail2ban():
+        try:
+            if not os.path.exists("/etc/fail2ban"):
+                Upgrade.stdOut("Upgrade Fail2Ban")
+                # Upgrade CentOS 7/CentOS 8
+                if Upgrade.FindOperatingSytem() == CENTOS7 or Upgrade.FindOperatingSytem() == CENTOS8:
+                    command = "yum -y upgrade fail2ban"
+                    Upgrade.executioner(command, 0)
+                else:  # Upgrade Ubuntu
+                    command = "apt -y upgrade fail2ban"
+                    Upgrade.executioner(command, 0)
+
+                # Additional configuration or actions can be added here if necessary
+                # For example, restarting the Fail2Ban service after upgrade
+                command = "systemctl restart fail2ban"
+                Upgrade.executioner(command, 0)
+
+        except BaseException as msg:
+            Upgrade.stdOut(str(msg) + " [upgrade_fail2ban]")
 
     @staticmethod
     def download_and_install_rclone():
@@ -3588,6 +3613,8 @@ pm.max_spare_servers = 3
         #     Upgrade.upgradeDovecot()
 
         Upgrade.upgrade_crowdsec()
+
+        Upgrade.upgrade_fail2ban()
 
         # Install if it doesn't exist, upgrade if it exists
 
