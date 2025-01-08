@@ -1829,10 +1829,10 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
             # Install CrowdSec based on the distribution
-            if self.distro in [cent8, centos]:
+            if self.distro == ubuntu:
+                command = "DEBIAN_FRONTEND=noninteractive apt -y install crowdsec"
+            else:  # For Centos7/8
                 command = "yum -y install crowdsec"
-            else:  # For Ubuntu
-                command = "apt -y install crowdsec"
 
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
@@ -1842,10 +1842,10 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
                 preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
             # Install Firewall Bouncer
-            if self.distro in [cent8, centos]:
+            if self.distro == ubuntu:
+                command = "DEBIAN_FRONTEND=noninteractive apt -y install crowdsec-firewall-bouncer-iptables"
+            else:  # For Centos7/8
                 command = "yum -y install crowdsec-firewall-bouncer-iptables"
-            else:  # For Ubuntu
-                command = "apt -y install crowdsec-firewall-bouncer-iptables"
 
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 

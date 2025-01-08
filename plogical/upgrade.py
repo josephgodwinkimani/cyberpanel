@@ -2415,7 +2415,7 @@ milter_default_action = accept
                 if os_type in (CENTOS7, CENTOS8):
                     command = "yum -y upgrade crowdsec"
                 else:  # Assume Ubuntu for any other case
-                    command = "apt -y upgrade crowdsec"
+                    command = "DEBIAN_FRONTEND=noninteractive apt -y upgrade crowdsec"
 
                 # Execute the upgrade command
                 Upgrade.executioner(command, 0)
