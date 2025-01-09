@@ -2153,11 +2153,19 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             # Download and run the CrowdSec installation script
 
             # First, download the installation script to a temporary file.
-            command = 'curl -s -o install_crowdsec.sh https://install.crowdsec.net'
+            if self.distro == ubuntu:
+                command = 'curl -s -o install_crowdsec.sh https://install.crowdsec.net'
+            else:  # For Centos7/8
+                command = 'curl -s -o script.rpm.sh https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh'
+
             preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
             # Execute the downloaded script
-            command = 'sudo bash install_crowdsec.sh'
+            if self.distro == ubuntu:
+                command = 'sudo bash install_crowdsec.sh'
+            else:
+                command = 'sudo bash script.rpm.sh'
+
             subprocess.call(shlex.split(command))
 
             # Install CrowdSec based on the distribution
