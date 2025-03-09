@@ -2146,10 +2146,34 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
         except:
             return 0
 
+    def is_port_open(port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(1)  # Set a timeout for the connection attempt
+            return sock.connect_ex(('127.0.0.1', port)) == 0
+
+    def find_open_port(self, start_port=8082, end_port=8090):
+        for port in range(start_port, end_port + 1):
+            if not self.is_port_open(port):
+                return port
+        return None  # No open ports found in the range
+
     def install_crowdsec(self):
         self.stdOut('Install CrowdSec')
 
         try:
+            # Check if port 8082 is open
+            if not self.is_port_open(8082):
+                self.stdOut('Port 8082 is not open. Finding an available port...')
+                new_port = self.find_open_port()
+                if new_port is None:
+                    self.stdOut('No available ports found.')
+                    logging.InstallLog.writeToFile('[ERROR] No available ports found. [install_crowdsec]')
+                    return 0
+                else:
+                    self.stdOut('Using available port: {}'.format(new_port))
+            else:
+                new_port = 8082
+
             # Download and run the CrowdSec installation script
 
             # First, download the installation script to a temporary file.
@@ -2289,7 +2313,7 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             with open(config_file_path, 'w') as file:
                 for line in lines:
                     if line.startswith('    listen_uri:'):
-                        file.write('    listen_uri: 127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                        file.write('    listen_uri: 127.0.0.1:' + new_port + '\n') # Change this line to your desired port. Make sure to add it to firewalld
                     else:
                         file.write(line)
 
@@ -2302,7 +2326,7 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
             with open(local_api_credentials_file_path, 'w') as file:
                 for line in lines:
                     if line.startswith('    url:'):
-                        file.write('    url: http://127.0.0.1:8081\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                        file.write('    url: http://127.0.0.1:' + new_port + '\n') # Change this line to your desired port. Make sure to add it to firewalld
                     else:
                         file.write(line)
 
