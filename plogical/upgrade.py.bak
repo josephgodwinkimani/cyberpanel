@@ -5,6 +5,7 @@ import sys
 import argparse
 import pwd
 import grp
+import socket
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
@@ -2403,9 +2404,33 @@ milter_default_action = accept
                 command = 'systemctl restart postfix && systemctl restart rspamd'
                 Upgrade.executioner(command, 'postfix and rspamd restart', 0, True)
 
+    def is_port_open(port):
+        """Check if a port is open on localhost."""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(1)  # Set a timeout for the connection attempt
+            return sock.connect_ex(('127.0.0.1', port)) == 0
+
+    def find_open_port(self, start_port=8082, end_port=8090):
+        """Find an open port in the specified range."""
+        for port in range(start_port, end_port + 1):
+            if not self.is_port_open(port):
+                return port
+        return None  # No open ports found in the range
+
     @staticmethod
-    def upgrade_crowdsec():
+    def upgrade_crowdsec(self):
         try:
+            # Check if port 8082 is open
+            if not self.is_port_open(8082):
+                Upgrade.stdOut('Port 8082 is not open. Finding an available port...' + " [upgrade_crowdsec]")
+                new_port = self.find_open_port()
+                if new_port is None:
+                    Upgrade.stdOut("No available ports found [upgrade_crowdsec]")
+                else:
+                    Upgrade.stdOut('Using available port: {}'.format(new_port) + " [upgrade_crowdsec]")
+            else:
+                new_port = 8082
+
             # Check if CrowdSec is installed
             if not os.path.exists("/etc/crowdsec"):
                 Upgrade.stdOut("Upgrade CrowdSec")
@@ -2414,11 +2439,10 @@ milter_default_action = accept
                 os_type = Upgrade.FindOperatingSytem()
                 if os_type in (CENTOS7, CENTOS8):
                     command = "yum -y upgrade crowdsec"
+                    Upgrade.executioner(command, 0)
                 else:  # Assume Ubuntu for any other case
                     command = "DEBIAN_FRONTEND=noninteractive apt -y upgrade crowdsec"
-
-                # Execute the upgrade command
-                Upgrade.executioner(command, 0)
+                    Upgrade.executioner(command, 0)
 
                 # List of collections to upgrade
                 collections = [
@@ -2442,6 +2466,198 @@ milter_default_action = accept
                     command = f"cscli collections upgrade {collection}"
                     Upgrade.executioner(command, 0)
 
+                # Update API server listen URI in config.yaml directly
+                config_file_path = '/etc/crowdsec/config.yaml'
+
+                with open(config_file_path) as file:
+                    lines = file.readlines()
+
+                with open(config_file_path, 'w') as file:
+                    for line in lines:
+                        if line.startswith('    listen_uri:'):
+                            file.write(
+                                '    listen_uri: 127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                        else:
+                            file.write(line)
+
+                # Configure the local_api_credentials file to the same port
+                local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
+
+                with open(local_api_credentials_file_path) as file:
+                    lines = file.readlines()
+
+                with open(local_api_credentials_file_path, 'w') as file:
+                    for line in lines:
+                        if line.startswith('    url:'):
+                            file.write(
+                                '    url: http://127.0.0.1:' + new_port + '\n') # Change this line to your desired port. Make sure to add it to firewalld
+                        else:
+                            file.write(line)
+
+            else:  # Install
+                Upgrade.stdOut("Install CrowdSec")
+                # Download and run the CrowdSec installation script
+
+                # First, download the installation script to a temporary file.
+                if Upgrade.FindOperatingSytem() == Ubuntu22 or Upgrade.FindOperatingSytem() == Ubuntu18 \
+                        or Upgrade.FindOperatingSytem() == Ubuntu20:
+                    command = 'curl -s -o install_crowdsec.sh https://install.crowdsec.net'
+                else:  # For Centos7/8
+                    command = 'curl -s -o script.rpm.sh https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh'
+
+                Upgrade.executioner(command, 0)
+
+                # Execute the downloaded script
+                if Upgrade.FindOperatingSytem() == Ubuntu22 or Upgrade.FindOperatingSytem() == Ubuntu18 \
+                        or Upgrade.FindOperatingSytem() == Ubuntu20:
+                    command = 'sudo bash install_crowdsec.sh'
+                else:
+                    command = 'sudo bash script.rpm.sh'
+
+                subprocess.call(shlex.split(command))
+
+                # Install CrowdSec based on the distribution
+                if Upgrade.FindOperatingSytem() == Ubuntu22 or Upgrade.FindOperatingSytem() == Ubuntu18 \
+                        or Upgrade.FindOperatingSytem() == Ubuntu20:
+                    command = 'DEBIAN_FRONTEND=noninteractive apt -y install crowdsec'
+                    Upgrade.executioner(command, 0)
+                else:  # For Centos7/8
+                    command = 'yum -y install crowdsec'
+                    Upgrade.executioner(command, 0)
+
+                # Enable and start CrowdSec service
+                command = 'systemctl enable crowdsec'
+                Upgrade.executioner(command, 0)
+
+                command = 'systemctl start crowdsec'
+                Upgrade.executioner(command, 0)
+
+                # Install Firewall Bouncer
+                if Upgrade.FindOperatingSytem() == Ubuntu22 or Upgrade.FindOperatingSytem() == Ubuntu18 \
+                        or Upgrade.FindOperatingSytem() == Ubuntu20:
+                    command = 'DEBIAN_FRONTEND=noninteractive apt -y install crowdsec-firewall-bouncer-iptables'
+                    Upgrade.executioner(command, 0)
+                else:  # For Centos7/8
+                    command = 'yum -y install crowdsec-firewall-bouncer-iptables'
+                    Upgrade.executioner(command, 0)
+
+                # Enable and start Firewall Bouncer service
+                command = 'systemctl enable crowdsec-firewall-bouncer'
+                Upgrade.executioner(command, 0)
+
+                command = 'systemctl start crowdsec-firewall-bouncer'
+                Upgrade.executioner(command, 0)
+
+                # Setup collections
+                collections = [
+                    'crowdsecurity/iptables',
+                    'crowdsecurity/linux',
+                    'crowdsecurity/sshd',
+                    'crowdsecurity/postfix',
+                    'crowdsecurity/mariadb',
+                    'crowdsecurity/modsecurity',
+                    'crowdsecurity/linux-lpe',
+                    'crowdsecurity/litespeed',
+                    'crowdsecurity/dovecot',
+                    'crowdsecurity/exchange',
+                    'crowdsecurity/vsftpd',
+                    'fulljackz/pureftpd',
+                    'crowdsecurity/wordpress'
+                ]
+
+                for collection in collections:
+                    command = f"cscli collections install {collection}"
+                    Upgrade.executioner(command, 0)
+
+                # Setup scenarios
+                scenarios = [
+                    'crowdsecurity/litespeed-admin-bf',
+                    'crowdsecurity/iptables-scan-multi_ports',
+                    'crowdsecurity/CVE-2021-4034',
+                    'crowdsecurity/CVE-2022-35914',
+                    'crowdsecurity/dovecot-spam',
+                    # Add more scenarios as needed...
+                ]
+
+                for scenario in scenarios:
+                    command = f"cscli scenarios install {scenario}"
+                    Upgrade.executioner(command, 0)
+
+                # Setup parsers
+                parsers = [
+                    'crowdsecurity/litespeed-logs',
+                    'crowdsecurity/dovecot-logs',
+                    'crowdsecurity/exchange-imap-logs',
+                    'crowdsecurity/exchange-pop-logs',
+                    'crowdsecurity/exchange-smtp-logs',
+                    'crowdsecurity/iptables-logs',
+                    'crowdsecurity/mariadb-logs',
+                    'crowdsecurity/postfix-logs',
+                    'crowdsecurity/sshd-logs'
+                ]
+
+                for parser in parsers:
+                    command = f"cscli parsers install {parser}"
+                    Upgrade.executioner(command, 0)
+
+                # Restart CrowdSec service
+                command = 'systemctl restart crowdsec'
+                Upgrade.executioner(command, 0)
+
+                # Add additional logs for CrowdSec configuration
+                acquis_file_path = '/etc/crowdsec/acquis.yaml'
+
+                with open(acquis_file_path + ".tmp", 'w') as temp_file:
+                    temp_file.write("""\
+                # Additional log sources for CrowdSec
+                source: file
+                filenames:
+                    - /home/cyberpanel/error-logs.txt
+                    - /usr/local/lsws/logs/error.log
+                    - /var/log/maillog
+                    - /var/log/messages
+                    - /var/log/mysql/error.log
+                labels:
+                    type: syslog
+                # Uncomment to acquire logs from journalctl files.
+                # source: journalctl
+                # journalctl_filter:
+                #   - "_SYSTEMD_UNIT=ssh.service"
+                # labels:
+                #   type: journald
+                """)
+
+                # Move temporary file to actual configuration file path
+                os.rename(acquis_file_path + '.tmp', acquis_file_path)
+
+                # Update API server listen URI in config.yaml directly
+                config_file_path = '/etc/crowdsec/config.yaml'
+
+                with open(config_file_path) as file:
+                    lines = file.readlines()
+
+                with open(config_file_path, 'w') as file:
+                    for line in lines:
+                        if line.startswith('    listen_uri:'):
+                            file.write(
+                                '    listen_uri: 127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                        else:
+                            file.write(line)
+
+                # Configure the local_api_credentials file to the same port
+                local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
+
+                with open(local_api_credentials_file_path) as file:
+                    lines = file.readlines()
+
+                with open(local_api_credentials_file_path, 'w') as file:
+                    for line in lines:
+                        if line.startswith('    url:'):
+                            file.write(
+                                '    url: http://127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
+                        else:
+                            file.write(line)
+
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [upgrade_crowdsec]")
 
@@ -2462,6 +2678,32 @@ milter_default_action = accept
                 # For example, restarting the Fail2Ban service after upgrade
                 command = "systemctl restart fail2ban"
                 Upgrade.executioner(command, 0)
+
+            else:  # Install
+                # Determine the operating system and determine the package manager based on the distribution
+                os_type = Upgrade.FindOperatingSytem()
+                if os_type in (CENTOS7, CENTOS8):
+                    command = 'yum -y install fail2ban'
+                    Upgrade.executioner(command, 0)
+                else:
+                    command = 'DEBIAN_FRONTEND=noninteractive apt-get -y install fail2ban'
+                    Upgrade.executioner(command, 0)
+
+                # Configure Fail2Ban for intrusion prevention
+                with open('/etc/fail2ban/jail.local', 'w') as config_file:
+                    config_file.write("""[DEFAULT]
+                bantime = 1h
+                findtime = 10m
+                maxretry = 5
+
+                [sshd]
+                enabled = true
+                port = 2200
+                """)
+
+                # Enable and start Fail2Ban service
+                os.system('systemctl enable fail2ban')
+                os.system('systemctl start fail2ban')
 
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [upgrade_fail2ban]")
