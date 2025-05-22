@@ -80,7 +80,7 @@ six==1.16.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.2
 tldextract==3.3.1
-tornado==6.2
+tornado==6.5
 uritemplate==4.1.1
 urllib3==1.26.12
 validators==0.20.0
