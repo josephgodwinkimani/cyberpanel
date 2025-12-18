@@ -22,7 +22,7 @@ docker==6.0.0
 docker-pycreds==0.4.0
 docutils==0.19
 enum34==1.1.10
-filelock==3.8.0
+filelock==3.20.1
 funcsigs==1.0.2
 future==0.18.2
 google-api-core==2.10.0
@@ -80,7 +80,7 @@ six==1.16.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.2
 tldextract==3.3.1
-tornado==6.2
+tornado==6.5.3
 uritemplate==4.1.1
 urllib3==1.26.12
 validators==0.20.0
