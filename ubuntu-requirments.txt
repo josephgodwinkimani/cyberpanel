@@ -51,7 +51,7 @@ parsedatetime==2.6
 pbr==5.10.0
 pexpect==4.8.0
 prettytable==3.4.1
-protobuf==4.21.5
+protobuf==6.33.5
 psutil==5.9.2
 ptyprocess==0.7.0
 py3dns==3.2.1
