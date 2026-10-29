@@ -288,6 +288,50 @@ fi
 mysql -uroot -p"$MySQL_Password" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '$MySQL_Password';flush privileges"
 }
 
+# BEGIN crowdsec guard
+# An installed CrowdSec belongs to the administrator. The system update below would upgrade and restart it (and its firewall
+# bouncer), so crowdsec* packages are excluded from yum, /etc/crowdsec is backed up first and compared afterwards.
+# Set CP_UPGRADE_UPDATE_CROWDSEC=1 to let the system update upgrade CrowdSec as well.
+CrowdSec_Dir="${CrowdSec_Dir:-/etc/crowdsec}"
+CrowdSec_Backup_Dir="${CP_UPGRADE_BACKUP_DIR:-/root/cyberpanel-upgrade-backups}"
+CrowdSec_State_Before=""
+Yum_Exclude=()
+
+CrowdSec_State() {
+  find "$CrowdSec_Dir" -type f -not -path "$CrowdSec_Dir/hub/*" -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null
+}
+
+CrowdSec_Guard_Start() {
+  [[ -f "$CrowdSec_Dir/config.yaml" ]] || return 0
+  if [[ "${CP_UPGRADE_UPDATE_CROWDSEC:-0}" != "1" ]] ; then
+    Yum_Exclude=(--exclude='crowdsec*')
+    echo -e "\nCrowdSec is installed: the system update leaves crowdsec* packages and $CrowdSec_Dir alone."
+  fi
+  CrowdSec_State_Before=$(mktemp) || return 0
+  CrowdSec_State > "$CrowdSec_State_Before"
+  if mkdir -p "$CrowdSec_Backup_Dir" && chmod 700 "$CrowdSec_Backup_Dir" && tar -czf "$CrowdSec_Backup_Dir/crowdsec-etc-$(date +%Y%m%d-%H%M%S).tar.gz" -C "$(dirname "$CrowdSec_Dir")" "$(basename "$CrowdSec_Dir")" 2>/dev/null ; then
+    echo "CrowdSec configuration backed up in $CrowdSec_Backup_Dir"
+  else
+    echo "WARNING: could not back up $CrowdSec_Dir"
+  fi
+}
+
+CrowdSec_Guard_Verify() {
+  [[ -n "$CrowdSec_State_Before" && -s "$CrowdSec_State_Before" ]] || return 0
+  local After
+  After=$(mktemp) || return 0
+  CrowdSec_State > "$After"
+  if diff -q "$CrowdSec_State_Before" "$After" > /dev/null ; then
+    echo -e "\nCrowdSec configuration is unchanged."
+  else
+    echo -e "\nWARNING: CrowdSec configuration changed during the upgrade (lines marked < are before and > are after):"
+    diff "$CrowdSec_State_Before" "$After" | sed 's/^/  /'
+    echo "The previous state is saved in $CrowdSec_Backup_Dir"
+  fi
+  rm -f "$CrowdSec_State_Before" "$After"
+}
+# END crowdsec guard
+
 Pre_Upgrade_Setup_Repository() {
 if [[ "$Server_OS" = "CentOS" ]] ; then
   rm -f /etc/yum.repos.d/CyberPanel.repo
@@ -298,7 +342,7 @@ if [[ "$Server_OS" = "CentOS" ]] ; then
     curl -o /etc/yum.repos.d/litespeed.repo https://cyberpanel.sh/litespeed/litespeed.repo
   fi
   yum clean all
-  yum update -y
+  yum update -y "${Yum_Exclude[@]}"
   yum autoremove epel-release -y
   rm -f /etc/yum.repos.d/epel.repo
   rm -f /etc/yum.repos.d/epel.repo.rpmsave
@@ -366,7 +410,7 @@ EOF
     fi
     yum install yum-plugin-priorities -y
 
-    yum update -y
+    yum update -y "${Yum_Exclude[@]}"
 
     yum install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel gpgme-devel curl-devel git socat openssl-devel MariaDB-shared mariadb-devel python36u python36u-pip python36u-devel bind-utils
 
@@ -461,7 +505,7 @@ if [[ "$Server_OS" = "openEuler" ]] ; then
   rm -f /etc/yum.repos.d/litespeed.repo
 
   yum clean all
-  yum update -y
+  yum update -y "${Yum_Exclude[@]}"
 
   dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git python3-devel tar socat bind-utils
   dnf install gpgme-devel -y
@@ -861,6 +905,8 @@ Check_OS
 
 Check_Provider
 
+CrowdSec_Guard_Start
+
 Pre_Upgrade_Setup_Repository
 
 Pre_Upgrade_Setup_Git_URL
@@ -870,5 +916,7 @@ Pre_Upgrade_Required_Components
 Main_Upgrade
 
 Post_Upgrade_System_Tweak
+
+CrowdSec_Guard_Verify
 
 Post_Install_Display_Final_Info
