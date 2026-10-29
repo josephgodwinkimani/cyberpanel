@@ -11,7 +11,8 @@ Nitpick branch
 
 **Security:**
 
-* PHP2Shell (CVE-2026-109618 / CVE-2026-109619): new `CPScripts/php2shell_check.sh` (read-only exposure check) and `CPScripts/php2shell_mitigate.sh` (disables `session.upload_progress` via a php.d drop-in, can upgrade chosen lsphp branches, refreshes the control panel's PHP copy at `/usr/local/lscp/fcgi-bin/lsphp` and restarts lsphp workers). The upgrade scripts now run it after the upgrade. The drop-in is only a partial mitigation: install patched lsphp packages (the upgrade's `yum update -y` does) and confirm with `php2shell_check.sh`.
+* PHP2Shell (CVE-2026-109618 / CVE-2026-109619): new `CPScripts/php2shell_check.sh` (read-only exposure check) and `CPScripts/php2shell_mitigate.sh` (disables `session.upload_progress` via a php.d drop-in, can upgrade chosen lsphp branches (with `--skip-repo` for unreachable package repositories), refreshes the control panel's PHP copy at `/usr/local/lscp/fcgi-bin/lsphp` and restarts lsphp workers). The upgrade scripts now run it after the upgrade. The drop-in is only a partial mitigation: install patched lsphp packages (`php2shell_mitigate.sh --update-lsphp`, or the upgrade's `yum update -y` when every repository is reachable) and confirm with `php2shell_check.sh`.
+
 **Bug Fixes:**
 
 
