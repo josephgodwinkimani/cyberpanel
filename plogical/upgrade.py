@@ -2460,6 +2460,17 @@ milter_default_action = accept
         return ''
 
     @staticmethod
+    def system_update_enabled():
+        """Operating system packages are only updated when CP_UPGRADE_SYSTEM_PACKAGES=1 is set (the shell upgrade
+        scripts export it when --update-system-packages is passed)."""
+        return os.environ.get('CP_UPGRADE_SYSTEM_PACKAGES') == '1'
+
+    @staticmethod
+    def protected_exclude_option():
+        """Packages a system update must always hold back."""
+        return " --exclude='openlitespeed*' --exclude='mariadb*' --exclude='MariaDB*' --exclude='openssh*' --exclude='kernel*'"
+
+    @staticmethod
     def upgrade_crowdsec():
         try:
             # An installed CrowdSec belongs to the administrator: never touch its configuration, acquisition file or API port
@@ -3092,8 +3103,9 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                 command = "yum makecache -y"
                 Upgrade.executioner(command, 0)
 
-                command = "yum update -y" + Upgrade.crowdsec_exclude_option()
-                Upgrade.executioner(command, 0)
+                if Upgrade.system_update_enabled():
+                    command = "yum update -y" + Upgrade.crowdsec_exclude_option() + Upgrade.protected_exclude_option()
+                    Upgrade.executioner(command, 0)
 
                 if Upgrade.FindOperatingSytem() == CENTOS8:
                     command = 'dnf remove dovecot23 dovecot23-mysql -y'
