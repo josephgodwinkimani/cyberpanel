@@ -929,6 +929,12 @@ webserver-allow-from=0.0.0.0/0
     def ConfigureCloudflareInAcme(SAVED_CF_Key, SAVED_CF_Email):
         try:
 
+            ## acme.sh sources this file as a shell script, so a quote or a line break in a value would run as root
+
+            for value in (SAVED_CF_Key, SAVED_CF_Email):
+                if any(char in str(value) for char in ("'", '\n', '\r', '\0')):
+                    return 0, 'The Cloudflare key and email must not contain quotes or line breaks.'
+
             ## remove existing keys first
 
             path = '/root/.acme.sh/account.conf'
@@ -942,7 +948,7 @@ SAVED_CF_Key='{SAVED_CF_Key}'
 SAVED_CF_Email='{SAVED_CF_Email}'
 """
 
-            command = f'echo "{CFContent}" >> {path}'
+            command = f'echo {shlex.quote(CFContent)} >> {path}'
             ProcessUtilities.executioner(command, None, True)
 
             return 1, None
