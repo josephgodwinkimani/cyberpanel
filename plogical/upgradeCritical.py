@@ -19,8 +19,14 @@ class UpgradeCritical:
         except BaseException as msg:
             return 0
 
+    # Package upgrades belong to the administrator. This nightly job does nothing unless this file exists.
+    AutoUpgradeMarker = '/etc/cyberpanel/auto_upgrade_critical'
+
     @staticmethod
     def UpgradeImportantPackages():
+        if not os.path.exists(UpgradeCritical.AutoUpgradeMarker):
+            return
+
         if os.path.exists('/etc/lsb-release'):
 
             command = "DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade pdns-server pdns-backend-mysql install dovecot-imapd dovecot-pop3d postfix-mysql pure-ftpd postfix dovecot-mysql  -y"
