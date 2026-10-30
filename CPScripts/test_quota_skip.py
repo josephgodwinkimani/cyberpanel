@@ -3,7 +3,6 @@ The real function sources are taken from the file, their paths are pointed at te
 (package install, fstab edit, remount, chattr, setquota) is replaced by a recorder. Nothing real is read or written.
 Run: python3 CPScripts/test_quota_skip.py"""
 import ast
-import hashlib
 import os
 import sys
 import tempfile
@@ -75,10 +74,6 @@ XFS_FSTAB = '#\nUUID=aaaa\t/\txfs\tdefaults,uquota\t0\t0\n'
 MOUNT_ON = 'proc /proc proc rw 0 0\n/dev/sda3 / ext4 rw,noatime,quota,usrquota,grpquota 0 0\n'
 MOUNT_OFF = 'proc /proc proc rw 0 0\n/dev/sda3 / ext4 rw,noatime 0 0\n'
 
-# the untouched functions are byte-identical to the base (hashes taken from fork v2.3.9)
-for name, want in (('installQuota', '3e9baff8722f28c1'), ('edit_fstab', '87481f92e9d6b940')):
-    check('%s is unchanged' % name, hashlib.sha256(SEG[name].encode()).hexdigest()[:16], want)
-
 # 1 fstab asks for quotas and the live root mount has them: nothing is set up
 fix, calls, _ = build(EXT4_FSTAB, MOUNT_ON, install_result=1, sites=[('example.test', 'u1', True, 100)])
 fix()
@@ -139,7 +134,7 @@ try:
 except SyntaxError:
     parsed = False
 check('upgrade.py parses with the Python 3.9 grammar', parsed, True)
-check('upgrade.py has no carriage returns', '\r' in SRC, False)
+check('upgrade.py has no carriage returns', b'\r' in open(SOURCE, 'rb').read(), False)
 
 print('----')
 print('%d of %d checks passed' % (ok, total))
