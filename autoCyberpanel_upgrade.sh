@@ -14,6 +14,16 @@
 Sudo_Test=$(set)
 #for SUDO check
 
+# BEGIN version parse
+# version.txt holds JSON such as {"version":"2.3","build":9}. The values are read by name so a longer build number
+# (10) or version no longer shifts the fields. It returns 1 when either value is missing or malformed.
+Parse_Panel_Version() {
+  Panel_Version=$(printf '%s' "$1" | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p')
+  Panel_Build=$(printf '%s' "$1" | sed -n 's/.*"build"[[:space:]]*:[[:space:]]*"\{0,1\}\([0-9][0-9]*\)"\{0,1\}.*/\1/p')
+  [[ "$Panel_Version" =~ ^[0-9]+\.[0-9]+$ && "$Panel_Build" =~ ^[0-9]+$ ]]
+}
+# END version parse
+
 Set_Default_Variables() {
 
 export LC_CTYPE=en_US.UTF-8
@@ -27,11 +37,12 @@ Server_Provider='Undefined'
 
 # This line uses curl to silently download the content of the version.txt file from the specified GitHub repository. The --max-time 30 option sets a 30-second timeout, and the -4 option forces the use of IPv4.
 Temp_Value=$(curl --silent --max-time 30 -4 https://raw.githubusercontent.com/josephgodwinkimani/cyberpanel/main/version.txt)
-# These lines extract specific substrings from the downloaded content:
-# Panel_Version extracts 3 characters starting from the 12th position.
-Panel_Version=${Temp_Value:12:3}
-# Panel_Build extracts 1 character starting from the 25th position.
-Panel_Build=${Temp_Value:25:1}
+# Panel_Version and Panel_Build are read from the JSON by name and the upgrade stops when they are not valid.
+if ! Parse_Panel_Version "$Temp_Value"; then
+  echo -e "\nUnable to read a valid version from the CyberPanel version file."
+  echo -e "\nPlease try again in a few moments."
+  exit 1
+fi
 # This line constructs the branch name by prefixing the version and build with "v" and separating them with a dot.
 Branch_Name="v${Panel_Version}.${Panel_Build}"
 # redundant
