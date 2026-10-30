@@ -217,14 +217,7 @@ class mysqlUtilities:
     def deleteDatabase(dbname, dbuser):
         try:
 
-            ## Remove possible git folder
-
-            dbPath = '/var/lib/mysql/%s/.git' % (dbname)
-
-            command = 'rm -rf %s' % (dbPath)
-            ProcessUtilities.executioner(command)
-
-            ##
+            # A database name is an SQL identifier, never a path: MySQL manages its own data folder.
 
             connection, cursor = mysqlUtilities.setupConnection()
 
