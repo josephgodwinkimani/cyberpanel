@@ -681,11 +681,16 @@ def changeACLFunc(request):
         elif currentACL['changeUserACL'] == 1:
             selectedACL = ACL.objects.get(name=data['selectedACL'])
             selectedUser = Administrator.objects.get(userName=data['selectedUser'])
+            loggedUser = Administrator.objects.get(pk=val)
 
-            selectedUser.acl = selectedACL
-            selectedUser.save()
+            # A non-admin may only change the ACL of users they own and may never assign an admin-level ACL
+            if ACLManager.checkUserOwnerShip(currentACL, loggedUser, selectedUser) == 0 or selectedACL.adminStatus == 1:
+                finalResponse = ACLManager.loadErrorJson()
+            else:
+                selectedUser.acl = selectedACL
+                selectedUser.save()
 
-            finalResponse = {'status': 1}
+                finalResponse = {'status': 1}
         else:
             finalResponse = ACLManager.loadErrorJson()
 
