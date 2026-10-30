@@ -491,15 +491,123 @@ done
 
 
 
+# BEGIN venv safety
+# The panel runs from two Python virtual environments: /usr/local/CyberPanel (runs upgrade.py) and
+# /usr/local/CyberCP (the one lswsgi serves the panel from). The upgrade used to delete them before it
+# rebuilt them, so a failed download or build left the panel without a Python runtime. They are now moved
+# aside first (a rename on the same file system) and moved back unless the rebuilt panel runtime passes
+# Venv_Validate_Panel_Runtime. The script never deletes the old copies: remove them when you no longer need them.
+Venv_Pending=()
+
+# Only paths of the form /dir/name[/more] without dot segments may be removed by the restore.
+Venv_Safe_Path() {
+  [[ "$1" =~ ^/[^/]+/[^/]+ ]] && [[ "$1" != *"/../"* ]] && [[ "$1" != */.. ]] && [[ "$1" != *"/./"* ]] && [[ "$1" != */. ]]
+}
+
+# Venv_Move_Aside DIR           moves DIR to DIR.upgrade-backup-STAMP
+# Venv_Move_Aside DIR NAME...   moves DIR/NAME... to DIR-venv-backup-STAMP/NAME...
+Venv_Move_Aside() {
+  local Root="$1" Stamp Backup Name Undo
+  local Moved=()
+  shift
+  Venv_Safe_Path "$Root" || { echo "Refusing to move an unsafe path: ${Root}" >&2; return 1; }
+  Stamp="$(date +%Y%m%d-%H%M%S)-$$"
+  if [[ $# -eq 0 ]]; then
+    [[ -e "$Root" || -L "$Root" ]] || return 0
+    Backup="${Root}.upgrade-backup-${Stamp}"
+    mv "$Root" "$Backup" || return 1
+    Venv_Pending+=("whole|${Root}|${Backup}|")
+  else
+    Backup="${Root}-venv-backup-${Stamp}"
+    for Name in "$@"; do
+      [[ -e "$Root/$Name" || -L "$Root/$Name" ]] || continue
+      mkdir -p "$Backup" || return 1
+      if ! mv "$Root/$Name" "$Backup/$Name"; then
+        for Undo in "${Moved[@]}"; do mv "$Backup/$Undo" "$Root/$Undo"; done
+        rmdir "$Backup" 2> /dev/null
+        return 1
+      fi
+      Moved+=("$Name")
+    done
+    [[ ${#Moved[@]} -gt 0 ]] || return 0
+    Venv_Pending+=("parts|${Root}|${Backup}|${Moved[*]}")
+  fi
+  trap Venv_Restore_On_Exit EXIT
+  echo -e "\nThe previous Python environment was kept at ${Backup}"
+}
+
+# Puts every moved environment back, newest first. The rebuilt copy that is replaced is removed only when
+# its previous copy is still there to take its place.
+Venv_Restore_Pending() {
+  local Entry Kind Root Backup Names Name Failed=0 Index
+  for ((Index = ${#Venv_Pending[@]} - 1; Index >= 0; Index--)); do
+    Entry="${Venv_Pending[$Index]}"
+    IFS='|' read -r Kind Root Backup Names <<< "$Entry"
+    if ! Venv_Safe_Path "$Root" || ! Venv_Safe_Path "$Backup"; then
+      echo "Refusing to restore an unsafe path: ${Root}" >&2
+      Failed=1
+      continue
+    fi
+    if [[ "$Kind" = "whole" ]]; then
+      if [[ -e "$Backup" || -L "$Backup" ]]; then
+        if ! { rm -rf "$Root" && mv "$Backup" "$Root"; }; then
+          echo "Could not restore ${Root}. The previous copy is at ${Backup}" >&2
+          Failed=1
+        fi
+      fi
+    else
+      for Name in $Names; do
+        if [[ -e "$Backup/$Name" || -L "$Backup/$Name" ]]; then
+          if ! { rm -rf "${Root:?}/${Name:?}" && mv "$Backup/$Name" "$Root/$Name"; }; then
+            echo "Could not restore ${Root}/${Name}. The previous copy is at ${Backup}/${Name}" >&2
+            Failed=1
+          fi
+        fi
+      done
+      rmdir "$Backup" 2> /dev/null
+    fi
+  done
+  Venv_Pending=()
+  return "$Failed"
+}
+
+# Runs at exit. The restore depends only on the rebuild not having been confirmed, never on the exit status.
+Venv_Restore_On_Exit() {
+  [[ ${#Venv_Pending[@]} -gt 0 ]] || return 0
+  echo -e "\nThe upgrade stopped before the rebuilt Python environments were confirmed. Restoring the previous ones..." >&2
+  Venv_Restore_Pending
+}
+
+# The panel needs its interpreter, django and the lswsgi it is served by.
+Venv_Validate_Panel_Runtime() {
+  local Root="${1:-/usr/local/CyberCP}"
+  if [[ ! -x "$Root/bin/python" ]]; then echo "Missing ${Root}/bin/python" >&2; return 1; fi
+  if [[ ! -x "$Root/bin/lswsgi" ]]; then echo "Missing ${Root}/bin/lswsgi" >&2; return 1; fi
+  if ! "$Root/bin/python" -c 'import django' > /dev/null 2>&1; then echo "django cannot be imported by ${Root}/bin/python" >&2; return 1; fi
+}
+
+# Confirms the rebuild. The previous copies stay where they are and are listed.
+Venv_Commit() {
+  local Entry Kind Root Backup Names
+  for Entry in "${Venv_Pending[@]}"; do
+    IFS='|' read -r Kind Root Backup Names <<< "$Entry"
+    echo -e "Previous Python environment kept at ${Backup} (remove it when you no longer need it)."
+  done
+  Venv_Pending=()
+}
+# END venv safety
+
 Pre_Upgrade_Required_Components() {
 
 if [ "$Server_OS" = "Ubuntu" ]; then
 #  pip3 install --default-timeout=3600 virtualenv==16.7.9
 #    Check_Return
-rm -rf /usr/local/CyberPanel
+Venv_Move_Aside /usr/local/CyberPanel
+Check_Return "moving the previous Python environment of /usr/local/CyberPanel aside"
 pip3 install --upgrade virtualenv
 else
-  rm -rf /usr/local/CyberPanel
+  Venv_Move_Aside /usr/local/CyberPanel
+  Check_Return "moving the previous Python environment of /usr/local/CyberPanel aside"
   if [ -e /usr/bin/pip3 ]; then
     PIP3="/usr/bin/pip3"
   else
@@ -627,10 +735,8 @@ rm -rf /usr/local/CyberPanelTemp
 fi
 
 
-rm -rf /usr/local/CyberCP/bin
-rm -rf /usr/local/CyberCP/lib
-rm -rf /usr/local/CyberCP/lib64
-rm -rf /usr/local/CyberCP/pyvenv.cfg
+Venv_Move_Aside /usr/local/CyberCP bin lib lib64 pyvenv.cfg
+Check_Return "moving the previous Python environment of /usr/local/CyberCP aside"
 
 if [[ -f /usr/local/CyberCP/bin/python2 ]]; then
   rm -rf /usr/local/CyberCP/bin
@@ -670,6 +776,10 @@ make
 
 rm -f /usr/local/CyberCP/bin/lswsgi
 cp lswsgi /usr/local/CyberCP/bin/
+
+Venv_Validate_Panel_Runtime /usr/local/CyberCP
+Check_Return "the rebuilt panel runtime did not pass validation, restoring the previous one"
+Venv_Commit
 
 }
 
