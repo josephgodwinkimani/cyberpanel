@@ -269,10 +269,18 @@ done
 }
 
 Check_Argument() {
-if [[ "$*" = *"--branch "* ]] || [[ "$*" = *"-b "* ]]; then
-  Branch_Name=$(echo "$*" | sed -e "s/--branch //" -e "s/--mirror//" -e "s/-b //")
+local Args="$*"
+if [[ "$Args" = *"--update-system-packages"* ]] ; then
+  System_Update=1
+  local Words
+  read -r -a Words <<< "${Args//--update-system-packages/}"
+  Args="${Words[*]}"
+fi
+if [[ "$Args" = *"--branch "* ]] || [[ "$Args" = *"-b "* ]]; then
+  Branch_Name=$(echo "$Args" | sed -e "s/--branch //" -e "s/--mirror//" -e "s/-b //")
   Branch_Check "$Branch_Name"
 fi
+export CP_UPGRADE_SYSTEM_PACKAGES="$System_Update"
 }
 
 Pre_Upgrade_Setup_Git_URL() {
@@ -314,6 +322,125 @@ fi
 mysql -uroot -p"$MySQL_Password" -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' IDENTIFIED BY '$MySQL_Password';flush privileges"
 }
 
+# BEGIN crowdsec guard
+# An installed CrowdSec belongs to the administrator. The system update below would upgrade and restart it (and its firewall
+# bouncer), so crowdsec* packages are excluded from yum, /etc/crowdsec is backed up first and compared afterwards.
+# Set CP_UPGRADE_UPDATE_CROWDSEC=1 to let the system update upgrade CrowdSec as well.
+CrowdSec_Dir="${CrowdSec_Dir:-/etc/crowdsec}"
+CrowdSec_Backup_Dir="${CP_UPGRADE_BACKUP_DIR:-/root/cyberpanel-upgrade-backups}"
+CrowdSec_State_Before=""
+Yum_Exclude=()
+
+CrowdSec_State() {
+  find "$CrowdSec_Dir" -type f -not -path "$CrowdSec_Dir/hub/*" -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null
+}
+
+CrowdSec_Guard_Start() {
+  [[ -f "$CrowdSec_Dir/config.yaml" ]] || return 0
+  if [[ "${CP_UPGRADE_UPDATE_CROWDSEC:-0}" != "1" ]] ; then
+    Yum_Exclude=(--exclude='crowdsec*')
+    echo -e "\nCrowdSec is installed: the system update leaves crowdsec* packages and $CrowdSec_Dir alone."
+  fi
+  CrowdSec_State_Before=$(mktemp) || return 0
+  CrowdSec_State > "$CrowdSec_State_Before"
+  if mkdir -p "$CrowdSec_Backup_Dir" && chmod 700 "$CrowdSec_Backup_Dir" && tar -czf "$CrowdSec_Backup_Dir/crowdsec-etc-$(date +%Y%m%d-%H%M%S).tar.gz" -C "$(dirname "$CrowdSec_Dir")" "$(basename "$CrowdSec_Dir")" 2>/dev/null ; then
+    echo "CrowdSec configuration backed up in $CrowdSec_Backup_Dir"
+  else
+    echo "WARNING: could not back up $CrowdSec_Dir"
+  fi
+}
+
+CrowdSec_Guard_Verify() {
+  [[ -n "$CrowdSec_State_Before" && -s "$CrowdSec_State_Before" ]] || return 0
+  local After
+  After=$(mktemp) || return 0
+  CrowdSec_State > "$After"
+  if diff -q "$CrowdSec_State_Before" "$After" > /dev/null ; then
+    echo -e "\nCrowdSec configuration is unchanged."
+  else
+    echo -e "\nWARNING: CrowdSec configuration changed during the upgrade (lines marked < are before and > are after):"
+    diff "$CrowdSec_State_Before" "$After" | sed 's/^/  /'
+    echo "The previous state is saved in $CrowdSec_Backup_Dir"
+  fi
+  rm -f "$CrowdSec_State_Before" "$After"
+}
+# END crowdsec guard
+
+# BEGIN system package policy
+# Updating operating system packages is left to the administrator. By default the upgrade does not run the system
+# update. To run it, set CP_UPGRADE_SYSTEM_PACKAGES=1 or pass --update-system-packages. Even then it checks first that
+# the repositories can be read, stops at the first error, and holds back OpenLiteSpeed, MariaDB, OpenSSH, the kernel
+# and CrowdSec.
+System_Update="${CP_UPGRADE_SYSTEM_PACKAGES:-0}"
+Yum_Protect=(--exclude='openlitespeed*' --exclude='mariadb*' --exclude='MariaDB*' --exclude='openssh*' --exclude='kernel*')
+Apt_Held=()
+
+Upgrade_Fail() {
+  echo -e "\nERROR: $1"
+  echo "The upgrade was stopped here and the later steps were not run."
+  Debug_Log2 "$1 [404]"
+  exit 1
+}
+
+Package_Manager() {
+  if command -v dnf > /dev/null 2>&1 ; then
+    echo dnf
+  else
+    echo yum
+  fi
+}
+
+System_Package_Update() {
+  if [[ "$System_Update" != "1" ]] ; then
+    echo -e "\nSystem package update skipped. Pass --update-system-packages or set CP_UPGRADE_SYSTEM_PACKAGES=1 to run it."
+    return 0
+  fi
+  local PM RC
+  PM=$(Package_Manager)
+  # Check that the repositories can be read before anything is changed (check-update returns 0 or 100 when they can).
+  $PM check-update -q "${Yum_Exclude[@]}" "${Yum_Protect[@]}" > /dev/null 2>&1
+  RC=$?
+  if [[ $RC -ne 0 && $RC -ne 100 ]] ; then
+    Upgrade_Fail "The package repositories cannot be read ($PM check-update returned $RC). Nothing was changed. Fix the repositories first."
+  fi
+  echo -e "\nRunning the system package update (OpenLiteSpeed, MariaDB, OpenSSH, kernel and CrowdSec packages are held back)..."
+  $PM update -y "${Yum_Exclude[@]}" "${Yum_Protect[@]}" || Upgrade_Fail "The system package update failed."
+}
+
+Apt_Hold_Protected() {
+  local Pkg
+  Apt_Held=()
+  while read -r Pkg ; do
+    [[ -n "$Pkg" ]] || continue
+    if [[ -z "$(apt-mark showhold "$Pkg" 2> /dev/null)" ]] ; then
+      apt-mark hold "$Pkg" > /dev/null 2>&1 && Apt_Held+=("$Pkg")
+    fi
+  done < <(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'openlitespeed' 'mariadb*' 'mysql-server*' 'openssh*' 'linux-image*' 'linux-headers*' 'crowdsec*' 2> /dev/null | awk '$1 ~ /^ii/ {print $2}')
+}
+
+Apt_Unhold_Protected() {
+  if [[ ${#Apt_Held[@]} -gt 0 ]] ; then
+    apt-mark unhold "${Apt_Held[@]}" > /dev/null 2>&1
+    Apt_Held=()
+  fi
+}
+
+Apt_System_Upgrade() {
+  if [[ "$System_Update" != "1" ]] ; then
+    echo -e "\nSystem package update skipped. Pass --update-system-packages or set CP_UPGRADE_SYSTEM_PACKAGES=1 to run it."
+    return 0
+  fi
+  local RC
+  Apt_Hold_Protected
+  trap Apt_Unhold_Protected EXIT INT TERM
+  "$@"
+  RC=$?
+  Apt_Unhold_Protected
+  trap - EXIT INT TERM
+  [[ $RC -eq 0 ]] || Upgrade_Fail "The system package update failed."
+}
+# END system package policy
+
 Pre_Upgrade_Setup_Repository() {
 if [[ "$Server_OS" = "CentOS" ]] ; then
   rm -f /etc/yum.repos.d/CyberPanel.repo
@@ -324,7 +451,7 @@ if [[ "$Server_OS" = "CentOS" ]] ; then
     curl -o /etc/yum.repos.d/litespeed.repo https://cyberpanel.sh/litespeed/litespeed.repo
   fi
   yum clean all
-  yum update -y
+  System_Package_Update
   yum autoremove epel-release -y
   rm -f /etc/yum.repos.d/epel.repo
   rm -f /etc/yum.repos.d/epel.repo.rpmsave
@@ -392,7 +519,7 @@ EOF
     fi
     yum install yum-plugin-priorities -y
 
-    yum update -y
+    System_Package_Update
 
     yum install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel gpgme-devel curl-devel git socat openssl-devel MariaDB-shared mariadb-devel python36u python36u-pip python36u-devel bind-utils
 
@@ -441,7 +568,7 @@ EOF
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
 
   apt update -y
-  export DEBIAN_FRONTEND=noninteractive ; apt-get -o Dpkg::Options::="--force-confold" upgrade -y
+  export DEBIAN_FRONTEND=noninteractive ; Apt_System_Upgrade apt-get -o Dpkg::Options::="--force-confold" upgrade -y
 
   if [[ "$Server_OS_Version" = "22" ]] ; then
     DEBIAN_FRONTEND=noninteracitve apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
@@ -478,7 +605,7 @@ elif [[ "$Server_OS" = "Ubuntu" ]] ; then
 
     rm -f /etc/apt/sources.list.d/dovecot.list
     apt update
-    DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical apt -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
+    Apt_System_Upgrade env DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical apt -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
   fi
 #all pre-upgrade operation for Ubuntu 20
 fi
@@ -487,7 +614,7 @@ if [[ "$Server_OS" = "openEuler" ]] ; then
   rm -f /etc/yum.repos.d/litespeed.repo
 
   yum clean all
-  yum update -y
+  System_Package_Update
 
   dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git python3-devel tar socat bind-utils
   dnf install gpgme-devel -y
@@ -910,6 +1037,8 @@ if [[ "$*" != *"--branch "* ]] && [[ "$*" != *"-b "* ]] ; then
   Pre_Upgrade_Branch_Input
 fi
 
+CrowdSec_Guard_Start
+
 Pre_Upgrade_Setup_Repository
 
 Pre_Upgrade_Setup_Git_URL
@@ -919,5 +1048,7 @@ Pre_Upgrade_Required_Components
 Main_Upgrade
 
 Post_Upgrade_System_Tweak
+
+CrowdSec_Guard_Verify
 
 Post_Install_Display_Final_Info
