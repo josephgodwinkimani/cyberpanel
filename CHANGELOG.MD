@@ -8,6 +8,7 @@ Nitpick branch
 **General:**
 * Unattended auto-upgrades are scheduled via the cron job `0 1 * * * /usr/local/CyberCP/autoPreUpgrade.sh >> /var/log/upgradeLogs.txt`. You may disable this job if necessary. It is strongly recommended to back up or create a snapshot of your server prior to executing this cron job in your cron job order.
 * The upgrade leaves an installed CrowdSec alone: `plogical/upgrade.py` no longer touches its configuration, API port or acquisition file, the system update in the upgrade scripts excludes `crowdsec*` packages (set `CP_UPGRADE_UPDATE_CROWDSEC=1` to include them), `/etc/crowdsec` is backed up to `/root/cyberpanel-upgrade-backups` and compared after the upgrade, and the CrowdSec files are rewritten atomically so an error can no longer truncate them. An existing `/usr/local/rclone_backup_cronjob.sh` is no longer replaced by the generic template.
+* The upgrade no longer updates operating system packages by itself. The system update in `cyberpanel_upgrade.sh` and `autoCyberpanel_upgrade.sh` and the one in `plogical/upgrade.py` run only when the administrator asks for it with `--update-system-packages` or `CP_UPGRADE_SYSTEM_PACKAGES=1`. When asked it checks first that the repositories can be read, stops at the first error, and holds back OpenLiteSpeed, MariaDB, OpenSSH, kernel and CrowdSec packages (on Ubuntu with `apt-mark hold` for the duration of the update). `CPScripts/test_system_update_policy.sh` tests this against fake package tools.
 * 
 
 **Security:**
