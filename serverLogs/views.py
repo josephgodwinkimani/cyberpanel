@@ -107,6 +107,21 @@ def clearLogFile(request):
 
                 fileName = data['fileName']
 
+                # The root script truncates whatever path it gets, so only the log files this page can show are accepted.
+                allowedLogFiles = (
+                    installUtilities.Server_root_path + "/logs/access.log",
+                    installUtilities.Server_root_path + "/logs/error.log",
+                    "/var/log/maillog",
+                    "/var/log/mail.log",
+                    "/var/log/messages",
+                    "/var/log/syslog",
+                    "/usr/local/lsws/logs/auditmodsec.log",
+                    "/home/cyberpanel/error-logs.txt",
+                )
+
+                if fileName not in allowedLogFiles:
+                    return ACLManager.loadErrorJson('cleanStatus', 0)
+
                 execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/serverLogs.py"
                 execPath = execPath + " cleanLogFile --fileName " + fileName
 
