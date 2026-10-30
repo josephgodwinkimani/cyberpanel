@@ -197,6 +197,14 @@ def submitUserCreation(request):
 
             elif currentACL['changeUserACL'] == 1:
 
+                # A non-admin must not be able to create an admin-level account
+                if selectedACL.adminStatus == 1:
+                    data_ret = {'status': 0, 'createStatus': 0,
+                                'error_message': "You are not authorized to access this resource."}
+
+                    final_json = json.dumps(data_ret)
+                    return HttpResponse(final_json)
+
                 newAdmin = Administrator(firstName=firstName,
                                          lastName=lastName,
                                          email=email,
