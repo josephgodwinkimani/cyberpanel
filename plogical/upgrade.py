@@ -4273,6 +4273,20 @@ pm.max_spare_servers = 3
 
 
     @staticmethod
+    def rootMountHasQuotas():
+        # The options of the last "/" entry of /proc/mounts show what is really mounted. Any doubt means False,
+        # which keeps the old behaviour of setting quotas up.
+        try:
+            options = ''
+            for line in open('/proc/mounts', 'r').read().splitlines():
+                parts = line.split()
+                if len(parts) > 3 and parts[1] == '/':
+                    options = parts[3]
+            return 'usrquota' in options.split(',')
+        except BaseException:
+            return False
+
+    @staticmethod
     def FixCurrentQuoatasSystem():
         fstab_path = '/etc/fstab'
 
@@ -4281,6 +4295,10 @@ pm.max_spare_servers = 3
         if data.find("usrquota,grpquota") > -1 or data.find("uquota") > -1:
             print("Quotas already enabled.")
 
+            # fstab asks for quotas and the running root mount already has them, so there is nothing to set up.
+            # Without this return every upgrade rewrote /etc/fstab, remounted / and walked every website.
+            if Upgrade.rootMountHasQuotas():
+                return
 
         if Upgrade.installQuota() == 1:
 
