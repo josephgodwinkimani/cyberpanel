@@ -20,7 +20,7 @@ from websiteFunctions.models import Websites
 from .IncBackupProvider import IncBackupProvider
 from .IncBackupPath import IncBackupPath
 from .IncBackupsControl import IncJobs
-from .models import IncJob, BackupJob, JobSites
+from .models import IncJob, BackupJob, JobSites, JobSnapshots
 
 
 
@@ -407,7 +407,8 @@ def delete_backup(request):
 
         backup_id = data['backupID']
 
-        inc_job = IncJob.objects.get(id=backup_id)
+        # The ownership check above covers the domain only, so the job must belong to that domain as well
+        inc_job = IncJob.objects.get(id=backup_id, website__domain=backup_domain)
 
         job = IncJobs(None, None)
         job.DeleteSnapShot(inc_job)
@@ -437,7 +438,7 @@ def fetch_restore_points(request):
         data = json.loads(request.body)
         job_id = data['id']
 
-        inc_job = IncJob.objects.get(id=job_id)
+        inc_job = IncJob.objects.get(id=job_id, website__domain=backup_domain)
 
         backups = inc_job.jobsnapshots_set.all()
 
@@ -469,6 +470,11 @@ def restore_point(request):
             pass
         else:
             return ACLManager.loadErrorJson('metaStatus', 0)
+
+        # A local restore reads a JobSnapshots row by primary key, so that row must belong to the owned domain
+        if data['reconstruct'] != 'remote':
+            if not JobSnapshots.objects.filter(id=job_id, job__website__domain=backup_domain).exists():
+                return ACLManager.loadErrorJson('metaStatus', 0)
 
         temp_path = Path("/home/cyberpanel/") / str(randint(1000, 9999))
 
