@@ -3737,7 +3737,7 @@ class WebsiteManager:
 
             execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/cronUtil.py"
             execPath = execPath + " saveCronChanges --externalApp " + website.externalApp + " --line " + str(
-                line) + " --finalCron '" + finalCron + "'"
+                line) + " --finalCron " + shlex.quote(finalCron)
             output = ProcessUtilities.outputExecutioner(execPath, website.externalApp)
             CronUtil.CronPrem(0)
 
@@ -3836,7 +3836,7 @@ class WebsiteManager:
             finalCron = "%s %s %s %s %s %s" % (minute, hour, monthday, month, weekday, command)
 
             execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/cronUtil.py"
-            execPath = execPath + " addNewCron --externalApp " + website.externalApp + " --finalCron '" + finalCron + "'"
+            execPath = execPath + " addNewCron --externalApp " + website.externalApp + " --finalCron " + shlex.quote(finalCron)
             output = ProcessUtilities.outputExecutioner(execPath, website.externalApp)
 
             if ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu or ProcessUtilities.decideDistro() == ProcessUtilities.ubuntu20:
