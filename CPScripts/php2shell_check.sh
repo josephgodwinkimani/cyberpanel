@@ -7,8 +7,11 @@
 # effective session.upload_progress.enabled value, which vhosts use it, whether the control panel's PHP copy is stale,
 # and whether running workers are older than the installed binary. It writes nothing and changes nothing.
 #
-# The build date is a HEURISTIC: a binary built before the fix release cannot contain the fix, but a newer date does not
-# prove the fix is present (vendors may re-package). Compare package releases with your vendor's advisory.
+# The build date is the package build time (rpm BUILDTIME). It is a HEURISTIC: a binary built before the fix release cannot
+# contain the fix, but a newer date does not prove the fix is present (vendors may re-package). Compare package releases
+# with your vendor's advisory. The "built:" date printed by "lsphp -v" is NOT used: it is the date of the PHP source
+# release and stays the same across rebuilds, so it cannot tell an old build from a fixed one. Without an rpm package
+# (for example dpkg) no build time is available and the script says so instead of guessing.
 #
 # Test overrides: LSWS_ROOT (/usr/local/lsws), LSCP_ROOT (/usr/local/lscp), FIX_DATE (2026-10-21).
 
@@ -35,16 +38,17 @@ for dir in "$LSWS_ROOT"/lsphp*; do
   [ -n "$pkg" ] || pkg=$(dpkg -S "$b" 2>/dev/null | head -1)
   echo "$name: ${pkg:-no package} | ${vline:-version unknown}"
 
-  built=$(echo "$vline" | sed -n 's/.*(built: \([^)]*\)).*/\1/p')
-  built_epoch=$(date -d "$built" +%s 2>/dev/null || echo 0)
+  built_epoch=$(rpm -q --qf '%{BUILDTIME}' "$pkg" 2>/dev/null | head -1)
+  case "$built_epoch" in ''|*[!0-9]*) built_epoch=0 ;; esac
   if [ "$built_epoch" -gt 0 ] && [ "$fix_epoch" -gt 0 ]; then
+    built=$(date -d "@$built_epoch" +%Y-%m-%d 2>/dev/null)
     if [ "$built_epoch" -lt "$fix_epoch" ]; then
-      review "$name was built $built, before the fix release: it cannot contain the fix"
+      review "$name package was built $built, before the fix release: it cannot contain the fix"
     else
-      note "built $built (after the fix release; compare the package release with your vendor's advisory)"
+      note "package built $built (after the fix release; compare the package release with your vendor's advisory)"
     fi
   else
-    note "build date not readable"
+    note "package build time not readable (not an rpm package); the build date shown by lsphp -v is not reliable and is not used"
   fi
 
   cgi="$dir/bin/php-cgi"
