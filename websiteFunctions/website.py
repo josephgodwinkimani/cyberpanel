@@ -4849,6 +4849,17 @@ StrictHostKeyChecking no
             else:
                 return ACLManager.loadErrorJson()
 
+            # phpPath comes from the page and is moved over as root below, so it must be this site's own pool file
+            expectedPhpPath = ApacheVhost.whichPHPExists(domainName)
+            if not expectedPhpPath or phpPath != expectedPhpPath:
+                return ACLManager.loadErrorJson()
+
+            # these values are written into the pool file, so they must be plain integers
+            pmMaxChildren = str(int(pmMaxChildren))
+            pmStartServers = str(int(pmStartServers))
+            pmMinSpareServers = str(int(pmMinSpareServers))
+            pmMaxSpareServers = str(int(pmMaxSpareServers))
+
             if int(pmStartServers) < int(pmMinSpareServers) or int(pmStartServers) > int(pmMinSpareServers):
                 data_ret = {'status': 0,
                             'error_message': 'pm.start_servers must not be less than pm.min_spare_servers and not greater than pm.max_spare_servers.'}
