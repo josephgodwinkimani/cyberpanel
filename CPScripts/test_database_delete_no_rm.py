@@ -95,7 +95,7 @@ try:
 except SyntaxError:
     parsed = False
 check('mysqlUtilities.py parses with the Python 3.9 grammar', parsed, True)
-check('mysqlUtilities.py has no carriage returns', '\r' in src, False)
+check('mysqlUtilities.py has no carriage returns', b'\r' in open(SOURCE, 'rb').read(), False)
 
 print('----')
 print('%d of %d checks passed' % (ok, total))
