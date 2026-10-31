@@ -1,7 +1,7 @@
 """Tests that the snapshot based backup pages (a paid add-on that needs the licence service for its drive setup) are removed without touching
 the free incremental backup: the 17 page and action views, their routes, the 5 manager methods, the 5 templates, the 5 script controllers,
-the sidebar entry, the engine module and the scheduler runner are gone, nothing imports or names them, the cron entry point still runs the
-free remote backup for every short period (the real main() is executed with recorders, and an old form control proves the check sees the
+the sidebar entry, the engine module and the scheduler runner are gone, nothing imports or names them, the cron entry point still exits
+cleanly for every short period (the real main() is executed with recorders, and an old form control proves the check sees the
 removed call), and the free incremental views are byte for byte what they were (pinned by hash where no other change touches them).
 The two database tables of the add-on stay so an upgrade never drops data. Needs node for the script syntax check (skipped when missing).
 Run: python3 CPScripts/test_versioned_snapshot_backups_removed.py"""
@@ -158,7 +158,7 @@ else:
 stree = ast.parse(SCHED)
 sched = next(n for n in stree.body if isinstance(n, ast.ClassDef) and n.name == 'IncScheduler')
 smethods = {n.name: n for n in sched.body if isinstance(n, ast.FunctionDef)}
-check('the scheduler no longer has the runner and keeps the free ones', (RUNNER in smethods, 'RemoteBackup' in smethods, 'startNormalBackups' in smethods, 'CheckHostName' in smethods), (False, True, True, True))
+check('the scheduler no longer has the runner and keeps the free ones', (RUNNER in smethods, 'startNormalBackups' in smethods, 'CheckHostName' in smethods), (False, True, True))
 check('the scheduler names neither the engine nor the removed paths', [t for t in (ENGINE, 'Backups' + v, '/home/cyberpanel/' + v + 'backups') if t in SCHED], [])
 main_node = next(n for n in stree.body if isinstance(n, ast.FunctionDef) and n.name == 'main')
 MAIN = ast.get_source_segment(SCHED, main_node)
@@ -204,9 +204,11 @@ def run_main(code, period, extra=()):
 
 
 SHORT = ['30 Minutes', '1 Hour', '6 Hours', '12 Hours', '1 Day', '3 Days', '1 Week']
-check('every short period cron line still runs only the free remote backup and exits 0', {p: run_main(MAIN, p) for p in SHORT}, {p: (['RemoteBackup'], 0) for p in SHORT})
-OLD = MAIN.replace('        IncScheduler.RemoteBackup(args.function)\n', '        IncScheduler.RemoteBackup(args.function)\n        IncScheduler.' + RUNNER + '(args.function)\n')
-check('control: the old form of main() makes the removed call and the check sees it', run_main(OLD, '1 Hour'), (['RemoteBackup', RUNNER], 0))
+check('every short period cron line still exits 0 and makes no call to the removed runner', {p: (RUNNER in run_main(MAIN, p)[0], run_main(MAIN, p)[1]) for p in SHORT}, {p: (False, 0) for p in SHORT})
+ANCHOR = '        # IncScheduler.refresh_access_token()\n'
+check('the short period branch is found once', MAIN.count(ANCHOR), 1)
+OLD = MAIN.replace(ANCHOR, ANCHOR + '        IncScheduler.' + RUNNER + '(args.function)\n')
+check('control: the old form of main() makes the removed call and the check sees it', (RUNNER in run_main(OLD, '1 Hour')[0], run_main(OLD, '1 Hour')[1]), (True, 0))
 daily, rc = run_main(MAIN, 'Daily')
 check('Daily keeps its calls and none of them is the runner', (RUNNER in daily, 'CalculateAndUpdateDiskUsage' in daily, 'WPUpdates' in daily, rc), (False, True, True, None))
 check('forceRunAWSBackup and the disk usage entry are unchanged', (run_main(MAIN, 'forceRunAWSBackup'), run_main(MAIN, 'UpdateDiskUsageForce')), ((['forceRunAWSBackup'], 0), (['CalculateAndUpdateDiskUsage'], 0)))
