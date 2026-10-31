@@ -33,19 +33,6 @@ urlpatterns = [
     path('installMailScanner', views.installMailScanner, name='installMailScanner'),
     path('installStatusMailScanner', views.installStatusMailScanner, name='installStatusMailScanner'),
 
-    # Rspamd
-    path('Rspamd', views.Rspamd, name='Rspamd'),
-    path('installRspamd', views.installRspamd, name='installRspamd'),
-    path('installStatusRspamd', views.installStatusRspamd, name='installStatusRspamd'),
-    path('fetchRspamdSettings', views.fetchRspamdSettings, name='fetchRspamdSettings'),
-    path('saveRspamdConfigurations', views.saveRspamdConfigurations, name='saveRspamdConfigurations'),
-    path('savepostfixConfigurations', views.savepostfixConfigurations, name='savepostfixConfigurations'),
-    path('saveRedisConfigurations', views.saveRedisConfigurations, name='saveRedisConfigurations'),
-    path('saveclamavConfigurations', views.saveclamavConfigurations, name='saveclamavConfigurations'),
-    path('unistallRspamd', views.unistallRspamd, name='unistallRspamd'),
-    path('uninstallStatusRspamd', views.uninstallStatusRspamd, name='uninstallStatusRspamd'),
-    path('FetchRspamdLog', views.FetchRspamdLog, name='FetchRspamdLog'),
-    path('RestartRspamd', views.RestartRspamd, name='RestartRspamd'),
 
     path('statusFunc', views.statusFunc, name='statusFunc'),
     re_path(r'^(?P<domain>.*)$', views.emailLimits, name='emailLimits'),
