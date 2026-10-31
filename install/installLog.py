@@ -1,13 +1,9 @@
-import json
 import time
-
-import requests
 
 
 class InstallLog:
     fileName = "/var/log/installLogs.txt"
     currentPercent = '10'
-    LogURL = 'https://platform.cyberpersons.com/servers/RecvData'
     ServerIP = ''
 
     @staticmethod
@@ -27,9 +23,3 @@ class InstallLog:
         file.writelines("[" + time.strftime(
                     "%m.%d.%Y_%H-%M-%S") + "] " + message + "\n")
         file.close()
-
-        try:
-            finalData = json.dumps({'ipAddress': InstallLog.ServerIP, "InstallCyberPanelStatus": message})
-            requests.post(InstallLog.LogURL, data=finalData, timeout=10)
-        except:
-            pass
