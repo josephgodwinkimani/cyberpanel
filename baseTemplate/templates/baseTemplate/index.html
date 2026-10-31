@@ -812,9 +812,6 @@
 
                                 <ul>
                                     {% if admin or manageSSL %}
-                                        <li class="manageSSL"><a href="{% url 'v2ManageSSL' %}"
-                                                                 title="{% trans 'Manage SSLv2' %}"><span>{% trans "Manage SSL v2" %}</span></a>
-                                        </li>
                                         <li class="manageSSL"><a href="{% url 'manageSSL' %}"
                                                                  title="{% trans 'Manage SSL' %}"><span>{% trans "Manage SSL" %}</span></a>
                                         </li>
