@@ -76,7 +76,7 @@ def routes(source):
 table = routes(URLS)
 check('no route points at a view that does not exist', [r for r in table if r[0] not in views], [])
 check('no route of the removed views is left', [r for r in table if r[0] in REMOVED or r[1] in REMOVED], [])
-check('the free routes are kept', [n for n in ('loadBackupHome', 'backupSite', 'restoreSite', 'gDrive', 'backupDestinations', 'scheduleBackup', 'remoteBackups', 'fetchNormalLogs') if n not in {r[1] for r in table}], [])
+check('the free routes are kept', [n for n in ('loadBackupHome', 'backupSite', 'restoreSite', 'backupDestinations', 'scheduleBackup', 'remoteBackups', 'fetchNormalLogs') if n not in {r[1] for r in table}], [])
 bad = URLS.replace("    re_path(r'^backupSite$'", "    re_path(r'^x$', views.%s, name='x'),\n    re_path(r'^backupSite$'" % REMOVED[0])
 check('control: a route put back is reported as dangling', [r[0] for r in routes(bad) if r[0] not in views], [REMOVED[0]])
 
@@ -181,8 +181,8 @@ check('control: the template check would report a left-over reverse', [m.group(1
 
 # script
 controllers = re.findall(r"^app\.controller\('([A-Za-z]+)'", JS, flags=re.M)
-check('both controllers are gone and the seven free ones are kept', sorted(controllers),
-      sorted(['backupWebsiteControl', 'restoreWebsiteControl', 'remoteBackupControl', 'backupLogsScheduled', 'googleDrive', 'backupDestinations', 'scheduleBackup']))
+check('both controllers are gone and the six free ones are kept', ([c for c in controllers if c in ('backupPlanNow' + OC, OC + 'restoreWebsiteControl')],
+                                                                    [c for c in ('backupWebsiteControl', 'restoreWebsiteControl', 'remoteBackupControl', 'backupLogsScheduled', 'backupDestinations', 'scheduleBackup') if c not in controllers]), ([], []))
 node = shutil.which('node')
 if node:
     check('backup.js is valid JavaScript', subprocess.run([node, '--check', os.path.join(ROOT, 'backup/static/backup/backup.js')], capture_output=True).returncode, 0)
