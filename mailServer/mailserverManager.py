@@ -108,11 +108,6 @@ class MailServerManager(multi.Thread):
             domainName = data['domain']
             userName = data['username'].lower()
             password = data['passwordByPass']
-            try:
-                EmailLimits = data['EmailLimits']
-            except:
-                EmailLimits = -1
-
 
             admin = Administrator.objects.get(pk=userID)
             if ACLManager.checkOwnership(domainName, admin, currentACL) == 1:
@@ -126,21 +121,6 @@ class MailServerManager(multi.Thread):
             result = mailUtilities.createEmailAccount(domainName, userName.lower(), password)
 
             if result[0] == 1:
-
-                if EmailLimits != -1:
-
-                    lt = '30d'
-                    limitString = f'@{domainName} {str(EmailLimits)}/{lt}\n'
-
-                    RandomFile = "/home/cyberpanel/" + str(randint(100000, 999999))
-                    writeToFile = open(RandomFile, 'w')
-                    writeToFile.write(limitString)
-                    writeToFile.close()
-
-                    execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
-                    execPath = execPath + f" SaveEmailLimitsNew --tempConfigPath {RandomFile}"
-                    ProcessUtilities.outputExecutioner(execPath)
-
 
                 data_ret = {'status': 1, 'createEmailStatus': 1, 'error_message': "None"}
                 json_data = json.dumps(data_ret)
@@ -207,16 +187,7 @@ class MailServerManager(multi.Thread):
             checker = 0
             count = 1
             for items in emails:
-                try:
-                    command = f'sudo awk -v email="{items.email}" \'$1 == email {{print $2}}\' /etc/rspamd/badusers.map || echo "0,0"'
-                    result = ProcessUtilities.outputExecutioner(command, None, True).rstrip('\n').split('/')
-                    numberofEmails = int(result[0])
-                    duration = result[1]
-                except:
-                    numberofEmails = 0
-                    duration = '0m'
-
-                dic = {'id': count, 'email': items.email, 'DiskUsage': '%sMB' % items.DiskUsage, 'numberofEmails': numberofEmails, 'duration': duration}
+                dic = {'id': count, 'email': items.email, 'DiskUsage': '%sMB' % items.DiskUsage}
                 count = count + 1
 
                 if checker == 0:
@@ -1778,103 +1749,6 @@ milter_default_action = accept
         else:
             return 1, 'All checks are OK.'
 
-
-    ### emails for sites
-
-    def EmailLimits(self):
-
-        userID = self.request.session['userID']
-        currentACL = ACLManager.loadedACL(userID)
-
-        if not os.path.exists('/home/cyberpanel/postfix'):
-            proc = httpProc(self.request, 'mailServer/emailForwarding.html',
-                            {"status": 0}, 'emailForwarding')
-            return proc.render()
-
-        websitesName = ACLManager.findAllSites(currentACL, userID)
-        websitesName = websitesName + ACLManager.findChildDomains(websitesName)
-
-        try:
-            from plogical.processUtilities import ProcessUtilities
-            if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
-
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-                data = {
-                    "name": "all",
-                    "IP": ACLManager.fetchIP()
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(data))
-                Status = response.json()['status']
-
-                if (Status == 1):
-                    template = 'mailServer/EmailLimits.html'
-                else:
-                    return redirect("https://cyberpanel.net/cyberpanel-addons")
-            else:
-                template = 'baseTemplate/EmailLimits.html'
-        except BaseException as msg:
-            template = 'baseTemplate/EmailLimits.html'
-
-
-        proc = httpProc(self.request, template,
-                        {'websiteList': websitesName, "status": 1}, 'emailForwarding')
-        return proc.render()
-
-    def SaveEmailLimitsNew(self):
-        try:
-            userID = self.request.session['userID']
-            currentACL = ACLManager.loadedACL(userID)
-            if ACLManager.currentContextPermission(currentACL, 'emailForwarding') == 0:
-                return ACLManager.loadErrorJson('createStatus', 0)
-
-            data = json.loads(self.request.body)
-            source = data['source']
-            numberofEmails = data['numberofEmails']
-            duration = data['duration']
-
-            eUser = EUsers.objects.get(email=source)
-
-            admin = Administrator.objects.get(pk=userID)
-            if ACLManager.checkOwnership(eUser.emailOwner.domainOwner.domain, admin, currentACL) == 1:
-                pass
-            else:
-                return ACLManager.loadErrorJson()
-
-            if mailUtilities.checkIfRspamdInstalled() == 0:
-                execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
-                execPath = execPath + " installRspamd"
-                ProcessUtilities.executioner(execPath)
-
-            execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
-            execPath = execPath + " SetupEmailLimits"
-            ProcessUtilities.executioner(execPath)
-
-
-            limitString = f'{source} {str(numberofEmails)}/{duration}\n'
-
-            RandomFile = "/home/cyberpanel/" + str(randint(100000, 999999))
-            writeToFile = open(RandomFile, 'w')
-            writeToFile.write(limitString)
-            writeToFile.close()
-
-            execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/mailUtilities.py"
-            execPath = execPath + f" SaveEmailLimitsNew --tempConfigPath {RandomFile}"
-            result = ProcessUtilities.outputExecutioner(execPath)
-
-            if result.find('1,None') > -1:
-                data_ret = {'status': 1}
-            else:
-                data_ret = {'status': 1, 'error_message': "result",}
-
-            json_data = json.dumps(data_ret)
-            return HttpResponse(json_data)
-
-        except BaseException as msg:
-            data_ret = {'status': 0, 'createStatus': 0, 'error_message': str(msg)}
-            json_data = json.dumps(data_ret)
-            return HttpResponse(json_data)
 
 def main():
 
