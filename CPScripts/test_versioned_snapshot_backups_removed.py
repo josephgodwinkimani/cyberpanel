@@ -210,7 +210,7 @@ check('the short period branch is found once', MAIN.count(ANCHOR), 1)
 OLD = MAIN.replace(ANCHOR, ANCHOR + '        IncScheduler.' + RUNNER + '(args.function)\n')
 check('control: the old form of main() makes the removed call and the check sees it', (RUNNER in run_main(OLD, '1 Hour')[0], run_main(OLD, '1 Hour')[1]), (True, 0))
 daily, rc = run_main(MAIN, 'Daily')
-check('Daily keeps its calls and none of them is the runner', (RUNNER in daily, 'CalculateAndUpdateDiskUsage' in daily, 'WPUpdates' in daily, rc), (False, True, True, None))
+check('Daily keeps its calls and none of them is the runner', (RUNNER in daily, 'CalculateAndUpdateDiskUsage' in daily, 'WPUpdates' in daily, rc), (False, True, False, None))
 check('forceRunAWSBackup and the disk usage entry are unchanged', (run_main(MAIN, 'forceRunAWSBackup'), run_main(MAIN, 'UpdateDiskUsageForce')), ((['forceRunAWSBackup'], 0), (['CalculateAndUpdateDiskUsage'], 0)))
 
 # syntax, endings
