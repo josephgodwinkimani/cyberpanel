@@ -22,24 +22,4 @@ urlpatterns = [
     path('saveChanges', views.save_changes, name='saveChanges'),
     path('removeSite', views.remove_site, name='removeSite'),
     path('addWebsite', views.add_website, name='addWebsite'),
-
-    # V2 Backups URLs
-    path('CreateV2Backup', views.CreateV2Backup, name='CreateV2Backup'),
-    path('ConfigureV2Backup', views.ConfigureV2Backup, name='ConfigureV2Backup'),
-    path('ConfigureV2BackupSetup', views.ConfigureV2BackupSetup, name='ConfigureV2BackupSetup'),
-    path('RestoreV2backupSite', views.RestoreV2backupSite, name='RestoreV2backupSite'),
-    path('selectwebsiteRetorev2', views.selectwebsiteRetorev2, name='selectwebsiteRetorev2'),
-    path('selectreporestorev2', views.selectreporestorev2, name='selectreporestorev2'),
-    path('RestorePathV2', views.RestorePathV2, name='RestorePathV2'),
-    path('DeleteSnapshotV2Final', views.DeleteSnapshotV2Final, name='DeleteSnapshotV2Final'),
-    path('CreateV2BackupButton', views.CreateV2BackupButton, name='CreateV2BackupButton'),
-    path('selectwebsiteCreatev2', views.selectwebsiteCreatev2, name='selectwebsiteCreatev2'),
-    path('CreateV2BackupStatus', views.CreateV2BackupStatus, name='CreateV2BackupStatus'),
-    path('ConfigureSftpV2Backup', views.ConfigureSftpV2Backup, name='ConfigureSftpV2Backup'),
-
-    path('schedulev2Backups', views.schedulev2Backups, name='schedulev2Backups'),
-    path('DeleteScheduleV2', views.DeleteScheduleV2, name='DeleteScheduleV2'),
-    path('CreateScheduleV2', views.CreateScheduleV2, name='CreateScheduleV2'),
-    path('DeleteRepoV2', views.DeleteRepoV2, name='DeleteRepoV2'),
-    path('DeleteV2BackupButton', views.DeleteV2BackupButton, name='DeleteV2BackupButton'),
 ]
