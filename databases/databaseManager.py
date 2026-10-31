@@ -88,30 +88,6 @@ class DatabaseManager:
 
     def MySQLManager(self, request = None, userID = None):
 
-        try:
-
-            from plogical.processUtilities import ProcessUtilities
-            if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
-
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-                data = {
-                    "name": "Filemanager",
-                    "IP": ACLManager.fetchIP()
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(data))
-                Status = response.json()['status']
-
-                if (Status == 1):
-                    template = 'baseTemplate/FileManager.html'
-                else:
-                    return redirect("https://cyberpanel.net/cyberpanel-addons")
-            else:
-                template = 'databases/mysqlmanager.html'
-        except BaseException as msg:
-            template = 'databases/mysqlmanager.html'
-
         template = 'databases/mysqlmanager.html'
         proc = httpProc(request, template, None, 'admin')
         return proc.render()
