@@ -588,11 +588,6 @@
                                             </li>
                                         {% endif %}
                                         {% if admin or emailForwarding %}
-                                            <li><a href="{% url 'EmailLimits' %}"
-                                                   title="{% trans 'Email Limits' %}"><span>{% trans "Email Limits" %}</span></a>
-                                            </li>
-                                        {% endif %}
-                                        {% if admin or emailForwarding %}
                                             <li><a href="{% url 'emailForwarding' %}"
                                                    title="{% trans 'Email Forwarding' %}"><span>{% trans "Email Forwarding" %}</span></a>
                                             </li>
