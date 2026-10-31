@@ -873,29 +873,3 @@ class DNS:
         except:
             ## There does not exist a zone for this domain.
             pass
-
-    @staticmethod
-    def ConfigureCloudflareInAcme(SAVED_CF_Key, SAVED_CF_Email):
-        try:
-
-            ## remove existing keys first
-
-            path = '/root/.acme.sh/account.conf'
-
-            command = f"sed -i '/SAVED_CF_Key/d;/SAVED_CF_Email/d' {path}"
-            ProcessUtilities.executioner(command)
-
-
-            CFContent = f"""
-SAVED_CF_Key='{SAVED_CF_Key}'
-SAVED_CF_Email='{SAVED_CF_Email}'
-"""
-
-            command = f'echo "{CFContent}" >> {path}'
-            ProcessUtilities.executioner(command, None, True)
-
-            return 1, None
-
-        except BaseException as msg:
-            logging.CyberCPLogFileWriter.writeToFile(f'ConfigureCloudflareInAcme, Error: {str(msg)}')
-            return 0, str(msg)
