@@ -99,7 +99,7 @@ for base, dirs, files in os.walk(ROOT):
         if f.endswith(('.py', '.html')) and '.bak' not in f and not f.startswith('test_'):
             if TEMPLATE in open(os.path.join(base, f), encoding='utf-8', errors='replace').read():
                 name_refs.append(os.path.relpath(os.path.join(base, f), ROOT))
-check('the removed template is named only by the database manager (a dead string handled in its own change)', name_refs, ['databases/databaseManager.py'])
+check('the removed template is named by nothing but the database manager at most (a dead string handled in its own change)', sorted(set(name_refs) - {'databases/databaseManager.py'}), [])
 check('the removed template is gone and the free per-site template is kept', (os.path.exists(os.path.join(ROOT, 'baseTemplate/templates/' + TEMPLATE)), os.path.exists(os.path.join(ROOT, 'filemanager/templates/filemanager/index.html'))), (False, True))
 free_index = read('filemanager/templates/filemanager/index.html')
 check('the free page uses the kept download function and nothing removed', ('downloadFile()' in free_index, DOWNLOAD in free_index), (True, False))
