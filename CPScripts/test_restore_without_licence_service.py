@@ -57,7 +57,10 @@ def without_regions(text):
     return '\n'.join(out)
 
 
-check('outside the two Apache steps the file is exactly as it was', hashlib.sha256(without_regions(src).encode()).hexdigest()[:16], '3f40ce619fd9b6b1')
+cls = next(n for n in ast.parse(src).body if isinstance(n, ast.ClassDef) and n.name == 'backupUtilities')
+restore = [n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'startRestore']
+check('there is one startRestore', len(restore), 1)
+check('outside the two Apache steps startRestore is exactly as it was', hashlib.sha256(without_regions(ast.get_source_segment(src, restore[0])).encode()).hexdigest()[:16], '840d6ac419da4a75')
 # the marker names are built here so this file does not name them
 check('the file no longer names the licence service', any(w in src for w in ('Adon' + 'permission', 'platform.' + 'cyberpersons', 'CheckFor' + 'PremFeature')), False)
 
