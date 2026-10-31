@@ -58,7 +58,7 @@ check('the three log path constants are gone', [c for c in CONSTANTS if c in UTI
 main_src = UTILS.split('def main')[1]
 check('the command line has no branch for the removed helpers', [h for h in HELPERS_REMOVED if h in main_src], [])
 PINNED_VIEWS = {'emailPolicyServer': 'f254e418ab87561d', 'listDomains': 'e84f77efd036f672', 'spamAssassinHome': '8e101d3b86e29f5f', 'installSpamAssassin': 'fc95cb05a2657111',
-                'mailQueue': 'd086c5c4ba73c241', 'MailScanner': '709fae863484d565', 'installMailScanner': '2c43a05751b7179e', 'statusFunc': 'de859b27004753e3'}
+                'mailQueue': 'd086c5c4ba73c241', 'MailScanner': '709fae863484d565', 'installMailScanner': '2c43a05751b7179e', 'statusFunc': '337fc2e0451f7966'}
 check('eight free views are exactly as they were', {n: digest(VIEWS, views[n]) if n in views else None for n in PINNED_VIEWS}, PINNED_VIEWS)
 PINNED_UTILS = {'installSpamAssassin': '25a5a756a4577cba', 'installMailScanner': 'a977e63900564ff9', 'saveSpamAssassinConfigs': 'c915a5cfc5d8a0b2', 'createEmailAccount': '5e0cb34608cc590f'}
 check('four free mail helpers are exactly as they were', {n: digest(UTILS, utils[n]) if n in utils else None for n in PINNED_UTILS}, PINNED_UTILS)

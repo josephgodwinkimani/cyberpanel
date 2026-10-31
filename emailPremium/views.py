@@ -21,7 +21,6 @@ from random import randint
 from plogical.acl import ACLManager
 from plogical.processUtilities import ProcessUtilities
 from plogical.httpProc import httpProc
-from cloudAPI.cloudManager import CloudManager
 
 
 ## Email Policy Server
@@ -1230,6 +1229,55 @@ def installStatusMailScanner(request):
         return HttpResponse(final_json)
 
 
+def fetchStatusFileProgress(data):
+    try:
+        statusFile = data['statusFile']
+
+        if ACLManager.CheckStatusFilleLoc(statusFile):
+            pass
+        else:
+            data_ret = {'abort': 1, 'installStatus': 0, 'installationProgress': "100",
+                        'currentStatus': 'Invalid status file.'}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+
+        statusData = open(statusFile, 'r').readlines()
+        try:
+            lastLine = statusData[-1]
+            if lastLine.find('[200]') > -1:
+                command = 'rm -f ' + statusFile
+                ProcessUtilities.executioner(command)
+                data_ret = {'status': 1, 'abort': 1, 'installationProgress': "100", 'currentStatus': lastLine}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            elif lastLine.find('[404]') > -1:
+                data_ret = {'status': 0, 'abort': 1, 'installationProgress': "0", 'error_message': lastLine}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            else:
+                progress = lastLine.split(',')
+                currentStatus = progress[0]
+                try:
+                    installationProgress = progress[1].rstrip('\n')
+                except:
+                    installationProgress = 0
+                data_ret = {'status': 1, 'abort': 0, 'installationProgress': installationProgress,
+                            'currentStatus': currentStatus}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+        except IndexError:
+            data_ret = {'status': 1, 'abort': 0, 'installationProgress': 0,
+                        'currentStatus': 'Working..'}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+    except BaseException as msg:
+        data_ret = {'status': 0, 'abort': 0, 'installationProgress': "0", 'errorMessage': str(msg)}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
+
 def statusFunc(request):
     try:
         userID = request.session['userID']
@@ -1240,9 +1288,7 @@ def statusFunc(request):
         else:
             return ACLManager.loadErrorJson()
 
-        ob = CloudManager(json.loads(request.body))
-        res = ob.statusFunc()
-        return res
+        return fetchStatusFileProgress(json.loads(request.body))
     except BaseException as msg:
         dic = {'status': 0, 'error_message': str(msg)}
         json_data = json.dumps(dic)

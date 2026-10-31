@@ -116,11 +116,22 @@ class DatabaseManager:
         proc = httpProc(request, template, None, 'admin')
         return proc.render()
     def OptimizeMySQL(self, request = None, userID = None):
-        from cloudAPI.cloudManager import CloudManager
-        cm = CloudManager()
-        result = cm.fetchRam(request)
+        from plogical.processUtilities import ProcessUtilities
 
-        data1 = json.loads(result.content)
+        try:
+            from psutil import virtual_memory
+            import math
+
+            data1 = {}
+            mem = virtual_memory()
+            data1['ramInGB'] = math.ceil(float(mem.total) / float(1024 * 1024 * 1024))
+
+            if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                data1['conf'] = ProcessUtilities.outputExecutioner('sudo cat /etc/my.cnf')
+            else:
+                data1['conf'] = ProcessUtilities.outputExecutioner('sudo cat /etc/mysql/my.cnf')
+        except BaseException as msg:
+            data1 = {'status': 0, 'error_message': str(msg)}
 
         data = {}
         data['ramInGB'] = data1.get('ramInGB')
