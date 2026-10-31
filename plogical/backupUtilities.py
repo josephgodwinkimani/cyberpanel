@@ -933,44 +933,32 @@ class backupUtilities:
 
                                     ### take care of apache conf
 
-                                    url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-                                    data = {
-                                        "name": "all",
-                                        "IP": ACLManager.GetServerIP()
-                                    }
+                                    childConfPathinBKUPApache = completPath + '/' + domain + '.apache.conf'
+                                    tempStatusPath = '/home/cyberpanel/fakePath'
 
-                                    import requests
-                                    response = requests.post(url, data=json.dumps(data))
-                                    Status = response.json()['status']
+                                    if os.path.exists(ProcessUtilities.debugPath):
+                                        logging.CyberCPLogFileWriter.writeToFile(f'Conf path of apache for child domain {domain} in backup is {childConfPathinBKUPApache}')
 
-                                    if (Status == 1):
+                                    childData = open(childConfPathinBKUP, 'r').read()
 
-                                        childConfPathinBKUPApache = completPath + '/' + domain + '.apache.conf'
-                                        tempStatusPath = '/home/cyberpanel/fakePath'
+                                    if childData.find('proxyApacheBackendSSL') > -1 and os.path.exists(childConfPathinBKUPApache):
 
                                         if os.path.exists(ProcessUtilities.debugPath):
-                                            logging.CyberCPLogFileWriter.writeToFile(f'Conf path of apache for child domain {domain} in backup is {childConfPathinBKUPApache}')
+                                            logging.CyberCPLogFileWriter.writeToFile(
+                                                f'It seems child domain {domain} is using apache conf and {childConfPathinBKUPApache} also exists in backup file')
 
-                                        childData = open(childConfPathinBKUP, 'r').read()
+                                        virtualHostUtilities.switchServer(domain, phpSelection, virtualHostUtilities.apache, tempStatusPath)
 
-                                        if childData.find('proxyApacheBackendSSL') > -1 and os.path.exists(childConfPathinBKUPApache):
+                                        finalConfPathApache = ApacheVhost.configBasePath + domain + '.conf'
+
+
+                                        if os.path.exists(finalConfPathApache):
 
                                             if os.path.exists(ProcessUtilities.debugPath):
                                                 logging.CyberCPLogFileWriter.writeToFile(
-                                                    f'It seems child domain {domain} is using apache conf and {childConfPathinBKUPApache} also exists in backup file')
+                                                    f'CyberPanel was able to successfully convert {domain} to apache conf as {finalConfPathApache} exists..')
 
-                                            virtualHostUtilities.switchServer(domain, phpSelection, virtualHostUtilities.apache, tempStatusPath)
-
-                                            finalConfPathApache = ApacheVhost.configBasePath + domain + '.conf'
-
-
-                                            if os.path.exists(finalConfPathApache):
-
-                                                if os.path.exists(ProcessUtilities.debugPath):
-                                                    logging.CyberCPLogFileWriter.writeToFile(
-                                                        f'CyberPanel was able to successfully convert {domain} to apache conf as {finalConfPathApache} exists..')
-
-                                                copy(childConfPathinBKUPApache, finalConfPathApache)
+                                            copy(childConfPathinBKUPApache, finalConfPathApache)
 
                                     ### apache ends
 
@@ -1198,43 +1186,32 @@ class backupUtilities:
 
                     ### apache starts here
 
-                    url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-                    data = {
-                        "name": "all",
-                        "IP": ACLManager.GetServerIP()
-                    }
+                    confPathApache = completPath + '/apache.conf'
 
-                    import requests
-                    response = requests.post(url, data=json.dumps(data))
-                    Status = response.json()['status']
+                    if os.path.exists(ProcessUtilities.debugPath):
+                        logging.CyberCPLogFileWriter.writeToFile(f'Conf path of apache for main site {masterDomain} in backup is {confPathApache}')
 
-                    if (Status == 1):
-                        confPathApache = completPath + '/apache.conf'
+                    tempStatusPath = '/home/cyberpanel/fakePath'
+
+                    childData = open(confPathMainSite, 'r').read()
+
+                    if childData.find('proxyApacheBackendSSL') > -1 and os.path.exists(confPathApache):
 
                         if os.path.exists(ProcessUtilities.debugPath):
-                            logging.CyberCPLogFileWriter.writeToFile(f'Conf path of apache for main site {masterDomain} in backup is {confPathApache}')
+                            logging.CyberCPLogFileWriter.writeToFile(
+                                f'It seems main site {masterDomain} is using apache conf.')
 
-                        tempStatusPath = '/home/cyberpanel/fakePath'
+                        virtualHostUtilities.switchServer(masterDomain, phpSelectionGlobalMainSite, virtualHostUtilities.apache,
+                                                          tempStatusPath)
 
-                        childData = open(confPathMainSite, 'r').read()
+                        finalConfPathApache = ApacheVhost.configBasePath + masterDomain + '.conf'
 
-                        if childData.find('proxyApacheBackendSSL') > -1 and os.path.exists(confPathApache):
+                        if os.path.exists(ProcessUtilities.debugPath):
+                            logging.CyberCPLogFileWriter.writeToFile(
+                                f'Apache conf path of main domain exists which means CyberPanel successfully converted site to Apache for {masterDomain}')
 
-                            if os.path.exists(ProcessUtilities.debugPath):
-                                logging.CyberCPLogFileWriter.writeToFile(
-                                    f'It seems main site {masterDomain} is using apache conf.')
-
-                            virtualHostUtilities.switchServer(masterDomain, phpSelectionGlobalMainSite, virtualHostUtilities.apache,
-                                                              tempStatusPath)
-
-                            finalConfPathApache = ApacheVhost.configBasePath + masterDomain + '.conf'
-
-                            if os.path.exists(ProcessUtilities.debugPath):
-                                logging.CyberCPLogFileWriter.writeToFile(
-                                    f'Apache conf path of main domain exists which means CyberPanel successfully converted site to Apache for {masterDomain}')
-
-                            if os.path.exists(confPathApache):
-                                copy(confPathApache, finalConfPathApache)
+                        if os.path.exists(confPathApache):
+                            copy(confPathApache, finalConfPathApache)
 
                     ### apache ends here
 
