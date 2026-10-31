@@ -13,15 +13,6 @@ urlpatterns = [
 
     re_path(r'^backupSite$', views.backupSite, name='backupSite'),
     re_path(r'^restoreSite$', views.restoreSite, name='restoreSite'),
-    re_path(r'^gDrive$', views.gDrive, name='gDrive'),
-    re_path(r'^gDriveSetup$', views.gDriveSetup, name='gDriveSetup'),
-    re_path(r'^fetchgDriveSites$', views.fetchgDriveSites, name='fetchgDriveSites'),
-    re_path(r'^addSitegDrive$', views.addSitegDrive, name='addSitegDrive'),
-    re_path(r'^deleteAccountgDrive$', views.deleteAccountgDrive, name='deleteAccountgDrive'),
-    re_path(r'^changeAccountFrequencygDrive$', views.changeAccountFrequencygDrive, name='changeAccountFrequencygDrive'),
-    re_path(r'^changeFileRetention$', views.changeFileRetention, name='changeFileRetention'),
-    re_path(r'^deleteSitegDrive$', views.deleteSitegDrive, name='deleteSitegDrive'),
-    re_path(r'^fetchDriveLogs$', views.fetchDriveLogs, name='fetchDriveLogs'),
 
     re_path(r'^submitBackupCreation$', views.submitBackupCreation, name='submitBackupCreation'),
     re_path(r'^cancelBackupCreation$', views.cancelBackupCreation, name='cancelBackupCreation'),
