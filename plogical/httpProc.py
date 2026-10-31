@@ -36,12 +36,6 @@ class httpProc:
                 if self.data == None:
                     self.data = {}
 
-                from IncBackups.models import OneClickBackups
-                if OneClickBackups.objects.filter(owner=admin).count() == 0:
-                    self.data['backupDisplay'] = 1
-                else:
-                    self.data['backupDisplay'] = 0
-
                 ### Onboarding checks
 
                 if currentACL['admin']:
