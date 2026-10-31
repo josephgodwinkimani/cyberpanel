@@ -71,8 +71,7 @@ MPIN = {'wordpressInstall': 'f2624f59552d444c', 'installWordpress': 'f592559693c
         'siteState': '45f14b6a44524f93', 'listWebsites': '0d7686a9cc11d6dd', 'listChildDomains': 'c6f772ec5dcc4f48', 'listCron': 'f9a2f508142358ae',
         'domainAlias': 'ec4ccd935ba44e34', 'fetchDomains': 'a12c84cba4776767', 'searchWebsites': '67cf4e44745f5f78', 'fetchWebsitesList': 'fd243b2a429d90e7',
         'loadDomainHome': '45cbc150dd5b15e7', 'installPrestaShop': '55add7b751c8f6fb', 'installMagento': 'eb9b2b870c9eb6bc', 'installMautic': '322db19e6e1c3f55',
-        'setupGit': '33a0bc44ec563a20', 'changePHP': '7b51bb3ca9dddb72', 'saveSSL': 'a2ba409814a65ea6', 'sshAccess': '04191e026039a761',
-        'ApacheManager': 'aa39a424020020da'}
+        'setupGit': '33a0bc44ec563a20', 'changePHP': '7b51bb3ca9dddb72', 'saveSSL': 'a2ba409814a65ea6', 'sshAccess': '04191e026039a761'}
 check('the free manager methods untouched by any other change are exactly as they were',
       {n: fp(ast.get_source_segment(WEBSITE, methods[n])) if n in methods else None for n in MPIN}, MPIN)
 check('the free one click install methods are all there', [n for n in ('wordpressInstall', 'installWordpress', 'installWordpressStatus') if n in methods], ['wordpressInstall', 'installWordpress', 'installWordpressStatus'])
@@ -88,7 +87,7 @@ VPIN = {'wordpressInstall': '5480ac33d3d1925e', 'installWordpress': '3c797bca378
         'domainAlias': '4659932883ddd54d', 'fetchDomains': '2cd9a338e957b14c', 'searchWebsites': 'e5fee6da7251878e', 'fetchWebsitesList': '4e71507821c16c03',
         'installPrestaShop': 'd7768db1ffb57f56', 'installMagento': 'dba5bed40f384ffc', 'installMautic': '7a8f1f1bd5469720', 'setupGit': '076da5a31d52b4d3',
         'changePHP': '44e7493f004f1aa7', 'saveSSL': 'ae0d3af68b2bc2d6', 'sshAccess': '9a7d3c926075e6c5', 'tuneSettings': '648bf26d6593952a',
-        'ApacheManager': '6b3db63e4b19b4f2', 'loadWebsitesHome': '78448ca0757e6eff', 'createWebsite': 'a87a42b128ee6202'}
+        'loadWebsitesHome': '78448ca0757e6eff', 'createWebsite': 'a87a42b128ee6202'}
 check('the free views are exactly as they were',
       {n: fp(ast.get_source_segment(VIEWS, vfuncs[n])) if n in vfuncs else None for n in VPIN}, VPIN)
 
@@ -171,10 +170,10 @@ check('the staging list helper is gone and the ten PHP helpers are exactly as th
 
 # scripts
 found = re.findall(r"app\.controller\('([A-Za-z0-9_]+)'", JS)
-check('the script keeps exactly the 26 free controllers in order', found,
+check('the script keeps exactly the free controllers in order (the Apache page controller is removed in its own change)', [c for c in found if c != 'ApacheManager'],
       ['createWebsite', 'listWebsites', 'listChildDomainsMain', 'deleteWebsiteControl', 'modifyWebsitesController', 'websitePages', 'suspendWebsiteControl',
        'manageCronController', 'manageAliasController', 'launchChild', 'installWordPressCTRL', 'installJoomlaCTRL', 'setupGit', 'installPrestaShopCTRL',
-       'installMauticCTRL', 'sshAccess', 'cloneWebsite', 'syncWebsite', 'installMagentoCTRL', 'manageGIT', 'ApacheManager', 'createDockerPackage',
+       'installMauticCTRL', 'sshAccess', 'cloneWebsite', 'syncWebsite', 'installMagentoCTRL', 'manageGIT', 'createDockerPackage',
        'AssignPackage', 'createDockerSite', 'listDockersite', 'ListDockersitecontainer'])
 check('the removed controllers and the billing redirect are gone and the cookie helper stays',
       ([c for c in CONTROLLERS if "app.controller('" + c + "'" in JS], 'platform.cyber' + 'persons.com' in JS, 'DeployAccount' in JS, 'function getCookie(name)' in JS), ([], False, False, True))
