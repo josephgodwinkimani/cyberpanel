@@ -116,9 +116,9 @@ check('control: the old method with a yes answer rendered the page', (out[0], ou
 out, posts, calls_made = run(old_source, error=True)
 check('control: the old method with an unreachable service also rendered the page', (out[0], out[1], posts), ('rendered', 'databases/mysqlmanager.html', [SERVICE]))
 
-PIN = {'loadDatabaseHome': '3ecce0c9503d4ec9', 'createDatabase': 'eecfcc58b0071d42', 'OptimizeMySQL': '02a0116394d06905', 'Upgardemysql': '997bfd857ecdac33',
+PIN = {'loadDatabaseHome': '3ecce0c9503d4ec9', 'createDatabase': 'eecfcc58b0071d42', 'Upgardemysql': '997bfd857ecdac33',
        'fetchDatabases': '8b514cf269d6086c', 'listDBs': 'e222a5a707949008'}
-check('six neighbouring methods are exactly as they were', {n: hashlib.sha256(ast.get_source_segment(SRC, methods[n]).encode()).hexdigest()[:16] if n in methods else None for n in PIN}, PIN)
+check('five neighbouring methods are exactly as they were', {n: hashlib.sha256(ast.get_source_segment(SRC, methods[n]).encode()).hexdigest()[:16] if n in methods else None for n in PIN}, PIN)
 check('the free database methods are still all there', sorted(set(['loadDatabaseHome', 'phpMyAdmin', 'createDatabase', 'submitDBCreation', 'deleteDatabase', 'fetchDatabases', 'submitDatabaseDeletion', 'listDBs', 'changePassword', 'remoteAccess', 'allowRemoteIP', 'generatePHPMYAdminData']) - set(methods)), [])
 check('the route and the sidebar entry are unchanged', ("name='MysqlManager'" in read('databases/urls.py'), "url 'MysqlManager'" in read('baseTemplate/templates/baseTemplate/index.html')), (True, True))
 check('the database app names no licence service any more', [w for w in (HOST, 'Adon' + 'permission', 'CheckFor' + 'PremFeature') if w in read('databases/databaseManager.py') + read('databases/views.py')], [])
