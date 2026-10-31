@@ -1066,28 +1066,6 @@ class MailServerManagerUtils(multi.Thread):
             else:
                 return 1
 
-    def RunServerLevelEmailChecks(self):
-        try:
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                      'Checking if MailServer SSL issued..,10')
-
-            reportFile = self.extraArgs['reportFile']
-
-            report = {}
-            report['MailSSL'] = self.checkIfMailServerSSLIssued()
-
-            writeToFile = open(reportFile, 'w')
-            writeToFile.write(json.dumps(report))
-            writeToFile.close()
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Completed [200].')
-
-        except BaseException as msg:
-            final_dic = {'installOpenDKIM': 0, 'error_message': str(msg)}
-            final_json = json.dumps(final_dic)
-            return HttpResponse(final_json)
-
-
     def FetchCloudLinuxAlmaVersionVersion(self):
         if os.path.exists('/etc/os-release'):
             data = open('/etc/os-release', 'r').read()
@@ -1796,148 +1774,6 @@ class MailServerManagerUtils(multi.Thread):
             mailUtilities.setupDKIM(website.domain)
             DNS.createDKIMRecords(website.domain)
 
-    def ResetEmailConfigurations(self):
-        try:
-            ### Check if remote or local mysql
-
-            passFile = "/etc/cyberpanel/mysqlPassword"
-
-            try:
-                jsonData = json.loads(ProcessUtilities.outputExecutioner('cat %s' % (passFile)))
-
-                self.mysqluser = jsonData['mysqluser']
-                self.mysqlpassword = jsonData['mysqlpassword']
-                self.mysqlport = jsonData['mysqlport']
-                self.mysqlhost = jsonData['mysqlhost']
-                self.remotemysql = 'ON'
-
-                if self.mysqlhost.find('rds.amazon') > -1:
-                    self.RDS = 1
-
-                ## Also set localhost to this server
-
-                ipFile = "/etc/cyberpanel/machineIP"
-                f = open(ipFile)
-                ipData = f.read()
-                ipAddressLocal = ipData.split('\n', 1)[0]
-
-                self.LOCALHOST = ipAddressLocal
-            except BaseException as msg:
-                self.remotemysql = 'OFF'
-
-                if os.path.exists(ProcessUtilities.debugPath):
-                    logging.CyberCPLogFileWriter.writeToFile('%s. [setupConnection:75]' % (str(msg)))
-
-            ###
-
-            self.checkIfMailServerSSLIssued()
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                      'Removing and re-installing postfix/dovecot..,5')
-
-            if self.install_postfix_dovecot() == 0:
-                return 0
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Resetting configurations..,40')
-
-            import sys
-            sys.path.append('/usr/local/CyberCP')
-            os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
-            from CyberCP import settings
-
-            if self.setup_email_Passwords(settings.DATABASES['default']['PASSWORD']) == 0:
-                return 0
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Configurations reset..,70')
-
-            if self.setup_postfix_dovecot_config() == 0:
-                logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                          'setup_postfix_dovecot_config failed. [404].')
-                return 0
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                      'Restoring OpenDKIM configurations..,70')
-
-            if self.installOpenDKIMNew() == 0:
-                logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                          'Install OpenDKIM failed. [404].')
-                return 0
-
-            if self.configureOpenDKIM() == 0:
-                logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                          'configureOpenDKIM failed. [404].')
-                return 0
-
-            self.SetupDKIMFromResetMail()
-
-            if self.MailSSL:
-                logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                          'Setting up Mail Server SSL if any..,75')
-                from plogical.virtualHostUtilities import virtualHostUtilities
-                virtualHostUtilities.issueSSLForMailServer(self.mailHostName,
-                                                           '/home/%s/public_html' % (self.mailHostName))
-
-
-            MailServerSSLCheck = 0
-            from websiteFunctions.models import ChildDomains
-            from plogical.virtualHostUtilities import virtualHostUtilities
-            for websites in Websites.objects.all():
-                try:
-                    child = ChildDomains.objects.get(domain='mail.%s' % (websites.domain))
-                    logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                              'Creating mail domain for %s..,80' % (websites.domain))
-                    virtualHostUtilities.setupAutoDiscover(1, '/dev/null', websites.domain, websites.admin)
-                except:
-                    pass
-
-                if self.MailSSL == 0 and MailServerSSLCheck == 0:
-                    logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                              'Setting up Mail Server SSL as no hostname SSL found..,80')
-                    from plogical.virtualHostUtilities import virtualHostUtilities
-                    virtualHostUtilities.issueSSLForMailServer(websites.domain,
-                                                               '/home/%s/public_html' % (websites.domain))
-                    MailServerSSLCheck = 1
-
-
-
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Fixing permissions..,90')
-
-            self.fixCyberPanelPermissions()
-
-            command = '/usr/local/CyberCP/bin/python /usr/local/CyberCP/dns/dnsManager.py ResetDNSConfigurations --tempStatusPath /home/cyberpanel/dnscheck'
-            ProcessUtilities.executioner(command)
-
-            command = 'touch /home/cyberpanel/postfix'
-            ProcessUtilities.executioner(command)
-
-            ###
-
-            etcResolve = '/etc/resolv.conf'
-
-            if os.path.exists(etcResolve):
-                dataEtcResolv = open(etcResolve, 'r').read()
-            else:
-                dataEtcResolv = ''
-
-
-            if len(dataEtcResolv) < 4:
-                writeToFile = open(etcResolve, 'w')
-                writeToFile.write('nameserver 8.8.8.8\n')
-                writeToFile.close()
-
-                command = 'systemctl restart postfix'
-                ProcessUtilities.executioner(command)
-
-                command = 'systemctl restart dovecot'
-                ProcessUtilities.executioner(command)
-
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'], 'Completed [200].')
-
-        except BaseException as msg:
-            logging.CyberCPLogFileWriter.statusWriter(self.extraArgs['tempStatusPath'],
-                                                      'Failed. Error %s [404].' % str(msg))
-
     def configureOpenDKIM(self):
         try:
 
@@ -2006,31 +1842,6 @@ milter_default_action = accept
                                                       'configureOpenDKIM failed. Error %s [404].' % str(msg))
             return 0
 
-    def debugEmailForSite(self, websiteName):
-
-        ipFile = "/etc/cyberpanel/machineIP"
-        f = open(ipFile)
-        ipData = f.read()
-        ipAddress = ipData.split('\n', 1)[0]
-
-        try:
-            import socket
-            siteIPAddr = socket.gethostbyname('mail.%s' % (websiteName))
-
-            if siteIPAddr != ipAddress:
-                return 0, 'mail.%s does not point to %s.' % (websiteName, ipAddress)
-        except:
-            return 0, 'mail.%s does not point to %s.' % (websiteName, ipAddress)
-
-        command = 'openssl s_client -connect mail.%s:993' % (websiteName)
-        result = ProcessUtilities.outputExecutioner(command)
-
-        if result.find('18 (self signed certificate)') > -1:
-            return 0, 'No valid SSL on port 993.'
-        else:
-            return 1, 'All checks are OK.'
-
-
 def main():
 
     parser = argparse.ArgumentParser(description='CyberPanel Installer')
@@ -2064,10 +1875,6 @@ def main():
         mailUtilities.installMailScanner("install", "installMailScanner")
     elif args.function == 'AfterEffects':
         mailUtilities.AfterEffects(args.domain)
-    elif args.function == "ResetEmailConfigurations":
-        extraArgs = {'tempStatusPath': args.tempStatusPath}
-        background = MailServerManagerUtils(None, 'ResetEmailConfigurations', extraArgs)
-        background.ResetEmailConfigurations()
 
 if __name__ == "__main__":
     main()
