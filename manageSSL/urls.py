@@ -12,8 +12,4 @@ urlpatterns = [
 
     path('sslForMailServer', views.sslForMailServer, name='sslForMailServer'),
     path('obtainMailServerSSL', views.obtainMailServerSSL, name='obtainMailServerSSL'),
-
-    # v2 functions
-    path('v2ManageSSL', views.v2ManageSSL, name='v2ManageSSL'),
-    path('v2IssueSSL', views.v2IssueSSL, name='v2IssueSSL'),
 ]
