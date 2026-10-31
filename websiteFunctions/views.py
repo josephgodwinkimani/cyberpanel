@@ -1722,14 +1722,63 @@ def switchServer(request):
     except KeyError:
         return redirect(loadLoginPage)
 
+def fetchStatusFileProgress(data):
+    from plogical.acl import ACLManager
+    from plogical.processUtilities import ProcessUtilities
+
+    try:
+        statusFile = data['statusFile']
+
+        if ACLManager.CheckStatusFilleLoc(statusFile):
+            pass
+        else:
+            data_ret = {'abort': 1, 'installStatus': 0, 'installationProgress': "100",
+                        'currentStatus': 'Invalid status file.'}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+
+        statusData = open(statusFile, 'r').readlines()
+        try:
+            lastLine = statusData[-1]
+            if lastLine.find('[200]') > -1:
+                command = 'rm -f ' + statusFile
+                ProcessUtilities.executioner(command)
+                data_ret = {'status': 1, 'abort': 1, 'installationProgress': "100", 'currentStatus': lastLine}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            elif lastLine.find('[404]') > -1:
+                data_ret = {'status': 0, 'abort': 1, 'installationProgress': "0", 'error_message': lastLine}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+            else:
+                progress = lastLine.split(',')
+                currentStatus = progress[0]
+                try:
+                    installationProgress = progress[1].rstrip('\n')
+                except:
+                    installationProgress = 0
+                data_ret = {'status': 1, 'abort': 0, 'installationProgress': installationProgress,
+                            'currentStatus': currentStatus}
+                json_data = json.dumps(data_ret)
+                return HttpResponse(json_data)
+        except IndexError:
+            data_ret = {'status': 1, 'abort': 0, 'installationProgress': 0,
+                        'currentStatus': 'Working..'}
+            json_data = json.dumps(data_ret)
+            return HttpResponse(json_data)
+
+    except BaseException as msg:
+        data_ret = {'status': 0, 'abort': 0, 'installationProgress': "0", 'errorMessage': str(msg)}
+        json_data = json.dumps(data_ret)
+        return HttpResponse(json_data)
+
 def statusFunc(request):
     try:
         userID = request.session['userID']
         data = json.loads(request.body)
-        from cloudAPI.cloudManager import CloudManager
         admin = Administrator.objects.get(pk=userID)
-        cm = CloudManager(data, admin)
-        return cm.statusFunc()
+        return fetchStatusFileProgress(data)
     except KeyError:
         return redirect(loadLoginPage)
 
