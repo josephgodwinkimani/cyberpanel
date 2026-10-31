@@ -4,7 +4,7 @@ saving method, the script controller and the choice on Create Website and Create
 gone, nothing reverses or calls them, and a request can no longer ask the create handlers for an Apache backend: the real handlers are
 run with stand-ins and a crafted request that asks for one creates the site with the backend flag at 0 (with the old form as a control),
 while an alias of a site that already has an Apache configuration still follows it. The free helpers and pages are byte for byte what they
-were (pinned by hash where no other change touches them). The Cloud API switch methods stay until the Cloud API is removed.
+were (pinned by hash where no other change touches them).
 Needs node for the script syntax check (reported as skipped when it is missing).
 Run: python3 CPScripts/test_apache_backend_manager_removed.py"""
 import ast
@@ -52,7 +52,6 @@ mtree = ast.parse(WEBSITE)
 manager = next(n for n in mtree.body if isinstance(n, ast.ClassDef) and n.name == 'WebsiteManager')
 methods = {n.name: n for n in manager.body if isinstance(n, ast.FunctionDef)}
 check('the page method and the config saving method are gone', sorted({'ApacheManager', 'saveApacheConfigsToFile'} & set(methods)), [])
-check('the switch methods stay for the Cloud API until it is removed', sorted({'getSwitchStatus', 'switchServer'} & set(methods)), ['getSwitchStatus', 'switchServer'])
 MPIN = {'tuneSettings': None, 'wordpressInstall': 'f2624f59552d444c', 'installWordpress': 'f592559693c97c85', 'modifyWebsite': 'f98ea286e109201c', 'deleteWebsite': '1da24203f6703c00',
         'siteState': '45f14b6a44524f93', 'listWebsites': '0d7686a9cc11d6dd', 'listChildDomains': 'c6f772ec5dcc4f48', 'listCron': 'f9a2f508142358ae',
         'domainAlias': 'ec4ccd935ba44e34', 'changePHP': '7b51bb3ca9dddb72', 'saveSSL': 'a2ba409814a65ea6', 'sshAccess': '04191e026039a761', 'setupStaging': 'ce60260109e3803f',
