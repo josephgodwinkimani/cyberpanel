@@ -109,6 +109,30 @@ run "ols-guard blocks rpm -U of openlitespeed" 1 'FAIL  ols-guard'
 branch; printf 'RSPAMD_ENABLE=1\n' >> c.txt; commit
 run "paid-addons blocks a paid add-on name" 1 'FAIL  paid-addons'
 
+# 13b more paid add-on spellings
+branch; printf 'plogical/Backupsv2.py\n' >> c.txt; commit
+run "paid-addons blocks Backupsv2" 1 'FAIL  paid-addons'
+branch; printf 'url(OneClickBackups)\n' >> c.txt; commit
+run "paid-addons blocks OneClickBackups" 1 'FAIL  paid-addons'
+
+# 13c the licence service and the add-on store
+branch; printf 'ACLManager.CheckForPremFeature("all")\n' >> a.py; commit
+run "licence-calls blocks CheckForPremFeature" 1 'FAIL  licence-calls'
+branch; printf 'url = "https://example.invalid/CyberpanelAdOns/Adonpermission"\n' >> a.py; commit
+run "licence-calls blocks the Adonpermission endpoint" 1 'FAIL  licence-calls'
+branch; printf 'requests.post("https://platform.cyberpersons.com/servers/RecvData")\n' >> a.py; commit
+run "licence-calls blocks the platform host" 1 'FAIL  licence-calls'
+branch; printf 'redirect("https://cyberpanel.net/cyberpanel-addons")\n' >> a.py; commit
+run "licence-calls blocks the add-on store redirect" 1 'FAIL  licence-calls'
+branch; printf 'ADONPERMISSION = 1\n' >> c.txt; commit
+run "licence-calls ignores letter case" 1 'FAIL  licence-calls'
+branch; printf 'see https://cyberpanel.net/KnowledgeBase/home/upgrading-cyberpanel/\nlicence text and premium words are fine\n' >> c.txt; commit
+run "licence-calls and paid-addons leave other cyberpanel.net links and plain words alone" 0 'PASS  licence-calls'
+git checkout -q -B removal base; printf 'CheckForPremFeature\nplatform.cyberpersons.com\n' > gone.txt; git add -A; git commit -q -m "base2"; git branch -f base2 HEAD
+git checkout -q -B remove-it base2; git rm -q gone.txt; commit "Remove the markers"
+out="$(bash "$CHECK" --base base2 2>&1)"; rc=$?
+if [ "$rc" = 0 ] && echo "$out" | grep -q 'PASS  licence-calls'; then ok "licence-calls allows a change that only removes the markers"; else nok "licence-calls allows a change that only removes the markers (exit $rc)" "$out"; fi
+
 # 14 secrets: token prefix (built at run time so this file holds no token)
 branch; printf 'TOKEN=ghp_%s\n' "$(printf 'a%.0s' $(seq 1 25))" >> c.txt; commit
 out="$(bash "$CHECK" --base base 2>&1)"; rc=$?

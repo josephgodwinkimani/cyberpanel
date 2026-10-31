@@ -24,7 +24,9 @@
 #                   also looks like an install, upgrade, download or replace action and does not
 #                   hold the package back (exclude, hold, held, protect or a read-only query)
 #   paid-addons     added lines do not name the paid add-ons (heuristic list, see PAID below)
-#   secrets         added lines hold no private key header, token prefix or webhook URL
+#   licence-calls   added lines do not call the add-on licence service or send users to the add-on
+#                   store (heuristic list, see LICENCE below)
+#   secrets        added lines hold no private key header, token prefix or webhook URL
 #
 # This script and its test are excluded from the content checks, because they must name the
 # patterns they look for. The environment variable PORT_CHECK_PYTHON overrides the Python used.
@@ -52,7 +54,9 @@ fail() { FAILS=$((FAILS + 1)); echo "FAIL  $1"; shift; for l in "$@"; do echo " 
 skip() { SKIPS=$((SKIPS + 1)); echo "SKIP  $1: $2"; }
 
 SELF_RE='^CPScripts/(port_check|test_port_check)\.sh$'
-PAID='rspamd|root[ _-]?file[ _-]?manager|email[ _-]?debugger|backup[ _-]?v2|wordpress[ _-]?manager[ _-]?pro|wp[ _-]?manager[ _-]?pro|ssl[ _-]?v2'
+PAID='rspamd|root[ _-]?file[ _-]?manager|email[ _-]?debugger|backup[ _-]?v2|backupsv2|one[ _-]?click[ _-]?backup|wordpress[ _-]?manager[ _-]?pro|wp[ _-]?manager[ _-]?pro|ssl[ _-]?v2'
+# The licence service the paid add-ons ask about the server address, and the add-on store pages
+LICENCE='adonpermission|checkforpremfeature|platform\.cyberpersons\.com|cyberpanel\.net/cyberpanel-addons'
 # A bare mention of openlitespeed fails only when the line also looks like an install, upgrade,
 # download or replace action, and does not hold the package back. This is a heuristic, not proof.
 OLS_ACTION='install|upgrade|update|downgrade|reinstall|remove|erase|purge|(wget|curl) .*http|rpm -[iU]|dpkg -i|\<cp\>|\<mv\>|\<rm\>'
@@ -176,6 +180,11 @@ if [ ${#olsbad[@]} -eq 0 ]; then pass "ols-guard"; else fail "ols-guard" "${olsb
 paidbad=()
 while IFS= read -r l; do paidbad+=("$l"); done < <(grep -Ei "$PAID" "$TMP/added.txt" | cut -c1-200)
 if [ ${#paidbad[@]} -eq 0 ]; then pass "paid-addons"; else fail "paid-addons" "${paidbad[@]}"; fi
+
+# licence-calls ------------------------------------------------------------------------------
+licbad=()
+while IFS= read -r l; do licbad+=("$l"); done < <(grep -Ei "$LICENCE" "$TMP/added.txt" | cut -c1-200)
+if [ ${#licbad[@]} -eq 0 ]; then pass "licence-calls"; else fail "licence-calls" "${licbad[@]}"; fi
 
 # secrets (the matching text is never printed) -----------------------------------------------
 secbad=()
