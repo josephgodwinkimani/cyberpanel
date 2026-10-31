@@ -692,11 +692,6 @@
 
                                 <ul>
                                     {% if admin or createBackup %}
-                                        <li><a href="{% url 'OneClickBackups' %}"
-                                               title="{% trans 'One-Click Backups' %}"><span>{% trans "One-Click Backups" %}</span></a>
-                                        </li>
-                                    {% endif %}
-                                    {% if admin or createBackup %}
                                         <li><a href="{% url 'backupSite' %}"
                                                title="{% trans 'Create Backup' %}"><span>{% trans "Create Backup" %}</span></a>
                                         </li>
@@ -1177,12 +1172,6 @@
                         <div ng-hide="success" class="alert alert-info">
                             <p>Looks like something is wrong with your initial setup, please double check on <a
                                     href="/base/onboarding">Setup Wizard.</a></p>
-                        </div>
-                    {% endif %}
-                    {% if backupDisplay == 1 %}
-                        <div class="alert alert-warning">
-                            <p>Looks like your websites are not secured with automatic backups. <a
-                                    href="/backup/OneClickBackups">Configure now.</a></p>
                         </div>
                     {% endif %}
                     {% block content %}
