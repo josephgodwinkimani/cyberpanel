@@ -1722,6 +1722,16 @@ def switchServer(request):
     except KeyError:
         return redirect(loadLoginPage)
 
+def statusFunc(request):
+    try:
+        userID = request.session['userID']
+        data = json.loads(request.body)
+        admin = Administrator.objects.get(pk=userID)
+        return fetchStatusFileProgress(data)
+    except KeyError:
+        return redirect(loadLoginPage)
+
+
 def fetchStatusFileProgress(data):
     from plogical.acl import ACLManager
     from plogical.processUtilities import ProcessUtilities
@@ -1772,15 +1782,6 @@ def fetchStatusFileProgress(data):
         data_ret = {'status': 0, 'abort': 0, 'installationProgress': "0", 'errorMessage': str(msg)}
         json_data = json.dumps(data_ret)
         return HttpResponse(json_data)
-
-def statusFunc(request):
-    try:
-        userID = request.session['userID']
-        data = json.loads(request.body)
-        admin = Administrator.objects.get(pk=userID)
-        return fetchStatusFileProgress(data)
-    except KeyError:
-        return redirect(loadLoginPage)
 
 def tuneSettings(request):
     try:
