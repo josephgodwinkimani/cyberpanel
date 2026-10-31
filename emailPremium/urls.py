@@ -47,12 +47,6 @@ urlpatterns = [
     path('FetchRspamdLog', views.FetchRspamdLog, name='FetchRspamdLog'),
     path('RestartRspamd', views.RestartRspamd, name='RestartRspamd'),
 
-    path('EmailDebugger', views.EmailDebugger, name='EmailDebugger'),
-    path('RunServerLevelEmailChecks', views.RunServerLevelEmailChecks, name='RunServerLevelEmailChecks'),
-    path('ResetEmailConfigurations', views.ResetEmailConfigurations, name='ResetEmailConfigurations'),
     path('statusFunc', views.statusFunc, name='statusFunc'),
-    path('ReadReport', views.ReadReport, name='ReadReport'),
-    path('debugEmailForSite', views.debugEmailForSite, name='debugEmailForSite'),
-    path('fixMailSSL', views.fixMailSSL, name='fixMailSSL'),
     re_path(r'^(?P<domain>.*)$', views.emailLimits, name='emailLimits'),
 ]
