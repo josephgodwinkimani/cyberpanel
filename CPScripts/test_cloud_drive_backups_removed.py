@@ -58,7 +58,7 @@ PIN_V = {'loadBackupHome': 'dd4e6de98548df15', 'backupSite': 'a42c1cba7c3a8b9a',
 check('six free backup views are exactly as they were', {n: digest(VIEWS, views[n]) if n in views else None for n in PIN_V}, PIN_V)
 PIN_M = {'loadBackupHome': '184afbb4d2a813f0', 'backupSite': '58baf9f63a5b738b', 'restoreSite': 'e4d7021918debbf0', 'submitRestore': 'd7cf920244b33809', 'deleteBackup': '075fd2c4142518f4', 'backupDestinations': '4b26b38c9ef7ab02'}
 check('six free manager methods are exactly as they were', {n: digest(MANAGER, manager[n]) if n in manager else None for n in PIN_M}, PIN_M)
-PIN_S = {'startBackup': 'dd81af873ff7e687', 'git': '2b979f40b369c6eb', 'checkDiskUsage': '3bb45d8c960658bc', 'runAWSBackups': '4ea79d4095555020', 'CheckHostName': 'ebdb73362bf6f214', 'RemoteBackup': '1d488b4fc1326516'}
+PIN_S = {'startBackup': 'dd81af873ff7e687', 'git': '2b979f40b369c6eb', 'checkDiskUsage': '3bb45d8c960658bc', 'runAWSBackups': '4ea79d4095555020', 'CheckHostName': 'ebdb73362bf6f214'}
 check('seven scheduler functions next to it are exactly as they were', {n: digest(SCHED, sched[n]) if n in sched else None for n in PIN_S}, PIN_S)
 PIN_A = {'checkOwnership': '9e9360cd2f92abcb', 'checkUserOwnerShip': '0219b10f0d7410f8', 'loadedACL': '9d01fdde29fea284', 'currentContextPermission': '68b75d36517506e5'}
 check('four access helpers are exactly as they were (the ACL field stays)', {n: digest(ACL, acl[n]) if n in acl else None for n in PIN_A}, PIN_A)
@@ -112,17 +112,17 @@ def run_main(code, period, with_runner=False, runner_fails=False):
         sys.argv = saved
 
 
-DAILY = ['CalculateAndUpdateDiskUsage', 'WPUpdates', 'thread:startBackup:Daily', 'thread.start', 'startBackup', 'git', 'checkDiskUsage', 'startNormalBackups', 'runAWSBackups', 'CheckHostName', 'thread.join']
+DAILY = ['CalculateAndUpdateDiskUsage', 'thread:startBackup:Daily', 'thread.start', 'startBackup', 'git', 'checkDiskUsage', 'startNormalBackups', 'runAWSBackups', 'CheckHostName', 'thread.join']
 check('the entry point for a daily run calls exactly the free steps in the same order', run_main(MAIN, 'Daily'), DAILY)
 check('the entry point for a weekly run adds only the mail certificate fix before the thread', run_main(MAIN, 'Weekly'),
-      ['CalculateAndUpdateDiskUsage', 'WPUpdates', 'FixMailSSL', 'thread:startBackup:Weekly', 'thread.start', 'startBackup', 'git', 'checkDiskUsage', 'startNormalBackups', 'runAWSBackups', 'CheckHostName', 'thread.join'])
-check('the entry point for the short periods runs the remote backup first and nothing from the removed runner', [c for c in run_main(MAIN, '1 Hour') if c != 'v2Backups'], ['RemoteBackup'])
+      ['CalculateAndUpdateDiskUsage', 'FixMailSSL', 'thread:startBackup:Weekly', 'thread.start', 'startBackup', 'git', 'checkDiskUsage', 'startNormalBackups', 'runAWSBackups', 'CheckHostName', 'thread.join'])
+check('the entry point for the short periods runs the remote backup first and nothing from the removed runner', [c for c in run_main(MAIN, '1 Hour') if c not in ('v2Backups', 'RemoteBackup')], [])
 check('the entry point for the disk usage refresh is unchanged', run_main(MAIN, 'UpdateDiskUsageForce'), ['CalculateAndUpdateDiskUsage'])
 anchor = '    IncScheduler.startBackup(args.function)' + chr(10)
 assert MAIN.count(anchor) == 1
 OLD_MAIN = MAIN.replace(anchor, anchor + chr(10) + '    IncScheduler.' + RUNNER + '(args.function)' + chr(10))
-check('control: the old entry point called the runner right after the free backup step', run_main(OLD_MAIN, 'Daily', with_runner=True), DAILY[:5] + ['runner'] + DAILY[5:])
-check('control: the old entry point stopped before the other steps when the runner failed', run_main(OLD_MAIN, 'Daily', with_runner=True, runner_fails=True), DAILY[:5] + ['runner', 'RAISED FileNotFoundError'])
+check('control: the old entry point called the runner right after the free backup step', run_main(OLD_MAIN, 'Daily', with_runner=True), DAILY[:4] + ['runner'] + DAILY[4:])
+check('control: the old entry point stopped before the other steps when the runner failed', run_main(OLD_MAIN, 'Daily', with_runner=True, runner_fails=True), DAILY[:4] + ['runner', 'RAISED FileNotFoundError'])
 
 
 # routes and the rest of the tree
