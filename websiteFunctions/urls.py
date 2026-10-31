@@ -183,13 +183,8 @@ urlpatterns = [
     path('deleteSSHKey', views.deleteSSHKey, name='deleteSSHKey'),
     path('addSSHKey', views.addSSHKey, name='addSSHKey'),
 
-    # Apache Manager
-    path('ApacheManager/<domain>', views.ApacheManager, name='ApacheManager'),
-    path('getSwitchStatus', views.getSwitchStatus, name='getSwitchStatus'),
-    path('switchServer', views.switchServer, name='switchServer'),
     path('statusFunc', views.statusFunc, name='statusFunc'),
     path('tuneSettings', views.tuneSettings, name='tuneSettings'),
-    path('saveApacheConfigsToFile', views.saveApacheConfigsToFile, name='saveApacheConfigsToFile'),
 
     # Catch all for domains
     path('<domain>/<childDomain>', views.launchChild, name='launchChild'),

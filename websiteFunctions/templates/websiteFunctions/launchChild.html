@@ -282,17 +282,6 @@
                             </div>
 
                             <div class="col-md-3 panel-body">
-                                <a href="{% url 'ApacheManager' domain=domain %}"
-                                   title="{% trans 'Apache Manager' %}">
-                                    <img src="{% static 'images/icons/file.png' %}" width="65" class="mr-10">
-                                </a>
-                                <a href="{% url 'ApacheManager' domain=childDomain %}"
-                                   title="{% trans 'Apache Manager' %}">
-                                    <span class="h4">{% trans "Apache Manager" %}</span>
-                                </a>
-                            </div>
-
-                            <div class="col-md-3 panel-body">
 
                                 <a ng-click="fetchRewriteFules()" href=""
                                    title="{% trans 'Add Rewrite Rules (.htaccess)' %}">
