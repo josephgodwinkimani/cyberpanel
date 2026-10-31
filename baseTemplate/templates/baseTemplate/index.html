@@ -711,11 +711,6 @@
                                                title="{% trans 'Schedule Backup' %}"><span>{% trans "Schedule Backup" %}</span></a>
                                         </li>
                                     {% endif %}
-                                    {% if admin or googleDriveBackups %}
-                                        <li><a href="{% url 'gDrive' %}"
-                                               title="{% trans 'Setup Google Drive' %}"><span>{% trans "Setup Google Drive" %}</span></a>
-                                        </li>
-                                    {% endif %}
                                     {% if admin or remoteBackups %}
                                         <li><a href="{% url 'remoteBackups' %}"
                                                title="{% trans 'Remote Backups' %}"><span>{% trans "Remote Backups" %}</span></a>
