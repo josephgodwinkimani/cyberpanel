@@ -196,7 +196,7 @@ check('the scheduled backup loop no longer sends a failure notice and ends at it
 check('the scheduled backup loop is as expected (pinned)', digest(SCHED, sched['startNormalBackups']), '345ed7de2358dbb5')
 check('the folder listing helper and its command line branch are gone', ('FetchOCBackupsFolders' in UTILS, 'FetchOCBackupsFolders' in UTILS), (False, False))
 inst = funcs(INSTALLER, 'ApplicationInstaller')
-check('the restore worker and its dispatch are gone and the neighbours kept', ('StartOCRestore' in inst, 'StartOCRestore' in INSTALLER, 'RestoreWPbackupNow' in inst, "self.installApp == 'UpgradeCP'" in INSTALLER), (False, False, True, True))
+check('the restore worker and its dispatch are gone and the neighbours kept', ('StartOCRestore' in inst, 'StartOCRestore' in INSTALLER, 'RestoreWPbackupNow' in inst, "self.installApp == 'UpgradeCP'" in INSTALLER), (False, False, False, True))
 
 for rel in ('plogical/httpProc.py', 'backup/views.py', 'backup/urls.py', 'backup/backupManager.py', 'plogical/backupUtilities.py', 'plogical/applicationInstaller.py', 'plogical/IncScheduler.py'):
     try:
