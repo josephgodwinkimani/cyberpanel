@@ -191,46 +191,6 @@ def editFile(request):
     except KeyError:
         return redirect(loadLoginPage)
 
-def FileManagerRoot(request):
-    ### Load Custom CSS
-    try:
-        from baseTemplate.models import CyberPanelCosmetic
-        cosmetic = CyberPanelCosmetic.objects.get(pk=1)
-    except:
-        from baseTemplate.models import CyberPanelCosmetic
-        cosmetic = CyberPanelCosmetic()
-        cosmetic.save()
-
-    ipAddressLocal = ACLManager.fetchIP()
-
-    try:
-
-        from plogical.processUtilities import ProcessUtilities
-        if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
-
-            url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-            data = {
-                "name": "Filemanager",
-                 "IP": ipAddressLocal
-            }
-
-            import requests
-            response = requests.post(url, data=json.dumps(data))
-            Status = response.json()['status']
-
-            if(Status == 1):
-                template = 'baseTemplate/FileManager.html'
-            else:
-              return  redirect("https://cyberpanel.net/cyberpanel-addons")
-        else:
-            template = 'baseTemplate/FileManager.html'
-    except BaseException as msg:
-        template = 'baseTemplate/FileManager.html'
-
-    from plogical.httpProc import httpProc
-    proc = httpProc(request, template, None, 'admin')
-    return proc.render()
-
 def downloadFile(request):
     try:
         userID = request.session['userID']
@@ -261,30 +221,5 @@ def downloadFile(request):
 
         return response
 
-    except KeyError:
-        return redirect(loadLoginPage)
-
-def RootDownloadFile(request):
-    try:
-        userID = request.session['userID']
-        from urllib.parse import quote
-        from django.utils.encoding import iri_to_uri
-
-        fileToDownload = request.build_absolute_uri().split('fileToDownload')[1][1:]
-        fileToDownload = iri_to_uri(fileToDownload)
-
-        currentACL = ACLManager.loadedACL(userID)
-
-        if currentACL['admin'] == 1:
-            pass
-        else:
-            return ACLManager.loadError()
-
-        response = HttpResponse(content_type='application/force-download')
-        response['Content-Disposition'] = 'attachment; filename=%s' % (fileToDownload.split('/')[-1])
-        response['X-LiteSpeed-Location'] = '%s' % (fileToDownload)
-
-        return response
-        #return HttpResponse(response['X-LiteSpeed-Location'])
     except KeyError:
         return redirect(loadLoginPage)
