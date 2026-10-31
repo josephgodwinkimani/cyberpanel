@@ -2210,10 +2210,7 @@ class WebsiteManager:
 
             tempStatusPath = "/home/cyberpanel/" + str(randint(1000, 9999))
 
-            try:
-                apacheBackend = str(data['apacheBackend'])
-            except:
-                apacheBackend = "0"
+            apacheBackend = "0"
 
             try:
                 mailDomain = str(data['mailDomain'])
@@ -2260,6 +2257,9 @@ class WebsiteManager:
 
             masterDomain = data['masterDomain']
             domain = data['domainName']
+
+            ### the backend choice of the request is not used, only an alias of a site that already has one follows it
+            data['apacheBackend'] = 0
 
 
             if alias == 0:
@@ -6691,67 +6691,6 @@ StrictHostKeyChecking no
 
         except BaseException as msg:
             final_dic = {'status': 0, 'add_status': 0, 'error_mssage': str(msg)}
-            final_json = json.dumps(final_dic)
-            return HttpResponse(final_json)
-
-    def ApacheManager(self, request=None, userID=None, data=None):
-        currentACL = ACLManager.loadedACL(userID)
-        admin = Administrator.objects.get(pk=userID)
-
-        if ACLManager.checkOwnership(self.domain, admin, currentACL) == 1:
-            pass
-        else:
-            return ACLManager.loadError()
-
-        phps = PHPManager.findPHPVersions()
-        apachePHPs = PHPManager.findApachePHPVersions()
-
-        if ACLManager.CheckForPremFeature('all'):
-            apachemanager = 1
-        else:
-            apachemanager = 0
-
-        proc = httpProc(request, 'websiteFunctions/ApacheManager.html',
-                        {'domainName': self.domain, 'phps': phps, 'apachemanager': apachemanager, 'apachePHPs': apachePHPs})
-        return proc.render()
-
-    def saveApacheConfigsToFile(self, userID=None, data=None):
-
-        currentACL = ACLManager.loadedACL(userID)
-
-        if currentACL['admin'] != 1:
-            return ACLManager.loadErrorJson('configstatus', 0)
-
-        configData = data['configData']
-        self.domain = data['domainName']
-
-        mailUtilities.checkHome()
-
-        tempPath = "/home/cyberpanel/" + str(randint(1000, 9999))
-
-        vhost = open(tempPath, "w")
-
-        vhost.write(configData)
-
-        vhost.close()
-
-        ## writing data temporary to file
-
-        filePath = ApacheVhost.configBasePath + self.domain + '.conf'
-
-        ## save configuration data
-
-        execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/virtualHostUtilities.py"
-        execPath = execPath + " saveApacheConfigsToFile --path " + filePath + " --tempPath " + tempPath
-
-        output = ProcessUtilities.outputExecutioner(execPath)
-
-        if output.find("1,None") > -1:
-            status = {"status": 1}
-            final_json = json.dumps(status)
-            return HttpResponse(final_json)
-        else:
-            final_dic = {'status': 0, 'error_message': output}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
 
