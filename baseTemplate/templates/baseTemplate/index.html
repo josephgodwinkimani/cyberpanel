@@ -652,32 +652,6 @@
 
                         {% endif %}
 
-                        {#                        <li id="sidebar-menu-item-backupV2">#}
-                        {#                            <a href="{% url 'loadBackupHome' %}" title="{% trans 'BackupV2' %}">#}
-                        {#                                <i class="glyph-icon tooltip-button icon-copy" title=".icon-folder"></i>#}
-                        {#                                <span>{% trans "Backup V2" %}</span>#}
-                        {#                            </a>#}
-                        {#                            <div class="sidebar-submenu">#}
-                        {##}
-                        {#                                <ul>#}
-                        {#                                    <li><a href="{% url 'CreateV2Backup' %}"#}
-                        {#                                           title="{% trans "Create V2 Backup" %}"><span>{% trans "Create/Restore V2 Backup" %}</span></a>#}
-                        {#                                    </li>#}
-                        {#                                    <li><a href="{% url 'ConfigureV2Backup' %}"#}
-                        {#                                           title="{% trans "Configure Backends" %}"><span>{% trans "Configure Backends" %}</span></a>#}
-                        {#                                    </li>#}
-                        {#                                    <li><a href="{% url 'schedulev2Backups' %}"#}
-                        {#                                           title="{% trans "Schedule V2 Backup" %}"><span>{% trans "Schedule V2 Backup" %}</span></a>#}
-                        {#                                    </li>#}
-                        {#                                    <li><a href="{% url 'DeleteRepoV2' %}"#}
-                        {#                                           title="{% trans "Delete V2 Backup Repo" %}"><span>{% trans "Delete V2 Backup Repo" %}</span></a>#}
-                        {#                                    </li>#}
-                        {##}
-                        {#                                </ul>#}
-                        {##}
-                        {#                            </div><!-- .sidebar-submenu -->#}
-                        {#                        </li>#}
-
                         <li id="sidebar-menu-item-backup">
                             <a href="{% url 'loadBackupHome' %}" title="{% trans 'Backup' %}">
                                 <i class="glyph-icon tooltip-button icon-copy" title=".icon-folder"></i>
@@ -686,11 +660,6 @@
                             <div class="sidebar-submenu">
 
                                 <ul>
-                                    {% if admin or createBackup %}
-                                        <li><a href="{% url 'OneClickBackups' %}"
-                                               title="{% trans 'One-Click Backups' %}"><span>{% trans "One-Click Backups" %}</span></a>
-                                        </li>
-                                    {% endif %}
                                     {% if admin or createBackup %}
                                         <li><a href="{% url 'backupSite' %}"
                                                title="{% trans 'Create Backup' %}"><span>{% trans "Create Backup" %}</span></a>
@@ -711,11 +680,6 @@
                                                title="{% trans 'Schedule Backup' %}"><span>{% trans "Schedule Backup" %}</span></a>
                                         </li>
                                     {% endif %}
-                                    {% if admin or googleDriveBackups %}
-                                        <li><a href="{% url 'gDrive' %}"
-                                               title="{% trans 'Setup Google Drive' %}"><span>{% trans "Setup Google Drive" %}</span></a>
-                                        </li>
-                                    {% endif %}
                                     {% if admin or remoteBackups %}
                                         <li><a href="{% url 'remoteBackups' %}"
                                                title="{% trans 'Remote Backups' %}"><span>{% trans "Remote Backups" %}</span></a>
@@ -734,31 +698,6 @@
                             <div class="sidebar-submenu">
                                 <ul>
                                     {% if admin or createBackup %}
-
-                                        <li><a href="{% url 'backupDestinationsInc' %}"
-                                               title="{% trans 'Restore Backup' %}"><span>{% trans "Backups v2" %}</span></a>
-
-                                            <div class="sidebar-submenu">
-
-                                                <ul>
-                                                    <li><a href="{% url 'CreateV2Backup' %}"
-                                                           title="{% trans "Create V2 Backup" %}"><span>{% trans "Create/Restore V2 Backup" %}</span></a>
-                                                    </li>
-                                                    <li><a href="{% url 'ConfigureV2Backup' %}"
-                                                           title="{% trans "Configure Backends" %}"><span>{% trans "Configure Backends" %}</span></a>
-                                                    </li>
-                                                    <li><a href="{% url 'schedulev2Backups' %}"
-                                                           title="{% trans "Schedule V2 Backup" %}"><span>{% trans "Schedule V2 Backup" %}</span></a>
-                                                    </li>
-                                                    <li><a href="{% url 'DeleteRepoV2' %}"
-                                                           title="{% trans "Delete V2 Backup Repo" %}"><span>{% trans "Delete V2 Backup Repo" %}</span></a>
-                                                    </li>
-
-                                                </ul>
-
-                                            </div><!-- .sidebar-submenu -->
-
-                                        </li>
 
                                         <li><a href="{% url 'createBackupInc' %}"
                                                title="{% trans 'Create Backup' %}"><span>{% trans "v1 (Deprecated)" %}</span></a>
@@ -1166,12 +1105,6 @@
                         <div ng-hide="success" class="alert alert-info">
                             <p>Looks like something is wrong with your initial setup, please double check on <a
                                     href="/base/onboarding">Setup Wizard.</a></p>
-                        </div>
-                    {% endif %}
-                    {% if backupDisplay == 1 %}
-                        <div class="alert alert-warning">
-                            <p>Looks like your websites are not secured with automatic backups. <a
-                                    href="/backup/OneClickBackups">Configure now.</a></p>
                         </div>
                     {% endif %}
                     {% block content %}

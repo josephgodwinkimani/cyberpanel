@@ -2472,38 +2472,6 @@ def getConnectionStatus(ipAddress):
     except BaseException as msg:
         print(str(msg))
 
-def FetchOCBackupsFolders(id, owner):
-    # Load the private key
-    private_key_path = '/root/.ssh/cyberpanel'
-    keyPrivate = paramiko.RSAKey(filename=private_key_path)
-
-    from IncBackups.models import OneClickBackups
-    admin = Administrator.objects.get(userName=owner)
-    ocb = OneClickBackups.objects.get(pk=id, owner=admin)
-
-    nbd = NormalBackupDests.objects.get(name=ocb.sftpUser)
-    ip = json.loads(nbd.config)['ip']
-
-    # Connect to the remote server using the private key
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(ip, username=ocb.sftpUser, pkey=keyPrivate)
-
-    # Command to list directories under the specified path
-    command = f"ls -d cpbackups/*/"
-
-    # Execute the command
-    stdin, stdout, stderr = ssh.exec_command(command)
-
-    # Read the results
-    directories = stdout.read().decode().splitlines()
-
-    # Print directories
-    for directory in directories:
-        print(directory)
-
-
-
 def main():
     parser = argparse.ArgumentParser(description='CyberPanel Backup Generator')
     parser.add_argument('function', help='Specify a function to call!')
@@ -2601,8 +2569,6 @@ def main():
         bu = backupUtilities(extraArgs)
         bu.SubmitS3BackupRestore()
 
-    elif args.function == 'FetchOCBackupsFolders':
-        FetchOCBackupsFolders(args.id, args.user)
 
 if __name__ == "__main__":
     main()
