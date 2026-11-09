@@ -368,7 +368,7 @@ class phpUtilities:
                 return phpVersion
             else:
                 from managePHP.phpManager import PHPManager
-                return PHPManager.findPHPVersions()[-2]
+                return PHPManager.pickFallbackVersion(PHPManager.findPHPVersions())
         else:
             from managePHP.phpManager import PHPManager
             php = PHPManager.getPHPString(phpVersion)
@@ -377,7 +377,7 @@ class phpUtilities:
                 return phpVersion
             else:
                 from managePHP.phpManager import PHPManager
-                return PHPManager.findPHPVersions()[-2]
+                return PHPManager.pickFallbackVersion(PHPManager.findPHPVersions())
 
 
     @staticmethod
