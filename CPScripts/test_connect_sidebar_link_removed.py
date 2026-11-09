@@ -1,5 +1,5 @@
 """Tests that the sidebar link that opened the external platform site is gone from the base template while every other sidebar entry that no other
-change touches is still there (the Community link next to it keeps its address), the page markup stays balanced (anchors, list items, lists, icons,
+change touches is still there (the Community link next to it keeps its entry), the page markup stays balanced (anchors, list items, lists, icons,
 spans and the template block tags) and nothing else in the tree refers to the removed entry. Run: python3 CPScripts/test_connect_sidebar_link_removed.py"""
 import os
 import re
@@ -41,7 +41,7 @@ KEEP = ['server-ip-address', 'dashboard', 'version-management', 'design', 'commu
 check('every other sidebar entry that no other change touches is still there', [k for k in KEEP if 'sidebar-menu-item-' + k not in ids], [])
 check('the entries keep their order around the removed one', [i for i in ids if i in ('sidebar-menu-item-design', 'sidebar-menu-item-community', 'sidebar-menu-item-users')],
       ['sidebar-menu-item-design', 'sidebar-menu-item-community', 'sidebar-menu-item-users'])
-check('the Community link still opens its own address', 'href="https://go.cyberpanel.net/community"' in SRC, True)
+check('the Community link still has its own entry and address (the wiki of the fork)', 'href="https://github.com/josephgodwinkimani/cyberpanel/wiki"' in SRC, True)
 check('the markup is balanced', balance(SRC), {'a': True, 'li': True, 'ul': True, 'i': True, 'span': True, '{% if %}': True, '{% block %}': True, '{% with %}': True})
 check('control: the balance check sees a missing closing tag', balance(SRC.replace('</span>', '', 1))['span'], False)
 
