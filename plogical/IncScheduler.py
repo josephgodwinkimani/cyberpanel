@@ -1235,78 +1235,6 @@ Automatic backup failed for %s on %s.
             logging.writeToFile('%s. [SendToS3Cloud]' % (str(msg)))
 
     @staticmethod
-    def v2Backups(function):
-        try:
-            # print("....start remote backup...............")
-            from websiteFunctions.models import Websites
-            from loginSystem.models import Administrator
-            import json
-            import time
-            if os.path.exists('/home/cyberpanel/v2backups'):
-                for website in Websites.objects.all():
-                    finalConfigPath = f'/home/cyberpanel/v2backups/{website.domain}'
-                    if os.path.exists(finalConfigPath):
-
-                        command = f'cat {finalConfigPath}'
-                        RetResult = ProcessUtilities.outputExecutioner(command)
-                        print(repr(RetResult))
-                        BackupConfig = json.loads(ProcessUtilities.outputExecutioner(command).rstrip('\n'))
-
-                        for value in BackupConfig['schedules']:
-                            try:
-
-                                if value['frequency'] == function:
-                                    extra_args = {}
-                                    extra_args['function'] = 'InitiateBackup'
-                                    extra_args['website'] = website.domain
-                                    extra_args['domain'] = website.domain
-                                    extra_args['BasePath'] = '/home/backup'
-                                    extra_args['BackendName'] = value['repo']
-                                    extra_args['BackupData'] = value['websiteData'] if 'websiteData' in value else False
-                                    extra_args['BackupEmails'] = value['websiteEmails'] if 'websiteEmails' in value else False
-                                    extra_args['BackupDatabase'] = value['websiteDatabases'] if 'websiteDatabases' in value else False
-
-                                    from plogical.Backupsv2 import CPBackupsV2
-                                    background = CPBackupsV2(extra_args)
-                                    RetStatus = background.InitiateBackup()
-
-                                    print(RetStatus)
-
-                                    if RetStatus == 0:
-                                        SUBJECT = "Automatic Backupv2 failed for %s on %s." % (website.domain, time.strftime("%m.%d.%Y_%H-%M-%S"))
-                                        adminEmailPath = '/home/cyberpanel/adminEmail'
-                                        adminEmail = open(adminEmailPath, 'r').read().rstrip('\n')
-                                        sender = 'root@%s' % (socket.gethostname())
-                                        error = ProcessUtilities.outputExecutioner(f'cat {background.StatusFile}')
-                                        TO = [adminEmail]
-                                        message = f"""\
-From: %s
-To: %s
-Subject: %s
-Automatic Backupv2 failed for %s on %s.
-{error}
-""" % (sender, ", ".join(TO), SUBJECT, website.domain, time.strftime("%m.%d.%Y_%H-%M-%S"))
-
-                                        logging.SendEmail(sender, TO, message)
-                                    else:
-                                        value['lastRun'] = time.strftime("%m.%d.%Y_%H-%M-%S")
-
-                                    if function == '1 Week':
-                                        background.DeleteSnapshots(f"--keep-daily {value['retention']}")
-                            except BaseException as msg:
-                                print("Error: [v2Backups]: %s" % str(msg))
-                                logging.writeToFile('%s. [v2Backups]' % (str(msg)))
-
-                        FinalContent = json.dumps(BackupConfig)
-                        WriteToFile = open(finalConfigPath, 'w')
-                        WriteToFile.write(FinalContent)
-                        WriteToFile.close()
-
-        except BaseException as msg:
-            print("Error: [v2Backups]: %s" % str(msg))
-            logging.writeToFile('%s. [v2Backups]' % (str(msg)))
-
-    @staticmethod
     def CheckHostName():
         try:
             from loginSystem.models import Administrator
@@ -1343,7 +1271,6 @@ def main():
         # IncScheduler.refresh_access_token()
 
         IncScheduler.RemoteBackup(args.function)
-        IncScheduler.v2Backups(args.function)
         return 0
 
     if args.function == 'forceRunAWSBackup':
