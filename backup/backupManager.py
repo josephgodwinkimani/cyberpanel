@@ -621,12 +621,23 @@ class BackupManager:
             backupCancellationDomain = data['backupCancellationDomain']
             fileName = data['fileName']
 
+            ## The worker below kills a process and removes files from these two values alone, so the caller must own the domain
+            currentACL = ACLManager.loadedACL(userID)
+            admin = Administrator.objects.get(pk=userID)
+            if ACLManager.checkOwnership(backupCancellationDomain, admin, currentACL) != 1:
+                return ACLManager.loadErrorJson('abortStatus', 0)
+
+            ## Backup names look like backup-example.com-01.31.2026_12-00-00 and are never a path
+            if not isinstance(fileName, str) or fileName in ('', '.', '..') or '..' in fileName \
+                    or not all(c.isascii() and (c.isalnum() or c in '._-') for c in fileName):
+                return ACLManager.loadErrorJson('abortStatus', 0)
+
             execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/backupUtilities.py"
             execPath = execPath + " cancelBackupCreation --backupCancellationDomain " + backupCancellationDomain + " --fileName " + fileName
             subprocess.call(shlex.split(execPath))
 
             try:
-                backupOb = Backups.objects.get(fileName=fileName)
+                backupOb = Backups.objects.get(fileName=fileName, website__domain=backupCancellationDomain)
                 backupOb.delete()
             except BaseException as msg:
                 logging.CyberCPLogFileWriter.writeToFile(str(msg) + " [cancelBackupCreation]")
