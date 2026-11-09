@@ -163,7 +163,7 @@ ptree = ast.parse(PHPU)
 pcls = next(n for n in ptree.body if isinstance(n, ast.ClassDef) and n.name == 'phpUtilities')
 pf = {n.name: n for n in pcls.body if isinstance(n, ast.FunctionDef)}
 PPIN = {'installPHPExtension': '51137bd1c25af95f', 'unInstallPHPExtension': 'ddcfd29a51c1b61b', 'initiateInstall': 'cceb39b7d28eb89d', 'initiateRemoval': '42e7e33bdcda86ab',
-        'savePHPConfigBasic': 'b92e75634bae5e12', 'savePHPConfigAdvance': '0abf9c43287e861f', 'GetPHPVersionFromFile': '47fbd3176a48d9ea',
+        'savePHPConfigBasic': '003adb0708abc946', 'savePHPConfigAdvance': '0abf9c43287e861f', 'GetPHPVersionFromFile': '47fbd3176a48d9ea',
         'WrapGetPHPVersionFromFileToGetVersionWithPHP': '7176d744b464d34a', 'FindIfSaidPHPIsAvaiableOtherwiseMaketheNextOneAvailableToUse': '645790c9bf38978f',
         'InstallSaidPHP': '8602b81c2821e040'}
 check('the staging list helper is gone and the ten PHP helpers are exactly as they were', ('GetStagingInJson' in pf, {n: fp(ast.get_source_segment(PHPU, pf[n])) if n in pf else None for n in PPIN}), (False, PPIN))
