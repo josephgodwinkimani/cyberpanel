@@ -2437,6 +2437,43 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
         return False
 
     @staticmethod
+    def fstab_has_proc_hidepid(text):
+        """True when an active line of an fstab text mounts /proc with the option hidepid."""
+        for line in text.splitlines():
+            fields = line.split('#', 1)[0].split()
+            if len(fields) >= 4 and fields[1] == '/proc' and 'hidepid' in fields[3]:
+                return True
+        return False
+
+    @staticmethod
+    def sysctl_has_setting(text, key, value):
+        """True when an active line of a sysctl text sets key to value (spaces around the equals sign do not matter)."""
+        for line in text.splitlines():
+            line = line.split('#', 1)[0].split(';', 1)[0]
+            if '=' in line:
+                name, setting = line.split('=', 1)
+                if name.strip() == key and setting.strip() == value:
+                    return True
+        return False
+
+    @staticmethod
+    def append_line_unless(path, line, already_there):
+        """Append line (it must end with a newline) to the file unless already_there(text of the file) says it is in place. An upgrade used to
+        append the same line again every time it ran. Returns True when the line was written."""
+        try:
+            with open(path, 'r') as existing_file:
+                existing = existing_file.read()
+        except IOError:
+            existing = ''
+        if already_there(existing):
+            return False
+        with open(path, 'a') as target:
+            if existing and not existing.endswith('\n'):
+                target.write('\n')
+            target.write(line)
+        return True
+
+    @staticmethod
     def install_missing_packages(packages, component, install_command='yum -y install'):
         """Install only the packages of the space separated list that are not installed yet. A plain yum or apt install of an installed
         package upgrades it, and the panel upgrade must not update operating system packages. Returns True when nothing is missing or
@@ -2931,9 +2968,7 @@ echo $oConfig->Save() ? 'Done' : 'Error';
 
             ###
 
-            WriteToFile = open('/etc/fstab', 'a')
-            WriteToFile.write('proc    /proc        proc        defaults,hidepid=2    0 0\n')
-            WriteToFile.close()
+            Upgrade.append_line_unless('/etc/fstab', 'proc    /proc        proc        defaults,hidepid=2    0 0\n', Upgrade.fstab_has_proc_hidepid)
 
             command = 'mount -o remount,rw,hidepid=2 /proc'
             Upgrade.executioner(command, 0)
@@ -2956,10 +2991,9 @@ echo $oConfig->Save() ? 'Done' : 'Error';
 
             ## symlink protection
 
-            writeToFile = open('/usr/lib/sysctl.d/50-default.conf', 'a')
-            writeToFile.writelines('fs.protected_hardlinks = 1\n')
-            writeToFile.writelines('fs.protected_symlinks = 1\n')
-            writeToFile.close()
+            for sysctlKey in ('fs.protected_hardlinks', 'fs.protected_symlinks'):
+                Upgrade.append_line_unless('/usr/lib/sysctl.d/50-default.conf', '%s = 1\n' % sysctlKey,
+                                           lambda text, key=sysctlKey: Upgrade.sysctl_has_setting(text, key, '1'))
 
             command = 'sysctl --system'
             Upgrade.executioner(command, 0)
