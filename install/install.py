@@ -14,8 +14,8 @@ from os.path import *
 from stat import *
 import stat
 
-VERSION = '2.3'
-BUILD = 9
+VERSION = '3.0'
+BUILD = 0
 
 char_set = {'small': 'abcdefghijklmnopqrstuvwxyz', 'nums': '0123456789', 'big': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'}
 

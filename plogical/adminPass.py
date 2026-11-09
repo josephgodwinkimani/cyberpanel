@@ -12,8 +12,8 @@ from plogical.acl import ACLManager
 from packages.models import Package
 from baseTemplate.models import version
 
-VERSION = '2.3'
-BUILD = 9
+VERSION = '3.0'
+BUILD = 0
 
 if not os.geteuid() == 0:
     sys.exit("\nOnly root can run this script\n")
