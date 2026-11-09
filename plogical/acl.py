@@ -577,6 +577,12 @@ class ACLManager:
             php = "83"
         elif phpVersion == "PHP 8.4":
             php = "84"
+        elif phpVersion == "PHP 8.5":
+            php = "85"
+        else:
+            # a version that has no branch above (a later PHP release): derive the digits the same way PHPManager.getPHPString does
+            # instead of failing with an unbound variable
+            php = phpVersion.split()[1].replace(".", "")
 
         return php
 
