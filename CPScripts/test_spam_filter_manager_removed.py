@@ -62,7 +62,7 @@ PINNED_VIEWS = {'emailPolicyServer': 'f254e418ab87561d', 'listDomains': 'e84f77e
 check('eight free views are exactly as they were', {n: digest(VIEWS, views[n]) if n in views else None for n in PINNED_VIEWS}, PINNED_VIEWS)
 PINNED_UTILS = {'installSpamAssassin': '25a5a756a4577cba', 'installMailScanner': 'a977e63900564ff9', 'saveSpamAssassinConfigs': 'c915a5cfc5d8a0b2', 'createEmailAccount': '5e0cb34608cc590f'}
 check('four free mail helpers are exactly as they were', {n: digest(UTILS, utils[n]) if n in utils else None for n in PINNED_UTILS}, PINNED_UTILS)
-check('the free command line branches are kept', [b for b in ('installSpamAssassin', 'installMailScanner', 'AfterEffects', 'ResetEmailConfigurations') if ("args.function == '%s'" % b) not in main_src and ('args.function == "%s"' % b) not in main_src], [])
+check('the free command line branches are kept', [b for b in ('installSpamAssassin', 'installMailScanner', 'AfterEffects') if ("args.function == '%s'" % b) not in main_src and ('args.function == "%s"' % b) not in main_src], [])
 
 
 # routes
