@@ -11,6 +11,8 @@ set -u
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
+# the gf-release checks must never read or change a real repository file
+export CP_GF_REPO_FILE="$TMP/gf-absent.repo"
 PASS=0
 FAIL=0
 
