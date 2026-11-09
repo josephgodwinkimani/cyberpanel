@@ -55,19 +55,9 @@ class WebsiteManager:
 
     def createWebsite(self, request=None, userID=None, data=None):
 
-        url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-        data = {
-            "name": "all",
-            "IP": ACLManager.GetServerIP()
-        }
-
-        import requests
-        response = requests.post(url, data=json.dumps(data))
-        Status = response.json()['status']
-
         test_domain_status = 0
 
-        if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:
+        if ProcessUtilities.decideServer() == ProcessUtilities.ent:
             test_domain_status = 1
 
         currentACL = ACLManager.loadedACL(userID)
@@ -731,19 +721,9 @@ class WebsiteManager:
                 defaultDomain='NONE'
 
 
-        url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-        data = {
-            "name": "all",
-            "IP": ACLManager.GetServerIP()
-        }
-
-        import requests
-        response = requests.post(url, data=json.dumps(data))
-        Status = response.json()['status']
-
         test_domain_status = 0
 
-        if (Status == 1) or ProcessUtilities.decideServer() == ProcessUtilities.ent:
+        if ProcessUtilities.decideServer() == ProcessUtilities.ent:
             test_domain_status = 1
 
         rnpss = randomPassword.generate_pass(10)
@@ -2150,24 +2130,6 @@ class WebsiteManager:
             packageName = data['package']
             websiteOwner = data['websiteOwner'].lower()
 
-            if data['domainName'].find("cyberpanel.website") > -1:
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/CreateDomain"
-
-                domain_data = {
-                    "name": "test-domain",
-                    "IP": ACLManager.GetServerIP(),
-                    "domain": data['domainName']
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(domain_data))
-                domain_status = response.json()['status']
-
-                if domain_status == 0:
-                    data_ret = {'status': 0, 'installStatus': 0, 'error_message': response.json()['error_message']}
-                    json_data = json.dumps(data_ret)
-                    return HttpResponse(json_data)
-
             loggedUser = Administrator.objects.get(pk=userID)
             newOwner = Administrator.objects.get(userName=websiteOwner)
 
@@ -2282,24 +2244,6 @@ class WebsiteManager:
                 data_ret = {'status': 0, 'createWebSiteStatus': 0, 'error_message': "Invalid domain."}
                 json_data = json.dumps(data_ret)
                 return HttpResponse(json_data)
-
-            if data['domainName'].find("cyberpanel.website") > -1:
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/CreateDomain"
-
-                domain_data = {
-                    "name": "test-domain",
-                    "IP": ACLManager.GetServerIP(),
-                    "domain": data['domainName']
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(domain_data))
-                domain_status = response.json()['status']
-
-                if domain_status == 0:
-                    data_ret = {'status': 0, 'installStatus': 0, 'error_message': response.json()['error_message']}
-                    json_data = json.dumps(data_ret)
-                    return HttpResponse(json_data)
 
             if ACLManager.checkOwnership(masterDomain, admin, currentACL) == 1:
                 pass
@@ -2668,18 +2612,6 @@ class WebsiteManager:
 
     def submitWebsiteDeletion(self, userID=None, data=None):
         try:
-            if data['websiteName'].find("cyberpanel.website") > -1:
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/DeleteDomain"
-
-                domain_data = {
-                    "name": "test-domain",
-                    "IP": ACLManager.GetServerIP(),
-                    "domain": data['websiteName']
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(domain_data))
-
             currentACL = ACLManager.loadedACL(userID)
             if ACLManager.currentContextPermission(currentACL, 'deleteWebsite') == 0:
                 return ACLManager.loadErrorJson('websiteDeleteStatus', 0)
@@ -2718,18 +2650,6 @@ class WebsiteManager:
 
     def submitDomainDeletion(self, userID=None, data=None):
         try:
-
-            if data['websiteName'].find("cyberpanel.website") > -1:
-                url = "https://platform.cyberpersons.com/CyberpanelAdOns/DeleteDomain"
-
-                domain_data = {
-                    "name": "test-domain",
-                    "IP": ACLManager.GetServerIP(),
-                    "domain": data['websiteName']
-                }
-
-                import requests
-                response = requests.post(url, data=json.dumps(domain_data))
 
             currentACL = ACLManager.loadedACL(userID)
             admin = Administrator.objects.get(pk=userID)
