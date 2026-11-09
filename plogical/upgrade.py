@@ -326,14 +326,15 @@ class Upgrade:
         return updated
 
     @staticmethod
-    def fixSudoers():
+    def fixSudoers(editRules=True):
         try:
             ubuntu = os.path.exists('/etc/lsb-release')
             path = '/etc/sudoers'
 
             try:
-                data = open(path, 'r').readlines()
-                Upgrade.write_sudoers_checked(path, data, Upgrade.sudoers_without_default_rules(data, ubuntu))
+                if editRules:
+                    data = open(path, 'r').readlines()
+                    Upgrade.write_sudoers_checked(path, data, Upgrade.sudoers_without_default_rules(data, ubuntu))
             except IOError:
                 if ubuntu:
                     raise
@@ -3832,7 +3833,8 @@ pm.max_spare_servers = 3
             command = "systemctl stop lscpd"
             Upgrade.executioner(command, 'stop lscpd', 0)
 
-        Upgrade.fixSudoers()
+        ## an upgrade never removes the sudo rules of an existing server (the installer applies that hardening once)
+        Upgrade.fixSudoers(editRules=False)
         # Upgrade.mountTemp()
 
         ### fix a temp issue causing upgrade problem
