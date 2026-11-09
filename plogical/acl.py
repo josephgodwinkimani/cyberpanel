@@ -1,6 +1,6 @@
 #!/usr/local/CyberCP/bin/python
 import os,sys
-import random
+import secrets
 import string
 
 from ApachController.ApacheVhosts import ApacheVhost
@@ -1126,7 +1126,7 @@ class ACLManager:
                 def generate_pass(length=14):
                     chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
                     size = length
-                    return ''.join(random.choice(chars) for x in range(size))
+                    return ''.join(secrets.choice(chars) for x in range(size))
 
                 content = """<?php
 $_ENV['snappymail_INCLUDE_AS_API'] = true;
