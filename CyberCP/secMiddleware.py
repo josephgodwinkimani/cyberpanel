@@ -159,8 +159,8 @@ class secMiddleware:
                         'docker') > -1 or FinalURL.find(
                         'verifyLogin') > -1 or FinalURL.find('submitUserCreation') > -1:
                         continue
-                    if key == 'MainDashboardCSS' or key == 'ownerPassword' or key == 'scriptUrl' or key == 'CLAMAV_VIRUS' or key == "Rspamdserver" or key == 'smtpd_milters' \
-                            or key == 'non_smtpd_milters' or key == 'key' or key == 'cert' or key == 'recordContentAAAA' or key == 'backupDestinations'\
+                    if key == 'MainDashboardCSS' or key == 'ownerPassword' or key == 'scriptUrl' \
+                            or key == 'key' or key == 'cert' or key == 'recordContentAAAA' or key == 'backupDestinations'\
                             or key == 'ports' \
                             or key == 'imageByPass' or key == 'passwordByPass' or key == 'PasswordByPass' or key == 'cronCommand' \
                             or key == 'emailMessage' or key == 'configData' or key == 'rewriteRules' \

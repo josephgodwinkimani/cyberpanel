@@ -678,7 +678,6 @@ app.controller('SpamAssassin', function ($scope, $http, $timeout, $window) {
     $scope.SpamAssassinLoading = true;
     $scope.failedToStartInallation = true;
     $scope.couldNotConnect = true;
-    $scope.RspamdSuccessfullyInstalled = true;
     $scope.installationFailed = true;
 
 
