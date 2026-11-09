@@ -230,6 +230,11 @@ def remove_destination(request):
         if 'IPAddress' in data:
             file_name = data['IPAddress']
 
+            # A destination is one file in the destinations folder, so a name that is a path must never reach unlink
+            if not isinstance(file_name, str) or file_name in ('', '.', '..') \
+                    or '/' in file_name or '\\' in file_name or '\0' in file_name:
+                return ACLManager.loadErrorJson('destStatus', 0)
+
             if data['type'].lower() == IncBackupProvider.SFTP.name.lower():
                 dest_file = Path(IncBackupPath.SFTP.value) / file_name
                 dest_file.unlink()
