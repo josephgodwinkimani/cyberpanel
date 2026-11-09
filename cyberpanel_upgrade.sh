@@ -868,7 +868,9 @@ Download_Requirement
 if [[ "$Server_OS" = "CentOS" ]] ; then
 #  $PIP3 install --default-timeout=3600 virtualenv==16.7.9
 #    Check_Return
-  $PIP3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
+  # pip3 here is the pip of the activated virtual environment (not the system pip): packages from the requirement file go into the
+  # environment and never into the system Python.
+  pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments.txt
     Check_Return
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
   # shellcheck disable=SC1091
@@ -954,13 +956,16 @@ else
 
 # shellcheck disable=SC1091
 . /usr/local/CyberPanelTemp/bin/activate
+pip install --upgrade setuptools packaging
 
 wget -O /usr/local/requirments-old.txt "${Git_Content_URL}/${Branch_Name}/requirments-old.txt"
 
     if [[ "$Server_OS" = "CentOS" ]] ; then
 #  $PIP3 install --default-timeout=3600 virtualenv==16.7.9
 #    Check_Return
-  $PIP3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments-old.txt
+  # pip3 here is the pip of the activated virtual environment (not the system pip): packages from the requirement file go into the
+  # environment and never into the system Python.
+  pip3 install --default-timeout=3600 --ignore-installed -r /usr/local/requirments-old.txt
     Check_Return
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
   # shellcheck disable=SC1091
