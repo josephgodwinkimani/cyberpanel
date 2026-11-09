@@ -37,6 +37,30 @@ import grp
 
 class vhost:
 
+    ## Names that belong to the system and never to a website, whatever their user id is.
+    PROTECTED_SITE_USERS = ('root', 'nobody', 'nfsnobody', 'daemon', 'bin', 'sys', 'sync', 'adm', 'lp', 'mail', 'operator', 'games', 'ftp', 'dbus', 'polkitd',
+                            'sshd', 'apache', 'nginx', 'www-data', 'mysql', 'postfix', 'dovecot', 'vmail', 'lsadm', 'cyberpanel', 'docker', 'cyberpanel-cron')
+
+    @staticmethod
+    def IsSiteUserSafeToRemove(userName):
+        """True only for an ordinary account that belongs to a website: a plain name that is not a system name, whose user id is neither 0 nor the id of
+        nobody (65534 or above) and whose home directory is a folder below /home (the panel creates website users with the home /home/<domain>).
+        Deleting a website runs userdel -r -f on this name, and for an account like nobody (home directory /) that removes the system's own folders.
+        Anything else is left alone and only logged."""
+        import posixpath
+        import re
+        if not userName or not re.match(r'^[a-z_][a-z0-9_-]{0,31}$', userName):
+            return False
+        if userName in vhost.PROTECTED_SITE_USERS:
+            return False
+        try:
+            entry = pwd.getpwnam(userName)
+        except KeyError:
+            return False
+        home = posixpath.normpath(entry.pw_dir)
+        return 0 < entry.pw_uid < 65534 and home.startswith('/home/') and home != '/home'
+
+
     Server_root = "/usr/local/lsws"
     cyberPanel = "/usr/local/CyberCP"
     redisConf = '/usr/local/lsws/conf/dvhost_redis.conf'
@@ -423,17 +447,20 @@ class vhost:
 
                 ##
 
-                if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
-                    command = 'userdel -r -f %s' % (externalApp)
+                if vhost.IsSiteUserSafeToRemove(externalApp):
+                    if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                        command = 'userdel -r -f %s' % (externalApp)
+                    else:
+                        command = 'deluser %s' % (externalApp)
+
+                    ProcessUtilities.executioner(command)
+
+                    #
+
+                    command = 'groupdel %s' % (externalApp)
+                    ProcessUtilities.executioner(command)
                 else:
-                    command = 'deluser %s' % (externalApp)
-
-                ProcessUtilities.executioner(command)
-
-                #
-
-                command = 'groupdel %s' % (externalApp)
-                ProcessUtilities.executioner(command)
+                    logging.CyberCPLogFileWriter.writeToFile('Not removing the system account "%s" of the deleted website %s [deleteVirtualHostConfigurations]' % (externalApp, virtualHostName))
 
                 ## Remove git conf folder if present
 
@@ -498,17 +525,20 @@ class vhost:
 
                 ##
 
-                if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
-                    command = 'userdel -r -f %s' % (externalApp)
+                if vhost.IsSiteUserSafeToRemove(externalApp):
+                    if ProcessUtilities.decideDistro() == ProcessUtilities.centos or ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
+                        command = 'userdel -r -f %s' % (externalApp)
+                    else:
+                        command = 'deluser %s' % (externalApp)
+
+                    ProcessUtilities.executioner(command)
+
+                    #
+
+                    command = 'groupdel %s' % (externalApp)
+                    ProcessUtilities.executioner(command)
                 else:
-                    command = 'deluser %s' % (externalApp)
-
-                ProcessUtilities.executioner(command)
-
-                #
-
-                command = 'groupdel %s' % (externalApp)
-                ProcessUtilities.executioner(command)
+                    logging.CyberCPLogFileWriter.writeToFile('Not removing the system account "%s" of the deleted website %s [deleteVirtualHostConfigurations]' % (externalApp, virtualHostName))
             except BaseException as msg:
                 logging.CyberCPLogFileWriter.writeToFile(
                     str(msg) + " [Not able to remove virtual host configuration from main configuration file.]")
