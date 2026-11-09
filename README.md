@@ -26,6 +26,8 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 
 # Supported PHP Versions
 
+* PHP 8.5 (security support until 31 Dec, 2029.)
+* PHP 8.4 (security support until 31 Dec, 2028.)
 * PHP 8.3 (will reach end of life (EOL) on 31 Dec, 2027.)
 * PHP 8.2 (will reach end of life (EOL) on 31 Dec, 2026.)
 * PHP 8.1 (will reach end of life (EOL) on 31 Dec, 2025.)
@@ -39,6 +41,12 @@ Web Hosting Control Panel that uses OpenLiteSpeed as the underlying Web Server.
 * PHP 5.5 (will reach end of life (EOL) on 21 Jul, 2016.)
 * PHP 5.4 (will reach end of life (EOL) on 3 Sep, 2015.)
 * PHP 5.3 (will reach end of life (EOL) on 14 Aug, 2014.)
+
+PHP 8.4 and PHP 8.5 are installed by a new installation on AlmaLinux 9. The other Red Hat family systems use the same step but were not checked and Ubuntu does not install them yet. An upgrade of an existing server never installs them. To add them to an existing AlmaLinux 9 server run the following as root and they appear in the PHP selection of a website.
+
+```bash
+dnf install 'lsphp84*' 'lsphp85*' --exclude '*imagick*' --skip-broken
+```
 
 # Supported OS Versions
 
