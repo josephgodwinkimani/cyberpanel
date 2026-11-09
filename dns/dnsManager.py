@@ -1126,14 +1126,11 @@ class DNSManager:
                 new_r_proxied_flag = True
 
             for dns_record in dns_records:
-                r_zone_id = dns_record['zone_id']
-                r_id = dns_record['id']
                 r_name = dns_record['name']
                 r_type = dns_record['type']
                 r_content = dns_record['content']
                 r_ttl = dns_record['ttl']
                 r_proxied = dns_record['proxied']
-                r_proxiable = dns_record['proxiable']
 
                 if r_proxied == new_r_proxied_flag:
                     # Nothing to do
@@ -1142,8 +1139,6 @@ class DNSManager:
                 dns_record_id = dns_record['id']
 
                 new_dns_record = {
-                    'zone_id': r_zone_id,
-                    'id': r_id,
                     'type': r_type,
                     'name': r_name,
                     'content': r_content,
