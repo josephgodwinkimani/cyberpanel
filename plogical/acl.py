@@ -951,18 +951,6 @@ class ACLManager:
                 dic['dnsAsWhole'] = 0
 
     @staticmethod
-    def GetALLWPObjects(currentACL, userID):
-        from websiteFunctions.models import WPSites
-
-        wpsites = WPSites.objects.none()
-        websites = ACLManager.findWebsiteObjects(currentACL, userID)
-
-        for website in websites:
-            wpsites |= website.wpsites_set.all()
-
-        return wpsites
-
-    @staticmethod
     def GetServerIP():
         ipFile = "/etc/cyberpanel/machineIP"
         f = open(ipFile)
@@ -987,15 +975,6 @@ class ACLManager:
             return response.json()['status']
         except:
             return 1
-
-    @staticmethod
-    def CheckIPBackupObjectOwner(currentACL, backupobj, user):
-        if currentACL['admin'] == 1:
-            return 1
-        elif backupobj.owner == user:
-            return 1
-        else:
-            return 0
 
     @staticmethod
     def CheckIPPluginObjectOwner(currentACL, backupobj, user):
