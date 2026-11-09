@@ -2281,8 +2281,7 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
 
                 os.chdir('/usr/local')
 
-                command = 'yum -y install gcc gcc-c++ make autoconf glibc rcs'
-                Upgrade.executioner(command, 'LSCPD Pre-reqs [one]', 0)
+                Upgrade.install_missing_packages('gcc gcc-c++ make autoconf glibc rcs', 'LSCPD Pre-reqs [one]')
 
                 ##
 
@@ -2326,8 +2325,8 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
                 command = f'chmod 755 {lscpdPath}'
                 Upgrade.executioner(command, 'LSCPD Download.', 0)
 
-                command = 'yum -y install pcre-devel openssl-devel expat-devel geoip-devel zlib-devel udns-devel which curl'
-                Upgrade.executioner(command, 'LSCPD Pre-reqs [two]', 0)
+                Upgrade.install_missing_packages('pcre-devel openssl-devel expat-devel geoip-devel zlib-devel udns-devel which curl',
+                                                 'LSCPD Pre-reqs [two]')
 
                 try:
                     pwd.getpwnam('lscpd')
@@ -2436,6 +2435,18 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
             except BaseException:
                 pass
         return False
+
+    @staticmethod
+    def install_missing_packages(packages, component, install_command='yum -y install'):
+        """Install only the packages of the space separated list that are not installed yet. A plain yum or apt install of an installed
+        package upgrades it, and the panel upgrade must not update operating system packages. Returns True when nothing is missing or
+        the install worked."""
+        missing = [name for name in packages.split() if not Upgrade.package_installed(name)]
+        if not missing:
+            Upgrade.stdOut('%s: all packages are installed, nothing to install.' % (component))
+            return True
+        command = '%s %s' % (install_command, ' '.join(missing))
+        return Upgrade.executioner(command, component, 0)
 
     @staticmethod
     def upgrade_crowdsec():
@@ -2658,11 +2669,9 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
                 # Determine the operating system and determine the package manager based on the distribution
                 os_type = Upgrade.FindOperatingSytem()
                 if os_type in (CENTOS7, CENTOS8):
-                    command = 'yum -y install fail2ban'
-                    Upgrade.executioner(command, 0)
+                    Upgrade.install_missing_packages('fail2ban', 'Install Fail2Ban')
                 else:
-                    command = 'DEBIAN_FRONTEND=noninteractive apt-get -y install fail2ban'
-                    Upgrade.executioner(command, 0)
+                    Upgrade.install_missing_packages('fail2ban', 'Install Fail2Ban', 'DEBIAN_FRONTEND=noninteractive apt-get -y install --no-upgrade')
 
                 # Configure Fail2Ban for intrusion prevention
                 with open('/etc/fail2ban/jail.local', 'w') as config_file:
