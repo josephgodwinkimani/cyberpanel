@@ -2418,8 +2418,66 @@ milter_default_action = accept
         return None  # No open ports found in the range
 
     @staticmethod
+    def rewrite_file_atomically(path, transform):
+        """Rewrite a text file line by line through a temporary file so that an error can never leave it truncated."""
+        with open(path) as handle:
+            lines = handle.readlines()
+
+        temporary = path + '.upgrade-tmp'
+        try:
+            with open(temporary, 'w') as handle:
+                for line in lines:
+                    handle.write(transform(line))
+
+            status = os.stat(path)
+            shutil.copymode(path, temporary)
+            os.chown(temporary, status.st_uid, status.st_gid)
+            os.replace(temporary, path)
+        except BaseException:
+            if os.path.exists(temporary):
+                os.remove(temporary)
+            raise
+
+    @staticmethod
+    def set_crowdsec_api_port(new_port):
+        """Point the CrowdSec local API and the credentials file that reaches it at new_port."""
+        port = str(new_port)
+
+        Upgrade.rewrite_file_atomically(
+            '/etc/crowdsec/config.yaml',
+            lambda line: '    listen_uri: 127.0.0.1:' + port + '\n' if line.startswith('    listen_uri:') else line)
+
+        Upgrade.rewrite_file_atomically(
+            '/etc/crowdsec/local_api_credentials.yaml',
+            lambda line: '    url: http://127.0.0.1:' + port + '\n' if line.startswith('    url:') else line)
+
+    @staticmethod
+    def crowdsec_exclude_option():
+        """Return ' --exclude=crowdsec*' when CrowdSec is installed so that a system update never upgrades or restarts it.
+        Set CP_UPGRADE_UPDATE_CROWDSEC=1 to allow the update."""
+        if os.path.exists('/etc/crowdsec/config.yaml') and os.environ.get('CP_UPGRADE_UPDATE_CROWDSEC') != '1':
+            return ' --exclude=crowdsec*'
+        return ''
+
+    @staticmethod
+    def system_update_enabled():
+        """Operating system packages are only updated when CP_UPGRADE_SYSTEM_PACKAGES=1 is set (the shell upgrade
+        scripts export it when --update-system-packages is passed)."""
+        return os.environ.get('CP_UPGRADE_SYSTEM_PACKAGES') == '1'
+
+    @staticmethod
+    def protected_exclude_option():
+        """Packages a system update must always hold back."""
+        return " --exclude='openlitespeed*' --exclude='mariadb*' --exclude='MariaDB*' --exclude='openssh*' --exclude='kernel*'"
+
+    @staticmethod
     def upgrade_crowdsec():
         try:
+            # An installed CrowdSec belongs to the administrator: never touch its configuration, acquisition file or API port
+            if os.path.exists('/etc/crowdsec/config.yaml'):
+                Upgrade.stdOut("CrowdSec is already installed, leaving its configuration untouched" + " [upgrade_crowdsec]")
+                return
+
             # Check if port 8082 is open
             if not Upgrade.is_port_open(8082):
                 Upgrade.stdOut('Port 8082 is not open. Finding an available port...' + " [upgrade_crowdsec]")
@@ -2466,33 +2524,8 @@ milter_default_action = accept
                     command = f"cscli collections upgrade {collection}"
                     Upgrade.executioner(command, 0)
 
-                # Update API server listen URI in config.yaml directly
-                config_file_path = '/etc/crowdsec/config.yaml'
-
-                with open(config_file_path) as file:
-                    lines = file.readlines()
-
-                with open(config_file_path, 'w') as file:
-                    for line in lines:
-                        if line.startswith('    listen_uri:'):
-                            file.write(
-                                '    listen_uri: 127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
-                        else:
-                            file.write(line)
-
-                # Configure the local_api_credentials file to the same port
-                local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
-
-                with open(local_api_credentials_file_path) as file:
-                    lines = file.readlines()
-
-                with open(local_api_credentials_file_path, 'w') as file:
-                    for line in lines:
-                        if line.startswith('    url:'):
-                            file.write(
-                                '    url: http://127.0.0.1:' + new_port + '\n') # Change this line to your desired port. Make sure to add it to firewalld
-                        else:
-                            file.write(line)
+                # Update the API server listen URI and the matching credentials URL (written atomically)
+                Upgrade.set_crowdsec_api_port(new_port)
 
             else:  # Install
                 Upgrade.stdOut("Install CrowdSec")
@@ -2630,33 +2663,8 @@ milter_default_action = accept
                 # Move temporary file to actual configuration file path
                 os.rename(acquis_file_path + '.tmp', acquis_file_path)
 
-                # Update API server listen URI in config.yaml directly
-                config_file_path = '/etc/crowdsec/config.yaml'
-
-                with open(config_file_path) as file:
-                    lines = file.readlines()
-
-                with open(config_file_path, 'w') as file:
-                    for line in lines:
-                        if line.startswith('    listen_uri:'):
-                            file.write(
-                                '    listen_uri: 127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
-                        else:
-                            file.write(line)
-
-                # Configure the local_api_credentials file to the same port
-                local_api_credentials_file_path = '/etc/crowdsec/local_api_credentials.yaml'
-
-                with open(local_api_credentials_file_path) as file:
-                    lines = file.readlines()
-
-                with open(local_api_credentials_file_path, 'w') as file:
-                    for line in lines:
-                        if line.startswith('    url:'):
-                            file.write(
-                                '    url: http://127.0.0.1:' + new_port + '\n')  # Change this line to your desired port. Make sure to add it to firewalld
-                        else:
-                            file.write(line)
+                # Update the API server listen URI and the matching credentials URL (written atomically)
+                Upgrade.set_crowdsec_api_port(new_port)
 
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [upgrade_crowdsec]")
@@ -2729,8 +2737,21 @@ milter_default_action = accept
                     command = "apt-get -y install ./rclone-v1.68.2-linux-amd64.deb"
                     Upgrade.executioner(command, 0)
 
-            command = "wget -O /usr/local/rclone_backup_cronjob.sh https://bit.ly/rclone_backup_cronjob"
-            Upgrade.executioner(command, 0)
+            backup_script = '/usr/local/rclone_backup_cronjob.sh'
+
+            if os.path.exists(backup_script):
+                # The script is edited per server (remote name and folders), so never replace it with the generic template
+                Upgrade.stdOut("Keeping the existing " + backup_script + " [download_and_install_rclone]")
+            else:
+                download_path = backup_script + '.download'
+                command = "wget -O " + download_path + " https://bit.ly/rclone_backup_cronjob"
+                Upgrade.executioner(command, 'Download the rclone backup script template')
+
+                if os.path.exists(download_path):
+                    if os.path.getsize(download_path) > 0:
+                        os.rename(download_path, backup_script)
+                    else:
+                        os.remove(download_path)
 
         except BaseException as msg:
             Upgrade.stdOut(str(msg) + " [download_and_install_rclone]")
@@ -3082,8 +3103,9 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                 command = "yum makecache -y"
                 Upgrade.executioner(command, 0)
 
-                command = "yum update -y"
-                Upgrade.executioner(command, 0)
+                if Upgrade.system_update_enabled():
+                    command = "yum update -y" + Upgrade.crowdsec_exclude_option() + Upgrade.protected_exclude_option()
+                    Upgrade.executioner(command, 0)
 
                 if Upgrade.FindOperatingSytem() == CENTOS8:
                     command = 'dnf remove dovecot23 dovecot23-mysql -y'
