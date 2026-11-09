@@ -436,10 +436,31 @@ Install_Missing_Packages() {
   $PM install -y --skip-broken "${Missing[@]}" || echo "WARNING: could not install: ${Missing[*]} (the upgrade continues, check the output above)."
 }
 
+# A server that installed gf-release long ago can still carry a repository file whose mirror list is on ghettoforge.org (now a
+# parked domain), and every dnf command then stops at that repository. The host of an active mirrorlist line is switched to
+# ghettoforge.net after a copy of the file is made next to it. A file without that host is not touched. It returns 0 when it
+# reported something and 1 when there was nothing to change.
+Gf_Repo_Repair() {
+  local Repo="${CP_GF_REPO_FILE:-/etc/yum.repos.d/gf.repo}" Backup
+  [[ -f "$Repo" ]] || return 1
+  grep -Eq '^[[:space:]]*mirrorlist[[:space:]]*=[[:space:]]*https?://mirrorlist\.ghettoforge\.org/' "$Repo" || return 1
+  Backup="$Repo.before-ghettoforge-net.$(date +%Y%m%d%H%M%S)"
+  if ! cp -p "$Repo" "$Backup" ; then
+    echo "WARNING: could not make a copy of $Repo so it was not changed (dnf may stop at the GhettoForge repository)."
+    return 0
+  fi
+  if sed -E -i 's#^([[:space:]]*mirrorlist[[:space:]]*=[[:space:]]*)https?://mirrorlist\.ghettoforge\.org/#\1https://mirrorlist.ghettoforge.net/#' "$Repo" ; then
+    echo "The GhettoForge repository file pointed at the parked ghettoforge.org domain. Its mirror list now uses ghettoforge.net (copy of the old file: $Backup)."
+  else
+    echo "WARNING: could not change $Repo (a copy of it is at $Backup and dnf may stop at the GhettoForge repository)."
+  fi
+  return 0
+}
+
 Gf_Release_Setup() {
   local Url
   if rpm -q gf-release > /dev/null 2>&1 ; then
-    echo "gf-release is already installed, leaving the GhettoForge repository files alone."
+    Gf_Repo_Repair || echo "gf-release is already installed, leaving the GhettoForge repository files alone."
     return 0
   fi
   if [[ "$Server_Country" = "CN" ]] ; then
