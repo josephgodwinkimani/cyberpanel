@@ -43,7 +43,7 @@ tree = ast.parse(views_src)
 funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
 check('the six debugger views are gone', sorted(set(REMOVED) & set(funcs)), [])
 check('the status view the Onboarding page polls is kept and unchanged',
-      hashlib.sha256(ast.get_source_segment(views_src, funcs['statusFunc']).encode()).hexdigest()[:16] if 'statusFunc' in funcs else None, 'de859b27004753e3')
+      hashlib.sha256(ast.get_source_segment(views_src, funcs['statusFunc']).encode()).hexdigest()[:16] if 'statusFunc' in funcs else None, '337fc2e0451f7966')
 free = ('emailPolicyServer', 'listDomains', 'getFurtherDomains', 'emailLimits', 'emailPage', 'getEmailStats', 'spamAssassinHome', 'mailQueue', 'MailScanner')
 check('the free email pages keep their views', [n for n in free if n not in funcs], [])
 

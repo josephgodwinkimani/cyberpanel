@@ -5,7 +5,6 @@ from random import randint
 from django.shortcuts import redirect, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from cloudAPI.cloudManager import CloudManager
 from loginSystem.views import loadLoginPage
 from .databaseManager import DatabaseManager
 from .mysqlOptimizer import MySQLOptimizer
