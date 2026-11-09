@@ -5,12 +5,12 @@
 # It never changes the repository, never touches the network and never runs on a server as part
 # of an upgrade. Nothing calls it. It only reads git objects and writes to a private temp folder.
 #
-# Usage: CPScripts/port_check.sh [--base REF]      (default base: origin/v2.3.9)
+# Usage: CPScripts/port_check.sh [--base REF]      (default base: the newest origin/vX.Y.Z, else origin/v2.3.9)
 #        Run it with the branch to check checked out. It compares HEAD with the merge base of REF.
 # Exit:  0 no check failed (SKIP lines are listed and are NOT proof)   1 a check failed   2 bad usage
 #
 # What it checks (added lines and changed files only, never the whole tree):
-#   branch          HEAD is not on a production branch (v2.3.9 or main)
+#   branch          HEAD is not on main or a release branch (vX.Y.Z such as v2.3.9 or v3.0.0)
 #   commit-rules    no co-author or "Generated with" trailer, no em dash, no AI author or committer
 #   stray-files     no *.bak *.orig *.rej *.swp, no file ending in ~, no file called nul
 #   modes           no mode change of an existing file and no new symlink
@@ -31,7 +31,10 @@
 # This script and its test are excluded from the content checks, because they must name the
 # patterns they look for. The environment variable PORT_CHECK_PYTHON overrides the Python used.
 
-BASE="origin/v2.3.9"
+# The default base is the newest release branch on origin (origin/vX.Y.Z in version order), so a branch cut for the current
+# release is compared with it. origin/v2.3.9 is used when no release branch is known.
+BASE="$(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/v*' 2>/dev/null | grep -E '^origin/v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+[ -n "$BASE" ] || BASE="origin/v2.3.9"
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE="${2:-}"; shift 2 ;;
@@ -79,11 +82,13 @@ grep -Ev "^CPScripts/(port_check|test_port_check)\.sh:" "$TMP/added_all.txt" > "
 
 # branch -------------------------------------------------------------------------------------
 BR="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
-case "$BR" in
-  v2.3.9|main) fail "branch" "HEAD is on '$BR': a change must have its own branch" ;;
-  HEAD)        pass "branch (detached HEAD, nothing to compare)" ;;
-  *)           pass "branch ($BR)" ;;
-esac
+if [ "$BR" = "main" ] || [[ "$BR" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  fail "branch" "HEAD is on '$BR': a change must have its own branch"
+elif [ "$BR" = "HEAD" ]; then
+  pass "branch (detached HEAD, nothing to compare)"
+else
+  pass "branch ($BR)"
+fi
 
 # commit-rules -------------------------------------------------------------------------------
 git log --format='%H%x09%B%x1e' "$MB..HEAD" > "$TMP/msgs.txt"

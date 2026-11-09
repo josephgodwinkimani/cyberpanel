@@ -200,6 +200,32 @@ run "commit-rules blocks an AI author" 1 'FAIL  commit-rules'
 git checkout -q -B v2.3.9 base; printf 'x\n' >> c.txt; commit
 run "branch blocks HEAD on v2.3.9" 1 'FAIL  branch'
 
+# 27a every release branch name and main are protected, a name with a suffix is not
+git checkout -q -B v3.0.0 base; printf 'x\n' >> c.txt; commit
+run "branch blocks HEAD on v3.0.0" 1 'FAIL  branch'
+git checkout -q -B v10.2.15 base; printf 'x\n' >> c.txt; commit
+run "branch blocks HEAD on v10.2.15" 1 'FAIL  branch'
+git checkout -q -B main base; printf 'x\n' >> c.txt; commit
+run "branch blocks HEAD on main" 1 'FAIL  branch'
+git checkout -q -B v3.0.0-fix base; printf 'x\n' >> c.txt; commit
+run "branch allows v3.0.0-fix (a release name with a suffix is a feature branch)" 0 'PASS  branch \(v3.0.0-fix\)'
+
+# 27b the default base is the newest release branch on origin by version order
+branch; printf 'x\n' >> c.txt; commit
+for r in v2.3.9 v3.0.0 v3.0.9 v3.0.10 v3.1.0-rc main; do git update-ref "refs/remotes/origin/$r" base; done
+out="$(bash "$CHECK" 2>&1)"; rc=$?
+if [ "$rc" = 0 ] && echo "$out" | grep -q '^base: origin/v3.0.10 '; then ok "default base is origin/v3.0.10 (version order, no -rc name, not main)"; else nok "default base is origin/v3.0.10 (exit $rc)" "$out"; fi
+git update-ref -d refs/remotes/origin/v3.0.10
+out="$(bash "$CHECK" 2>&1)"; rc=$?
+if [ "$rc" = 0 ] && echo "$out" | grep -q '^base: origin/v3.0.9 '; then ok "default base moves to origin/v3.0.9 when v3.0.10 is gone"; else nok "default base moves to origin/v3.0.9 (exit $rc)" "$out"; fi
+out="$(bash "$CHECK" --base base 2>&1)"; rc=$?
+if [ "$rc" = 0 ] && echo "$out" | grep -q '^base: base '; then ok "--base overrides the default"; else nok "--base overrides the default (exit $rc)" "$out"; fi
+
+# 27c with no release branch known the default is origin/v2.3.9 (reported as not found here, there is no such ref in the test repository)
+for r in v2.3.9 v3.0.0 v3.0.9 v3.1.0-rc main; do git update-ref -d "refs/remotes/origin/$r"; done
+out="$(bash "$CHECK" 2>&1)"; rc=$?
+if [ "$rc" = 2 ] && echo "$out" | grep -q 'base ref not found: origin/v2.3.9'; then ok "without a release branch the default base is origin/v2.3.9"; else nok "without a release branch the default base is origin/v2.3.9 (exit $rc)" "$out"; fi
+
 # 28 deleting a file is fine
 branch; git rm -q old.txt; git commit -q -m "remove"
 run "deleting a file passes" 0 'failed: 0'
