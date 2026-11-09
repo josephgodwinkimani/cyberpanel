@@ -2471,6 +2471,17 @@ milter_default_action = accept
         return " --exclude='openlitespeed*' --exclude='mariadb*' --exclude='MariaDB*' --exclude='openssh*' --exclude='kernel*'"
 
     @staticmethod
+    def package_installed(name):
+        """True when an rpm or deb package of that name is installed, so that no install command is run for it."""
+        for command in ('rpm -q --whatprovides %s' % name, 'dpkg -s %s' % name):
+            try:
+                if subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                    return True
+            except BaseException:
+                pass
+        return False
+
+    @staticmethod
     def upgrade_crowdsec():
         try:
             # An installed CrowdSec belongs to the administrator: never touch its configuration, acquisition file or API port
@@ -3038,8 +3049,9 @@ echo $oConfig->Save() ? 'Done' : 'Error';
                 command = 'yum install lsphp82* -y'
                 subprocess.call(command, shell=True)
 
-            command = 'yum install lsphp83* -y'
-            subprocess.call(command, shell=True)
+            if Upgrade.installedOutput.find('lsphp83') == -1:
+                command = 'yum install lsphp83* -y'
+                subprocess.call(command, shell=True)
 
         except:
             command = 'DEBIAN_FRONTEND=noninteractive apt-get -y install ' \
@@ -4047,8 +4059,9 @@ pm.max_spare_servers = 3
 
             if Upgrade.FindOperatingSytem() == CENTOS7 or Upgrade.FindOperatingSytem() == CENTOS8\
                     or Upgrade.FindOperatingSytem() == openEuler20 or Upgrade.FindOperatingSytem() == openEuler22:
-                command = "yum install quota -y"
-                Upgrade.executioner(command, command, 0, True)
+                if not Upgrade.package_installed('quota'):
+                    command = "yum install quota -y"
+                    Upgrade.executioner(command, command, 0, True)
 
                 if Upgrade.edit_fstab('/', '/') == 0:
                     print("Quotas will not be abled as we failed to modify fstab file.")
@@ -4081,8 +4094,9 @@ pm.max_spare_servers = 3
                 command = 'apt update -y'
                 Upgrade.executioner(command, command, 0, True)
 
-                command = 'apt install quota -y'
-                Upgrade.executioner(command, command, 0, True)
+                if not Upgrade.package_installed('quota'):
+                    command = 'apt install quota -y'
+                    Upgrade.executioner(command, command, 0, True)
 
                 command = "find /lib/modules/ -type f -name '*quota_v*.ko*'"
 

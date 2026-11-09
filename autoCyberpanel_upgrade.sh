@@ -408,21 +408,71 @@ Apt_System_Upgrade() {
 export CP_UPGRADE_SYSTEM_PACKAGES="$System_Update"
 # END system package policy
 
+# BEGIN prerequisite package policy
+# A plain "yum install" or "apt install" of an installed package upgrades it, so prerequisites are installed only when
+# they are missing.
+Install_Missing_Packages() {
+  local PM Pkg Missing=()
+  PM=$(Package_Manager)
+  for Pkg in "$@" ; do
+    rpm -q --whatprovides "$Pkg" > /dev/null 2>&1 || Missing+=("$Pkg")
+  done
+  if [[ ${#Missing[@]} -eq 0 ]] ; then
+    echo "Required packages are already installed, nothing to install."
+    return 0
+  fi
+  echo "Installing the missing packages only: ${Missing[*]}"
+  $PM install -y --skip-broken "${Missing[@]}" || echo "WARNING: could not install: ${Missing[*]} (the upgrade continues, check the output above)."
+}
+
+Gf_Release_Setup() {
+  local Url
+  if rpm -q gf-release > /dev/null 2>&1 ; then
+    echo "gf-release is already installed, leaving the GhettoForge repository files alone."
+    return 0
+  fi
+  if [[ "$Server_Country" = "CN" ]] ; then
+    Url="https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.$1.noarch.rpm"
+  else
+    # The project moved from ghettoforge.org (now a parked domain) to ghettoforge.net.
+    Url="https://mirror.ghettoforge.net/distributions/gf/gf-release-latest.gf.$1.noarch.rpm"
+  fi
+  dnf --nogpg install -y "$Url" || echo "WARNING: could not install gf-release from $Url (the upgrade continues)."
+}
+
+Litespeed_Repo_Setup() {
+  local Repo="${CP_LITESPEED_REPO_FILE:-/etc/yum.repos.d/litespeed.repo}" Url Tmp
+  if [[ -s "$Repo" ]] && grep -q '^\[litespeed\]' "$Repo" ; then
+    echo "The LiteSpeed repository file is present, leaving it as it is."
+    return 0
+  fi
+  if [[ "$Server_Country" = "CN" ]] ; then
+    Url=https://cyberpanel.sh/litespeed/litespeed_cn.repo
+  else
+    Url=https://cyberpanel.sh/litespeed/litespeed.repo
+  fi
+  Tmp=$(mktemp) || Upgrade_Fail "Could not create a temporary file."
+  if curl -fsS -o "$Tmp" "$Url" && grep -q '^\[litespeed\]' "$Tmp" ; then
+    mv -f "$Tmp" "$Repo" && chmod 644 "$Repo"
+  else
+    rm -f "$Tmp"
+    Upgrade_Fail "Could not download the LiteSpeed repository file from $Url. The existing repository files were not changed."
+  fi
+}
+# END prerequisite package policy
+
 Pre_Upgrade_Setup_Repository() {
 if [[ "$Server_OS" = "CentOS" ]] ; then
   rm -f /etc/yum.repos.d/CyberPanel.repo
-  rm -f /etc/yum.repos.d/litespeed.repo
-  if [[ "$Server_Country" = "CN" ]] ; then
-    curl -o /etc/yum.repos.d/litespeed.repo https://cyberpanel.sh/litespeed/litespeed_cn.repo
-  else
-    curl -o /etc/yum.repos.d/litespeed.repo https://cyberpanel.sh/litespeed/litespeed.repo
-  fi
+  Litespeed_Repo_Setup
   yum clean all
   System_Package_Update
-  yum autoremove epel-release -y
-  rm -f /etc/yum.repos.d/epel.repo
-  rm -f /etc/yum.repos.d/epel.repo.rpmsave
-  yum autoremove epel-release -y
+  if [[ "$System_Update" = "1" ]] ; then
+    yum autoremove epel-release -y
+    rm -f /etc/yum.repos.d/epel.repo
+    rm -f /etc/yum.repos.d/epel.repo.rpmsave
+    yum autoremove epel-release -y
+  fi
 #all pre-upgrade operation for CentOS both 7/8
 
   if [[ "$Server_OS_Version" = "7" ]] ; then
@@ -488,7 +538,7 @@ EOF
 
     System_Package_Update
 
-    yum install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel gpgme-devel curl-devel git socat openssl-devel MariaDB-shared mariadb-devel python36u python36u-pip python36u-devel bind-utils
+    Install_Missing_Packages wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel gpgme-devel curl-devel git socat openssl-devel MariaDB-shared mariadb-devel python36u python36u-pip python36u-devel bind-utils
 
     Pre_Upgrade_CentOS7_MySQL
 
@@ -505,32 +555,24 @@ EOF
 #EOF
   rm -f /etc/yum.repos.d/CentOS-PowerTools-CyberPanel.repo
 
-  if [[ "$Server_Country" = "CN" ]] ; then
-    dnf --nogpg install -y https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el8.noarch.rpm
-  else
-    dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el8.noarch.rpm
-  fi
+  Gf_Release_Setup el8
 
-  dnf install epel-release -y
+  Install_Missing_Packages epel-release
 
-  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
-  dnf install gpgme-devel -y
-  dnf install python3 -y
+  Install_Missing_Packages wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
+  Install_Missing_Packages gpgme-devel
+  Install_Missing_Packages python3
 
   elif [[ "$Server_OS_Version" = "9" ]] ; then
   rm -f /etc/yum.repos.d/CentOS-PowerTools-CyberPanel.repo
 
-  if [[ "$Server_Country" = "CN" ]] ; then
-    dnf --nogpg install -y https://cyberpanel.sh/mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el9.noarch.rpm
-  else
-    dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el9.noarch.rpm
-  fi
+  Gf_Release_Setup el9
 
-  dnf install epel-release -y
+  Install_Missing_Packages epel-release
 
-  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
-  dnf install gpgme-devel -y
-  dnf install python3 -y
+  Install_Missing_Packages wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-connector-c-devel curl-devel git platform-python-devel tar socat bind-utils
+  Install_Missing_Packages gpgme-devel
+  Install_Missing_Packages python3
   fi
 elif [[ "$Server_OS" = "Ubuntu" ]] ; then
 
@@ -538,14 +580,14 @@ elif [[ "$Server_OS" = "Ubuntu" ]] ; then
   export DEBIAN_FRONTEND=noninteractive ; Apt_System_Upgrade apt-get -o Dpkg::Options::="--force-confold" upgrade -y
 
   if [[ "$Server_OS_Version" = "22" ]] ; then
-    DEBIAN_FRONTEND=noninteracitve apt install -y dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
+    DEBIAN_FRONTEND=noninteracitve apt install -y --no-upgrade dnsutils net-tools htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git socat vim unzip zip libmariadb-dev-compat libmariadb-dev
 
   else
-    DEBIAN_FRONTEND=noninteracitve apt install -y htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libmariadbclient-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git dnsutils
+    DEBIAN_FRONTEND=noninteracitve apt install -y --no-upgrade htop telnet libcurl4-gnutls-dev libgnutls28-dev libgcrypt20-dev libattr1 libattr1-dev liblzma-dev libgpgme-dev libmariadbclient-dev libcurl4-gnutls-dev libssl-dev nghttp2 libnghttp2-dev idn2 libidn2-dev libidn2-0-dev librtmp-dev libpsl-dev nettle-dev libgnutls28-dev libldap2-dev libgssapi-krb5-2 libk5crypto3 libkrb5-dev libcomerr2 libldap2-dev virtualenv git dnsutils
   fi
-  DEBIAN_FRONTEND=noninteractive apt install -y python3-pip
-  DEBIAN_FRONTEND=noninteractive apt install -y build-essential libssl-dev libffi-dev python3-dev
-  DEBIAN_FRONTEND=noninteractive apt install -y python3-venv
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-upgrade python3-pip
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-upgrade build-essential libssl-dev libffi-dev python3-dev
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-upgrade python3-venv
 
   ### fix for pip issue on ubuntu 22
 
@@ -583,9 +625,9 @@ if [[ "$Server_OS" = "openEuler" ]] ; then
   yum clean all
   System_Package_Update
 
-  dnf install -y wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git python3-devel tar socat bind-utils
-  dnf install gpgme-devel -y
-  dnf install python3 -y
+  Install_Missing_Packages wget strace htop net-tools telnet curl which bc telnet htop libevent-devel gcc libattr-devel xz-devel mariadb-devel curl-devel git python3-devel tar socat bind-utils
+  Install_Missing_Packages gpgme-devel
+  Install_Missing_Packages python3
 fi
 #all pre-upgrade operation for openEuler
 }
