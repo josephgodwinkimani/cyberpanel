@@ -1830,7 +1830,14 @@ class backupUtilities:
 
                 databases.append({'databaseName': str(items.dbName), 'databaseUser': str(userToTry), 'password': str(dbuser.password)})
                 self.CheckIfSleepNeeded()
-                mysqlUtilities.mysqlUtilities.createDatabaseBackup(items.dbName, self.BackupDataPath)
+
+                # createDatabaseBackup returns 0 when mysqldump fails. Ignoring that left an archive without its SQL
+                # dump that still reported success, so the backup now stops here and says which database failed.
+                if mysqlUtilities.mysqlUtilities.createDatabaseBackup(items.dbName, self.BackupDataPath) == 0:
+                    errorMessage = 'Failed to back up database %s. Check the CyberPanel log for the mysqldump error.' % (items.dbName)
+                    logging.CyberCPLogFileWriter.writeToFile(
+                        'While creating backup for %s: %s' % (self.website.domain, errorMessage))
+                    return 0, errorMessage
 
             DataJson['databases'] = databases
             DataJsonPath = '%s/%s' % (self.BackupPath, 'databases.json')
