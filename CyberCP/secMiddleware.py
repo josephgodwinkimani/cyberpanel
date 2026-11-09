@@ -36,7 +36,7 @@ class secMiddleware:
             logging.writeToFile(FinalURL)
 
         if pathActual == "/backup/localInitiate" or  pathActual == '/' or pathActual == '/verifyLogin' or pathActual == '/logout' or pathActual.startswith('/api')\
-                or pathActual.endswith('/webhook') or pathActual.startswith('/cloudAPI') or pathActual.endswith('/gitNotify'):
+                or pathActual.endswith('/webhook') or pathActual.endswith('/gitNotify'):
             pass
         else:
             if os.path.exists(ProcessUtilities.debugPath):
@@ -157,7 +157,6 @@ class secMiddleware:
                         'webhook') > -1 or FinalURL.find(
                         'saveSpamAssassinConfigurations') > -1 or FinalURL.find(
                         'docker') > -1 or FinalURL.find(
-                        'cloudAPI') > -1 or FinalURL.find(
                         'verifyLogin') > -1 or FinalURL.find('submitUserCreation') > -1:
                         continue
                     if key == 'MainDashboardCSS' or key == 'ownerPassword' or key == 'scriptUrl' or key == 'CLAMAV_VIRUS' or key == "Rspamdserver" or key == 'smtpd_milters' \
