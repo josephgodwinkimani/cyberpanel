@@ -58,8 +58,9 @@ check('nothing in the tree names either helper', hits, [])
 check('the acme account file is no longer written or searched for the Cloudflare account values by these modules',
       [(rel, w) for rel, src in (('plogical/acl.py', ACL), ('plogical/dnsUtilities.py', DNSU)) for w in ('SAVED_CF' + '_Key', 'SAVED_CF' + '_Email') if w in src], [])
 
-PINS_ACL = {'CheckIPBackupObjectOwner': 'eb4a2533fcc6cc9b', 'CheckIPPluginObjectOwner': '06a61c8e6c107d0b', 'GetServerIP': 'fe182f4839056536', 'GetALLWPObjects': '75b403e73a726349'}
-check('four neighbouring access helpers are exactly as they were', {n: digest(ACL, acl[n]) if n in acl else None for n in PINS_ACL}, PINS_ACL)
+# only helpers that no other change removes are pinned: the pull request that removes the paid WordPress site manager backend code deletes CheckIPBackupObjectOwner and GetALLWPObjects from this file
+PINS_ACL = {'CheckIPPluginObjectOwner': '06a61c8e6c107d0b', 'GetServerIP': 'fe182f4839056536'}
+check('two neighbouring access helpers that stay are exactly as they were', {n: digest(ACL, acl[n]) if n in acl else None for n in PINS_ACL}, PINS_ACL)
 PINS_DNS = {'getDNSZones': '868638bd4877e957', 'deleteDNSRecord': 'ebb5f5cc66a1ff8a', 'getZoneObject': '048e6df24da9a1d1', 'loadCFKeys': '9d24a75804119f91'}
 check('four neighbouring DNS helpers are exactly as they were', {n: digest(DNSU, dns[n]) if n in dns else None for n in PINS_DNS}, PINS_DNS)
 check('the free Cloudflare DNS sync functions are still there', [n for n in ('cfTemplate', 'createDNSRecordCloudFlare', 'loadCFKeys') if n not in dns], [])
