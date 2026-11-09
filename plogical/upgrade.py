@@ -3868,9 +3868,7 @@ pm.max_spare_servers = 3
 
         ##
 
-        ### Disable version upgrade too
-
-        # Upgrade.upgradeVersion()
+        Upgrade.upgradeVersion()
 
         Upgrade.UpdateMaxSSLCons()
 
