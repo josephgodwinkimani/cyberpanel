@@ -282,41 +282,61 @@ class Upgrade:
         ###
 
     @staticmethod
+    def write_sudoers_checked(path, original, updated):
+        """Replace the sudoers file with the updated lines only when they differ and only when visudo accepts them. The new text is written beside the
+        file and moved over it in one step, so a failure never leaves a truncated sudoers file (the old code emptied the file first and wrote it again).
+        Returns True when the file was replaced."""
+        if updated == original:
+            return False
+        temporary = path + '.cyberpanel-new'
+        try:
+            with open(temporary, 'w') as new_file:
+                new_file.writelines(updated)
+            os.chmod(temporary, 0o440)
+            if subprocess.call(['visudo', '-cf', temporary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) != 0:
+                os.remove(temporary)
+                Upgrade.stdOut('The changed sudoers file was not accepted by visudo, the file was left as it is.')
+                return False
+            os.replace(temporary, path)
+            return True
+        except (OSError, IOError) as msg:
+            Upgrade.stdOut('The sudoers file was left as it is: %s' % (str(msg)))
+            try:
+                os.remove(temporary)
+            except OSError:
+                pass
+            return False
+
+    @staticmethod
+    def sudoers_without_default_rules(lines, ubuntu):
+        """The lines of a sudoers file without the default group rules the panel removes: the sudo group rule on Ubuntu and the active wheel group
+        rules that grant ALL=(ALL) elsewhere (comments and restricted wheel rules stay). The root rule is written in the long form as before."""
+        updated = []
+        for items in lines:
+            if ubuntu:
+                if items.find("%sudo ALL=(ALL:ALL)") > -1:
+                    continue
+                updated.append(items)
+            elif items.find("wheel") > -1 and items.find("ALL=(ALL)") > -1 and not items.lstrip().startswith('#'):
+                continue
+            elif items.find("root") > -1 and items.find("ALL=(ALL)") > -1 and items[0] != '#':
+                updated.append('root	ALL=(ALL:ALL) 	ALL\n')
+            else:
+                updated.append(items)
+        return updated
+
+    @staticmethod
     def fixSudoers():
         try:
-            distroPath = '/etc/lsb-release'
+            ubuntu = os.path.exists('/etc/lsb-release')
+            path = '/etc/sudoers'
 
-            if os.path.exists(distroPath):
-                fileName = '/etc/sudoers'
-                data = open(fileName, 'r').readlines()
-
-                writeDataToFile = open(fileName, 'w')
-                for line in data:
-                    if line.find("%sudo ALL=(ALL:ALL)") > -1:
-                        continue
-                    else:
-                        writeDataToFile.write(line)
-                writeDataToFile.close()
-
-            else:
-                try:
-                    path = "/etc/sudoers"
-
-                    data = open(path, 'r').readlines()
-
-                    writeToFile = open(path, 'w')
-
-                    for items in data:
-                        if items.find("wheel") > -1 and items.find("ALL=(ALL)"):
-                            continue
-                        elif items.find("root") > -1 and items.find("ALL=(ALL)") > -1 and items[0] != '#':
-                            writeToFile.writelines('root	ALL=(ALL:ALL) 	ALL\n')
-                        else:
-                            writeToFile.writelines(items)
-
-                    writeToFile.close()
-                except:
-                    pass
+            try:
+                data = open(path, 'r').readlines()
+                Upgrade.write_sudoers_checked(path, data, Upgrade.sudoers_without_default_rules(data, ubuntu))
+            except IOError:
+                if ubuntu:
+                    raise
 
             command = "chsh -s /bin/false cyberpanel"
             Upgrade.executioner(command, 0)
