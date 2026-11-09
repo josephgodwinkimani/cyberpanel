@@ -32,7 +32,4 @@ urlpatterns = [
     re_path(r'^installOpenDKIM$', views.installOpenDKIM, name='installOpenDKIM'),
     re_path(r'^installStatusOpenDKIM$', views.installStatusOpenDKIM, name='installStatusOpenDKIM'),
 
-    ### email limits
-    re_path(r'^EmailLimits$', views.EmailLimits, name='EmailLimits'),
-    re_path(r'^SaveEmailLimitsNew$', views.SaveEmailLimitsNew, name='SaveEmailLimitsNew'),
 ]
