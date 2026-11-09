@@ -4318,6 +4318,8 @@ pm.max_spare_servers = 3
     @staticmethod
     def installDNS_CyberPanelACMEFile():
         filePath = '/root/.acme.sh/dns_cyberpanel.sh'
+        ## a server that never issued a certificate through the panel has no such folder and the copy below stopped the upgrade
+        os.makedirs(os.path.dirname(filePath), exist_ok=True)
         if os.path.exists(filePath):
             os.remove(filePath)
         shutil.copy('/usr/local/CyberCP/install/dns_cyberpanel.sh', filePath)
