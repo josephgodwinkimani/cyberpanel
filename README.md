@@ -111,6 +111,28 @@ You can [drop in a sql backup script](https://github.com/josephgodwinkimani/cybe
 
 3. A proper update is released here for use
 
+# What this fork takes from the main repo
+
+This fork is not a mirror of [usmannasir/cyberpanel](https://github.com/usmannasir/cyberpanel). It started from release 2.3.8 of the main repo and adopts only selected changes. Each change is its own pull request with its own test script in `CPScripts/`. Changes are never merged wholesale from the main repo.
+
+Adopted or added here:
+
+* Security fixes for the logs page, database deletion, backups and backup cancelling, user and ACL changes by non-admins, the cron worker and the PHP pool tuning page. Passwords and tokens are generated with the `secrets` module.
+* Safer upgrades: an installed CrowdSec and the rclone backup script are left untouched, system package updates are opt-in, only missing prerequisites are installed, the Python requirement files go into the virtual environments, and the panel environments are restored when an upgrade fails.
+* Fixes for the Cloudflare DNS sync and for the GhettoForge repository address used by the mail installers.
+* The installed version is recorded in the database after an upgrade and the version management page follows the selected branch.
+* Check and mitigation scripts for the PHP2Shell vulnerabilities (`CPScripts/php2shell_check.sh` and `CPScripts/php2shell_mitigate.sh`).
+
+Not taken from the main repo:
+
+* Paid add-ons and every page or endpoint that asks their licence service are removed. This covers the WordPress site manager, the wildcard SSL add-on, Email Debugger, Rspamd Manager, the Cloud API, the Google Drive and snapshot based backup add-ons, the Apache backend page and the high availability app.
+* Other upstream changes are reviewed one at a time and adopted only when they fix a defect or a security problem without changing how existing installations behave.
+
+# Releases and checks
+
+* Release branches are named like `v3.0.0`. The upgrade command above reads `version.txt` on `main` and downloads the upgrade script from the branch that file names.
+* Run `bash CPScripts/port_check.sh` on a branch before it becomes a pull request. Every test script in `CPScripts/` can be run on its own.
+
 # How to protect your CyberPanel server:
 
 * [Configure your Firewall](https://community.cyberpanel.net/t/1-firewall/132) 
