@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'emailPremium',
     'emailMarketing',
     'cloudAPI',
-    'highAvailability',
     's3Backups',
     'dockerManager',
     'containerization',
