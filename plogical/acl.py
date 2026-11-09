@@ -958,25 +958,6 @@ class ACLManager:
         return ipData.split('\n', 1)[0]
 
     @staticmethod
-    def CheckForPremFeature(feature):
-        try:
-
-            if ProcessUtilities.decideServer() == ProcessUtilities.ent:
-                return 1
-
-            url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-            data = {
-                "name": feature,
-                "IP": ACLManager.GetServerIP()
-            }
-
-            import requests
-            response = requests.post(url, data=json.dumps(data))
-            return response.json()['status']
-        except:
-            return 1
-
-    @staticmethod
     def CheckIPPluginObjectOwner(currentACL, backupobj, user):
         if currentACL['admin'] == 1:
             return 1
