@@ -1,5 +1,5 @@
 """Tests that the Community entry of the sidebar in the base template opens the wiki of the fork and nothing else changed around it: the entry still
-opens in a new tab, keeps its id, icon and label, the Community button of the page header opens the same address, and no link to the old address is left.
+opens in a new tab, keeps its id, icon and label, and no link to the old address is left. (The page header has no Community button any more, see test_header_toolbar_buttons.py.)
 The template is only read. Run: python3 CPScripts/test_community_sidebar_link.py"""
 import os
 import re
@@ -46,11 +46,9 @@ SRC = open(os.path.join(ROOT, REL), encoding='utf-8').read()
 check('the sidebar Community entry opens the wiki of the fork in a new tab', problems(SRC), [])
 check('the sidebar entry keeps its icon and label', all(x in SRC for x in ('icon-comments-o', '<span>{% trans "Community" %}</span>')), True)
 check('exactly one sidebar Community entry', len(re.findall(r'id="sidebar-menu-item-community"', SRC)), 1)
-check('the header Community button opens the wiki of the fork in a new tab', re.search(r'class="header-btn" target="_blank" href="%s"' % re.escape(WIKI), SRC) is not None, True)
 check('the old address is not in the template any more', OLD in SRC, False)
 check('the template has no carriage returns', b'\r' in open(os.path.join(ROOT, REL), 'rb').read(), False)
-LAST = SRC.rfind(WIKI)  # the sidebar entry comes after the header button in the template
-check('control: the old address on the sidebar entry is reported', len(problems(SRC[:LAST] + OLD + SRC[LAST + len(WIKI):])) > 0, True)
+check('control: the old address on the sidebar entry is reported', len(problems(SRC.replace(WIKI, OLD, 1))) > 0, True)
 check('control: a missing new tab target is reported', len(problems(SRC.replace('id="sidebar-menu-item-community" target="_blank"', 'id="sidebar-menu-item-community"', 1))) > 0, True)
 
 print('----')
