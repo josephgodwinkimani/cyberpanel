@@ -747,6 +747,12 @@ chmod 700 /usr/bin/adminPass
 rm -f /usr/bin/php
 ln -s /usr/local/lsws/lsphp74/bin/php /usr/bin/php
 
+# PHP2Shell (CVE-2026-109618 / CVE-2026-109619): interim mitigation, refresh the control panel's PHP copy and restart
+# lsphp workers. Best effort: it never aborts the upgrade. See CPScripts/php2shell_mitigate.sh.
+if [[ -f /usr/local/CyberCP/CPScripts/php2shell_mitigate.sh ]] ; then
+  bash /usr/local/CyberCP/CPScripts/php2shell_mitigate.sh --refresh-panel --restart || true
+fi
+
 if [[ -f /etc/cyberpanel/webadmin_passwd ]]; then
   chmod 600 /etc/cyberpanel/webadmin_passwd
 fi
