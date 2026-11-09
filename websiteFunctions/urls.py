@@ -13,56 +13,6 @@ urlpatterns = [
     # New domain
     path('CreateNewDomain', views.CreateNewDomain, name='CreateNewDomain'),
 
-    # WordPress
-    path('createWordpress', views.WPCreate, name='createWordpress'),
-    path('ListWPSites', views.ListWPSites, name='ListWPSites'),
-    path('WPHome', views.WPHome, name='WPHome'),
-    path('RestoreBackups', views.RestoreBackups, name='RestoreBackups'),
-    path('RestoreHome', views.RestoreHome, name='RestoreHome'),
-    path('AutoLogin', views.AutoLogin, name='AutoLogin'),
-    path('RemoteBackupConfig', views.RemoteBackupConfig, name='RemoteBackupConfig'),
-    path('BackupfileConfig', views.BackupfileConfig, name='BackupfileConfig'),
-    path('AddRemoteBackupsite', views.AddRemoteBackupsite, name='AddRemoteBackupsite'),
-    path('pricing', views.WordpressPricing, name='pricing'),
-
-    # WordPress Ajax
-    path('submitWorpressCreation', views.submitWorpressCreation, name='submitWorpressCreation'),
-    path('FetchWPdata', views.FetchWPdata, name='FetchWPdata'),
-    path('GetCurrentPlugins', views.GetCurrentPlugins, name='GetCurrentPlugins'),
-    path('GetCurrentThemes', views.GetCurrentThemes, name='GetCurrentThemes'),
-    path('UpdateWPSettings', views.UpdateWPSettings, name='UpdateWPSettings'),
-    path('UpdatePlugins', views.UpdatePlugins, name='UpdatePlugins'),
-    path('DeletePlugins', views.DeletePlugins, name='DeletePlugins'),
-    path('ChangeStatus', views.ChangeStatus, name='ChangeStatus'),
-    path('UpdateThemes', views.UpdateThemes, name='UpdateThemes'),
-    path('DeleteThemes', views.DeleteThemes, name='DeleteThemes'),
-    path('StatusThemes', views.StatusThemes, name='StatusThemes'),
-    path('CreateStagingNow', views.CreateStagingNow, name='CreateStagingNow'),
-    path('fetchstaging', views.fetchstaging, name='fetchstaging'),
-    path('fetchDatabase', views.fetchDatabase, name='fetchDatabase'),
-    path('SaveUpdateConfig', views.SaveUpdateConfig, name='SaveUpdateConfig'),
-    path('DeploytoProduction', views.DeploytoProduction, name='DeploytoProduction'),
-    path('WPCreateBackup', views.WPCreateBackup, name='WPCreateBackup'),
-    path('RestoreWPbackupNow', views.RestoreWPbackupNow, name='RestoreWPbackupNow'),
-    path('dataintegrity', views.dataintegrity, name='dataintegrity'),
-    path('installwpcore', views.installwpcore, name='installwpcore'),
-    path('SaveBackupConfig', views.SaveBackupConfig, name='SaveBackupConfig'),
-    path('SaveBackupSchedule', views.SaveBackupSchedule, name='SaveBackupSchedule'),
-    path('AddWPsiteforRemoteBackup', views.AddWPsiteforRemoteBackup, name='AddWPsiteforRemoteBackup'),
-    path('UpdateRemoteschedules', views.UpdateRemoteschedules, name='UpdateRemoteschedules'),
-    path('ScanWordpressSite', views.ScanWordpressSite, name='ScanWordpressSite'),
-
-    # AddPlugin
-    path('ConfigurePlugins', views.ConfigurePlugins, name='ConfigurePlugins'),
-    path('Addnewplugin', views.Addnewplugin, name='Addnewplugin'),
-    path('EidtPlugin', views.EidtPlugin, name='EidtPlugin'),
-
-    # AddPlugin Ajax
-    path('SearchOnkeyupPlugin', views.SearchOnkeyupPlugin, name='SearchOnkeyupPlugin'),
-    path('AddNewpluginAjax', views.AddNewpluginAjax, name='AddNewpluginAjax'),
-    path('deletesPlgin', views.deletesPlgin, name='deletesPlgin'),
-    path('Addplugineidt', views.Addplugineidt, name='Addplugineidt'),
-
     # Website modification
     path('submitWebsiteCreation', views.submitWebsiteCreation, name='submitWebsiteCreation'),
     path('submitWebsiteDeletion', views.submitWebsiteDeletion, name='submitWebsiteDeletion'),

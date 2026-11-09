@@ -193,31 +193,6 @@ class phpUtilities:
             print("0,"+str(msg))
 
     @staticmethod
-    def GetStagingInJson(stagings):
-        try:
-
-            json_data = "["
-            checker = 0
-            counter = 1
-
-            for staging in stagings:
-                dic = { 'id': staging.wpsite.id ,'name': staging.wpsite.title, 'Domain': staging.wpsite.owner.domain, 'path':  staging.wpsite.path,
-                       #'url': reverse('WPHome', args=[staging.wpsite.owner.ProjectOwner.ProjectOwner.id, staging.wpsite.owner.ProjectOwner.id, staging.wpsite.id]),
-                       'deleteURL': '%s?ID=%s&DeleteID=%s' % (reverse('WPHome'), staging.owner.id, staging.id)
-                       }
-                if checker == 0:
-                    json_data = json_data + json.dumps(dic)
-                    checker = 1
-                else:
-                    json_data = json_data + ',' + json.dumps(dic)
-                counter = counter + 1
-
-            json_data = json_data + ']'
-            return json_data
-        except BaseException as msg:
-            return msg
-
-    @staticmethod
     def GetPHPVersionFromFile(vhFile, domainName=None):
 
         if domainName == None:

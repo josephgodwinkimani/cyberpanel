@@ -339,36 +339,6 @@
                             </div><!-- .sidebar-submenu -->
                         </li>
 
-                        <!-------------WordPress--------------------------->
-                        <li id="sidebar-menu-item-wordpress">
-                            <a href="{% url 'loadWebsitesHome' %}" title="{% trans 'WordPress' %}">
-                                <div class="glyph-icon icon-wordpress" title="{% trans 'WordPress' %}"></div>
-                                <span>{% trans "WordPress" %}</span>
-                            </a>
-                            <div class="sidebar-submenu">
-
-                                <ul>
-                                    <li><a href="{% url 'createWordpress' %}"
-                                           title="{% trans 'Deploy WordPress' %}"><span>{% trans "Deploy WordPress" %}</span></a>
-                                    </li>
-                                    <li><a href="{% url 'ListWPSites' %}"
-                                           title="{% trans 'List WordPress' %}"><span>{% trans "List WordPress" %}</span></a>
-                                    </li>
-                                    <li><a href="{% url 'ConfigurePlugins' %}"
-                                           title="{% trans 'ConfigurePlugins' %}"><span>{% trans "Configure Plugins" %}</span></a>
-                                    </li>
-                                    <li><a href="{% url 'RestoreBackups' %}"
-                                           title="{% trans 'RestoreBackups' %}"><span>{% trans "Restore Backups" %}</span></a>
-                                    </li>
-                                    <li><a href="{% url 'RemoteBackupConfig' %}"
-                                           title="{% trans 'Remote Backup' %}"><span>{% trans "Remote Backup" %}</span></a>
-                                    </li>
-                                </ul>
-
-                            </div><!-- .sidebar-submenu -->
-                        </li>
-
-
                         <!-------------Docker Sites--------------------------->
 
                         {% if admin %}
