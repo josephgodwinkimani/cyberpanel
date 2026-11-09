@@ -4,12 +4,6 @@ from . import views
 urlpatterns = [
     re_path(r'^$', views.loadBackupHome, name='loadBackupHome'),
     re_path(r'^getCurrentBackups$', views.getCurrentBackups, name='getCurrentBackups'),
-    re_path(r'^OneClickBackups$', views.OneClickBackups, name='OneClickBackups'),
-    re_path(r'^ManageOCBackups$', views.ManageOCBackups, name='ManageOCBackups'),
-    re_path(r'^RestoreOCBackups$', views.RestoreOCBackups, name='RestoreOCBackups'),
-    re_path(r'^fetchOCSites$', views.fetchOCSites, name='fetchOCSites'),
-    re_path(r'^StartOCRestore$', views.StartOCRestore, name='StartOCRestore'),
-    re_path(r'^DeployAccount$', views.DeployAccount, name='DeployAccount'),
 
     re_path(r'^backupSite$', views.backupSite, name='backupSite'),
     re_path(r'^restoreSite$', views.restoreSite, name='restoreSite'),
