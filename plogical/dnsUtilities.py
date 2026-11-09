@@ -103,8 +103,10 @@ class DNS:
                 except Exception as e:
                     return 0, str(e)
 
+            return 0, 'Cloudflare credentials are not configured.'
+
         except BaseException as msg:
-            return 0, str(e)
+            return 0, str(msg)
 
     @staticmethod
     def dnsTemplate(domain, admin):
