@@ -55,7 +55,28 @@ class PHPManager:
         except BaseException as msg:
             from plogical.CyberCPLogFileWriter import CyberCPLogFileWriter as logging
             logging.writeToFile(f'Error while finding php versions on system: {str(msg)}')
-            return ['PHP 7.0', 'PHP 7.1', 'PHP 7.2', 'PHP 7.3', 'PHP 7.4', 'PHP 8.0', 'PHP 8.1']
+            return ['PHP 7.0', 'PHP 7.1', 'PHP 7.2', 'PHP 7.3', 'PHP 7.4', 'PHP 8.0', 'PHP 8.1', 'PHP 8.2', 'PHP 8.3', 'PHP 8.4', 'PHP 8.5']
+
+    ## Highest version that counts as an established one for the fallback below. Versions newer than this are only used when fewer than two
+    ## established versions are installed, so installing PHP 8.4 or 8.5 does not change which version an existing site falls back to.
+    FALLBACK_ESTABLISHED_UP_TO = (8, 3)
+
+    @staticmethod
+    def pickFallbackVersion(versions):
+        """Version to use when the PHP version a site asks for is not installed. versions is a list like ['PHP 7.4', 'PHP 8.0'].
+        Until now this was the second last entry of the installed versions. It still is for a server that has versions up to 8.3 only,
+        and the newer versions (8.4 and up) are left out of the choice while two established ones exist, so that installing them
+        later does not move the fallback of existing sites. Raises IndexError when nothing is installed, as before."""
+        def key(version):
+            major, minor = version.split()[1].split('.')
+            return int(major), int(minor)
+
+        ordered = sorted(versions, key=key)
+        established = [v for v in ordered if key(v) <= PHPManager.FALLBACK_ESTABLISHED_UP_TO]
+        pool = established if len(established) >= 2 else ordered
+        if not pool:
+            raise IndexError('no PHP version is installed')
+        return pool[-2] if len(pool) >= 2 else pool[-1]
 
     @staticmethod
     def findApachePHPVersions():
@@ -127,7 +148,7 @@ class PHPManager:
         except BaseException as msg:
             from plogical.CyberCPLogFileWriter import CyberCPLogFileWriter as logging
             logging.writeToFile(f'Error while finding php versions on system: {str(msg)}')
-            return ['PHP 7.0', 'PHP 7.1', 'PHP 7.2', 'PHP 7.3', 'PHP 7.4', 'PHP 8.0', 'PHP 8.1']
+            return ['PHP 7.0', 'PHP 7.1', 'PHP 7.2', 'PHP 7.3', 'PHP 7.4', 'PHP 8.0', 'PHP 8.1', 'PHP 8.2', 'PHP 8.3', 'PHP 8.4', 'PHP 8.5']
 
     @staticmethod
     def getPHPString(phpVersion):
