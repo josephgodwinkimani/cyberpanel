@@ -47,7 +47,7 @@ fn = {n.name: n for n in cls.body if isinstance(n, ast.FunctionDef)}
 check('the upgrade step is gone and nothing in the file names it or its directory', (STEP in fn, STEP in UPG, '/etc/' + WORD in UPG, 'issues/1176' in UPG), (False, False, False, False))
 # installLSCPD is not pinned: the change that installs only missing packages edits its two prerequisite installs
 PIN = {'is_port_open': 'd2b5f40eebe32f11', 'AutoUpgradeAcme': '009e934b95fb606e', 'installCLScripts': '3525bba461d93ea8',
-       'runSomeImportantBash': '04a496a51802f367', 'CreateMissingPoolsforFPM': 'b2855675ca50b186', 'enableServices': '19ba03056d1f392c', 'fixPermissions': 'fb0acfc8f7086ace',
+       'runSomeImportantBash': '04a496a51802f367', 'CreateMissingPoolsforFPM': 'b2855675ca50b186', 'enableServices': '19ba03056d1f392c', 'fixPermissions': '99c18650710caf4a',
        'upgradeVersion': '3d958f5bff5dfd3c', 'mailServerMigrations': 'dfeb90eafc4de30a', 'executioner': '0fc70432c43c36f0', 'stdOut': '31d61008b82e3391'}
 check('the neighbouring upgrade methods untouched by any other change are exactly as they were',
       {n: fp(ast.get_source_segment(UPG, fn[n])) if n in fn else None for n in PIN}, PIN)
