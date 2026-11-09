@@ -943,7 +943,7 @@ class MailServerManager(multi.Thread):
                 command = 'yum install --enablerepo=gf-plus -y postfix3 postfix3-ldap postfix3-mysql postfix3-pcre'
             elif ProcessUtilities.decideDistro() == ProcessUtilities.cent8:
 
-                command = 'dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/el/8/gf/x86_64/gf-release-8-11.gf.el8.noarch.rpm'
+                command = 'dnf --nogpg install -y https://mirror.ghettoforge.net/distributions/gf/gf-release-latest.gf.el8.noarch.rpm'
                 ProcessUtilities.executioner(command)
 
                 command = 'dnf install --enablerepo=gf-plus postfix3 postfix3-mysql -y'

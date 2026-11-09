@@ -1097,10 +1097,10 @@ $cfg['Servers'][$i]['LogoutURL'] = 'phpmyadminsignin.php?logout';
                 version = int(clAPVersion.split('-')[1])
 
                 if type == 'al' and version >= 90:
-                    command = 'dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el9.noarch.rpm'
+                    command = 'dnf --nogpg install -y https://mirror.ghettoforge.net/distributions/gf/gf-release-latest.gf.el9.noarch.rpm'
                     preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
                 else:
-                    command = 'dnf --nogpg install -y https://mirror.ghettoforge.org/distributions/gf/gf-release-latest.gf.el8.noarch.rpm'
+                    command = 'dnf --nogpg install -y https://mirror.ghettoforge.net/distributions/gf/gf-release-latest.gf.el8.noarch.rpm'
                     preFlightsChecks.call(command, self.distro, command, command, 1, 0, os.EX_OSERR)
 
                 command = 'dnf install --enablerepo=gf-plus postfix3 postfix3-mysql -y'
