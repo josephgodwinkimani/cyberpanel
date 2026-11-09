@@ -311,6 +311,10 @@ class InstallCyberPanel:
 
             command = 'dnf install lsphp81* lsphp82* lsphp83* --exclude *imagick* -y --skip-broken'
             subprocess.call(command, shell=True)
+
+            ## PHP 8.4 and 8.5 on a new installation only (this method is not called by an upgrade, which never installs them)
+            command = 'dnf install lsphp84* lsphp85* --exclude *imagick* -y --skip-broken'
+            subprocess.call(command, shell=True)
         
         if self.distro == openeuler:
             command = 'dnf install lsphp71* lsphp72* lsphp73* lsphp74* lsphp80* lsphp81* lsphp82* lsphp83* -y'
