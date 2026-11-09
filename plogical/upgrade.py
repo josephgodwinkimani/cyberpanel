@@ -2710,9 +2710,10 @@ CREATE TABLE `websiteFunctions_backupsv2` (`id` integer AUTO_INCREMENT NOT NULL 
                 else:
                     Upgrade.install_missing_packages('fail2ban', 'Install Fail2Ban', 'DEBIAN_FRONTEND=noninteractive apt-get -y install --no-upgrade')
 
-                # Configure Fail2Ban for intrusion prevention
-                with open('/etc/fail2ban/jail.local', 'w') as config_file:
-                    config_file.write("""[DEFAULT]
+                # Configure Fail2Ban for intrusion prevention. An existing jail.local belongs to the administrator and is never replaced.
+                if not os.path.exists('/etc/fail2ban/jail.local'):
+                    with open('/etc/fail2ban/jail.local', 'w') as config_file:
+                        config_file.write("""[DEFAULT]
                 bantime = 1h
                 findtime = 10m
                 maxretry = 5
